@@ -145,6 +145,23 @@ a { color: inherit; text-decoration: none; }
 .platform-rank[data-rank="2"] { color: #253752; background: #c2d8f5; }
 .platform-card .platform-logo { position: absolute; inset: 0; z-index: -1; display: grid; place-items: center; background: radial-gradient(ellipse at top, #534083, #202c49 75%); color: #e2d5ff; font-size: clamp(27px, 9vw, 44px); font-weight: 850; }
 .platform-card .platform-logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.platform-card.home-platform-card {
+  aspect-ratio: auto;
+  grid-template-rows: auto minmax(39px, 1fr);
+  align-content: stretch;
+}
+.home-platform-card .platform-logo {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.home-platform-card .platform-logo img { object-fit: contain; }
+.home-platform-card .platform-summary {
+  background: linear-gradient(180deg, #9ee8c2, #67c994);
+  color: #0e3225;
+  text-shadow: none;
+}
 .rating { color: var(--accent); font-variant-numeric: tabular-nums; }
 .state { padding: 23px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); }
 .state .text-button { display: block; }

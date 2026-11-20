@@ -137,7 +137,7 @@ function copyTextForError() { return props.copy.error }
       </div>
       <div v-if="selectedBlock.state === 'ready' && selectedBlock.data.length" class="platform-grid">
         <PlatformCard v-for="(platform, index) in selection === 'featured' ? selectedBlock.data.slice(0, 10) : selectedBlock.data"
-                      :key="platform.id" class="platform-card" :platform-id="platform.id" :name="platform.name" :promotion-url="platform.promotion_url">
+                      :key="platform.id" class="platform-card home-platform-card" :platform-id="platform.id" :name="platform.name" :promotion-url="platform.promotion_url">
           <span v-if="selection === 'featured' && index < 3" class="platform-rank" :data-rank="index + 1">{{ index + 1 }}</span>
           <span class="platform-logo" aria-hidden="true">
             {{ platform.name.slice(0, 1) }}
