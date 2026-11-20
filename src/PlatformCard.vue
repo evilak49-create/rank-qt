@@ -87,7 +87,12 @@ function details(event) {
   gap: 5px;
   padding: 5px;
   border-radius: inherit;
-  background: rgb(17 22 40 / 68%);
+  background: linear-gradient(
+    to bottom,
+    rgb(17 22 40 / 24%),
+    rgb(17 22 40 / 74%) 18% 82%,
+    rgb(17 22 40 / 24%)
+  );
 }
 .platform-entry-actions :is(a, button) {
   display: grid;
