@@ -4,6 +4,7 @@ import { api } from '../api'
 import brandLogo from '../assets/pingji-logo.svg'
 import { designs } from './designs'
 import HomeConcept from './HomeConcept.vue'
+import PlatformCard from '../PlatformCard.vue'
 import DataLoading from '../DataLoading.vue'
 
 const selected = ref(null)
@@ -140,6 +141,10 @@ onMounted(() => {
         <template v-if="panel.kind === 'shop'">
           <strong>{{ item.name }}</strong><span>{{ item.points_price }} 积分</span>
         </template>
+        <PlatformCard v-else-if="panel.kind === 'platforms'" row :platform-id="item.id" :name="item.name"
+                      :promotion-url="item.promotion_url" :detail-href="'./#/platforms/' + item.id">
+          <strong>{{ item.name }}</strong><span>{{ item.rating == null ? '→' : '★ ' + item.rating }}</span>
+        </PlatformCard>
         <button v-else @click="openItem(item)">
           <strong>{{ item.title || item.name }}</strong><span>{{ item.rating == null ? '→' : '★ ' + item.rating }}</span>
         </button>

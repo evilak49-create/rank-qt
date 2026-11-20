@@ -3,6 +3,7 @@ import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { api } from '../api'
+import PlatformCard from '../PlatformCard.vue'
 import { currentRoute, go, safePath } from '../navigation'
 import MemberPagination from './MemberPagination.vue'
 
@@ -147,8 +148,10 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
         <article v-for="binding in currentBindings" :key="binding.id" class="surface stack"
           :ref="element => { if (String(binding.id) === bindingId) selectedBinding = element }"
           :class="{ 'member-focus': String(binding.id) === bindingId }">
-          <div><h3>{{ binding.platform_name }}</h3><p class="muted">{{ binding.masked_platform_account }}</p></div>
-          <p class="member-status">{{ t('保障状态 ·') }} {{ t(statuses[binding.protection_status]) || t('待确认') }}</p>
+          <PlatformCard row :platform-id="binding.platform_id" :name="binding.platform_name" :promotion-url="binding.promotion_url">
+            <h3>{{ binding.platform_name }}</h3><p class="muted">{{ binding.masked_platform_account }}</p>
+            <p class="member-status">{{ t('保障状态 ·') }} {{ t(statuses[binding.protection_status]) || t('待确认') }}</p>
+          </PlatformCard>
           <div class="member-actions">
             <button class="quiet" @click="go('/protection/bindings/' + binding.id + '/terms')">{{ t('保障条款') }}</button>
             <button class="primary" @click="go('/protection/claims/new?binding=' + binding.id)">{{ t('申请保障') }}</button>

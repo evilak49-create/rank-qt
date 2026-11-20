@@ -8,6 +8,7 @@ import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
 import { formatBrl } from '../money'
+import PlatformCard from '../PlatformCard.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
 
 const { locale, t } = useLocale()
@@ -36,6 +37,8 @@ const reviewListError = ref('')
 const reviewPage = ref(1)
 const reviewLastPage = ref(1)
 const favorite = ref(false)
+const pointRule = ref(null)
+const pointRuleError = ref(false)
 const tab = ref('reviews')
 const search = ref('')
 const listPage = ref(1)
@@ -71,6 +74,7 @@ let disposed = false
 const ticker = window.setInterval(() => { now.value = Date.now() }, 1000)
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
+const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const eligibility = {
   eligible: '已达到投注要求',
@@ -112,6 +116,20 @@ const promotion = computed(() => {
 
 function formatDate(value) {
   return value ? date.value.format(new Date(value)) : t('暂无记录')
+}
+
+function formatRule(value, suffix) {
+  return value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : ruleNumbers.value.format(value) + suffix
+}
+
+async function loadPointRule(path = platformPath.value, signal = loadRequest.signal) {
+  pointRuleError.value = false
+  try {
+    const { data } = await api(path + '/point-rule', { signal, fresh: true })
+    if (!signal.aborted) pointRule.value = data
+  } catch {
+    if (!signal.aborted) pointRuleError.value = true
+  }
 }
 
 function formatMoney(cents) {
@@ -317,6 +335,8 @@ async function initialize() {
   const path = platformPath.value
   const mode = screen.value
   platform.value = null
+  pointRule.value = null
+  pointRuleError.value = false
   terms.value = null
   selected.value = null
   bindingDetail.value = null
@@ -401,7 +421,7 @@ async function initialize() {
         const posted = props.route.query.get('review')
         if (posted === 'pending') status.value = '评价已提交，审核通过后将公开展示。'
         if (posted === 'approved') status.value = '评价已发布。'
-        const tasks = [loadPlatformReviews(1, path, signal)]
+        const tasks = [loadPlatformReviews(1, path, signal), loadPointRule(path, signal)]
         if (props.member) tasks.push(api('/platform-favorites/' + platform.value.id, { signal }).then(result => {
           if (!signal.aborted) favorite.value = result.data.favorite
         }).catch(failure => {
@@ -588,14 +608,15 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         <input v-model="search" type="search" maxlength="120" :aria-label="t('搜索平台')" :placeholder="t('输入平台名称')" @input="updateSearch">
       </label>
       <div v-if="directory.length" class="directory-grid">
-        <a v-for="item in directory" :key="item.id" class="platform-card platform-tile" :href="'#/platforms/' + item.id" @click.prevent="go('/platforms/' + item.id)">
+        <PlatformCard v-for="item in directory" :key="item.id" class="platform-card platform-tile"
+                      :platform-id="item.id" :name="item.name" :promotion-url="item.promotion_url">
           <span class="platform-logo tile-logo" aria-hidden="true">
             <span>{{ item.name.slice(0, 2) }}</span>
             <img v-if="imageUrl(item.logo_url)" :src="imageUrl(item.logo_url)" alt="" loading="lazy" @error="$event.target.hidden = true" @load="$event.target.hidden = false">
           </span>
           <span v-if="item.rating != null" class="rating"><span aria-hidden="true">★</span> {{ item.rating }}</span>
           <strong class="platform-summary">{{ item.name }}</strong>
-        </a>
+        </PlatformCard>
       </div>
       <div v-if="!listing && listingError" class="surface stack message">
         <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">{{ t('重试') }}</button>
@@ -618,9 +639,19 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
       </header>
       <section class="surface protection-banner">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z"/><path d="m9 12 2 2 4-4"/></svg>
-        <div><h2>{{ t('出款保障') }}</h2><p>{{ t('符合保障条款的拒绝出款申诉，经核实后由本站赔付。') }}</p></div>
+        <div>
+          <h2 class="protection-title">{{ t('出款保障') }} <strong class="protection-amount">R$ 1000,000</strong></h2>
+          <p>{{ t('符合保障条款的拒绝出款申诉，经核实后由本站赔付。') }}</p>
+        </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
+      <dl v-if="!pointRuleError" class="platform-rules" :aria-label="t('积分与返利规则', 'Regras de pontos e cashback')">
+        <div><dt>{{ t('积分比例', 'Pontos por real') }}</dt><dd>{{ formatRule(pointRule?.points_per_brl, ' / R$ 1') }}</dd></div>
+        <div><dt>{{ t('投注要求', 'Apostas para pontos') }}</dt><dd>{{ formatRule(pointRule?.wager_multiplier, '×') }}</dd></div>
+        <div><dt>{{ t('返利比例', 'Percentual de cashback') }}</dt><dd>{{ formatRule(pointRule?.rebate_percent, '%') }}</dd></div>
+        <div><dt>{{ t('流水要求', 'Apostas para cashback') }}</dt><dd>{{ formatRule(pointRule?.rebate_wager_multiplier, '×') }}</dd></div>
+      </dl>
+      <button v-else class="quiet" type="button" @click="loadPointRule()">{{ t('规则加载失败，点击重试', 'Regras indisponíveis. Tentar novamente') }}</button>
       <nav class="segmented platform-tabs" :aria-label="t('平台详情')">
         <button v-for="[value, label] in [['reviews', t('用户评价')], ['description', t('平台简介')], ['offers', t('优惠活动')]]" :key="value" type="button" :aria-pressed="tab === value" @click="tab = value">{{ label }}</button>
       </nav>
@@ -644,7 +675,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
       </section>
       <section v-else-if="tab === 'description'" class="surface stack platform-content">
         <p class="preserved">{{ platform.description || t('暂无平台简介。') }}</p>
-        <p class="muted">{{ t('暂未提供独立官网链接。') }}</p>
+        <p v-if="!promotion" class="muted">{{ t('暂未提供独立官网链接。') }}</p>
       </section>
       <section v-else class="surface muted message">{{ t('暂无优惠活动。') }}</section>
       <div class="platform-actions">
@@ -688,17 +719,20 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
     <template v-else-if="screen === 'bindings'">
       <button class="primary" type="button" @click="go('/binding')">{{ t('绑定新平台') }}</button>
       <div v-if="ownBindings.length" class="surface">
-        <button v-for="item in ownBindings" :key="item.id" type="button" class="binding-row" @click="go('/bindings/' + item.id)">
+        <PlatformCard v-for="item in ownBindings" :key="item.id" class="binding-row" row
+                      :platform-id="item.platform_id" :name="item.platform_name" :promotion-url="item.promotion_url">
           <span class="platform-logo small-logo">
             <img v-if="imageUrl(item.logo_url)" :src="imageUrl(item.logo_url)" width="40" height="40" alt="">
             <span v-else>{{ item.platform_name.slice(0, 2) }}</span>
           </span>
           <span class="binding-label"><strong>{{ item.platform_name }}</strong><small class="muted">{{ item.masked_platform_account }}</small></span>
-          <span class="binding-label minor">
-            <strong :class="item.protection_status === 'active' ? 'binding-protected' : 'muted'">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</strong>
-            <small class="muted">{{ t('已兑') }} {{ item.redeemed_points }} {{ t('积分') }} <span aria-hidden="true">›</span></small>
-          </span>
-        </button>
+          <template #controls>
+            <button type="button" class="binding-label minor platform-entry-control" :aria-label="t('绑定详情', 'Detalhes do vínculo') + ' · ' + item.platform_name" @click="go('/bindings/' + item.id)">
+              <strong :class="item.protection_status === 'active' ? 'binding-protected' : 'muted'">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</strong>
+              <small class="muted">{{ t('已兑') }} {{ item.redeemed_points }} {{ t('积分') }} <span aria-hidden="true">›</span></small>
+            </button>
+          </template>
+        </PlatformCard>
       </div>
       <p v-else class="surface muted message">{{ t('暂无已绑定平台。') }}</p>
       <button v-if="bindingPage < bindingLastPage" type="button" class="quiet" :disabled="busy" @click="moreBindings">{{ t('加载更多') }}</button>

@@ -44,6 +44,8 @@
 .inline-form { display: flex; gap: 8px; align-items: center; }
 .inline-form button { flex: none; }
 .auth-surface .auth-links { justify-content: space-between; margin-top: 8px; }
+.auth-phone-row { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 8px; }
+.auth-country-code { display: grid; place-items: center; border: 1px solid #495879; border-radius: 8px; background: #202a40; color: #e4dcff; font-size: 15px; font-weight: 750; }
 .content-article { overflow-wrap: anywhere; }
 .content-article p { white-space: pre-wrap; }
 .content-image { padding: 0; border-radius: 8px; overflow: hidden; text-align: left; }

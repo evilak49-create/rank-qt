@@ -1,6 +1,7 @@
 <script setup>
 import brandLogo from '../assets/pingji-logo.svg'
 import { imageUrl } from '../api'
+import PlatformCard from '../PlatformCard.vue'
 import cobalt from '../assets/slots-cobalt.jpg'
 import cherry from '../assets/slots-cherry.jpg'
 import violet from '../assets/slots-violet.jpg'
@@ -58,8 +59,9 @@ const artwork = { reels: cobalt, prism: cherry, orbit: violet, coin: jade, photo
         <section v-else-if="section === 'ranking'" class="proto-ranking">
           <header><h2>{{ design.list === 'table' ? '精选平台榜' : '精选平台' }}</h2><button @click="$emit('open', 'platforms')">查看全部 <span aria-hidden="true">↗</span></button></header>
           <div v-if="platforms.length" class="proto-list">
-            <button v-for="(platform, index) in platforms" :key="platform.id" class="proto-platform"
-                    @click="$emit('open', 'platform', platform.id)">
+            <PlatformCard v-for="(platform, index) in platforms" :key="platform.id" class="proto-platform"
+                          :row="design.list !== 'cards'" :platform-id="platform.id" :name="platform.name"
+                          :promotion-url="platform.promotion_url" :detail-href="'./#/platforms/' + platform.id">
               <span v-if="design.list === 'table'" class="position">{{ String(index + 1).padStart(2, '0') }}</span>
               <span class="proto-logo">
                 {{ platform.name.slice(0, 1) }}
@@ -68,7 +70,7 @@ const artwork = { reels: cobalt, prism: cherry, orbit: violet, coin: jade, photo
               </span>
               <span class="proto-platform-label"><b>{{ platform.name }}</b><small>{{ platform.review_count ?? 0 }} 条评价</small></span>
               <strong v-if="platform.rating != null" class="proto-rating">★ {{ platform.rating }}</strong>
-            </button>
+            </PlatformCard>
           </div>
           <div v-else class="proto-status">
             <span v-if="state !== 'loading'">{{ state === 'error' ? '暂时无法加载平台' : '暂无精选平台' }}</span>

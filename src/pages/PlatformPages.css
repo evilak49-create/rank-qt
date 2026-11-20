@@ -46,6 +46,31 @@
 .platform-content, .guest-panel { padding: 15px; }
 .platform-content h2, .guest-panel h2 { font-size: 17px; }
 .platform-hero { display: flex; align-items: center; gap: 13px; padding: 14px; }
+.platform-rules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, auto);
+  grid-auto-flow: column;
+  gap: 5px 10px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #62518a80;
+  border-radius: 10px;
+  background: #242238;
+  font-size: 11px;
+}
+.platform-rules > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 1px 5px; }
+.platform-rules > div:nth-child(n+3) { border-inline-start: 1px solid #a691cf38; padding-inline-start: 10px; }
+.platform-rules dt { color: #f0eaff; font-weight: 700; }
+.platform-rules dd {
+  margin: 0;
+  color: #82ffd1;
+  font-size: 13px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.platform-rules > div:nth-child(n+3) dd { color: #ffe281; }
 .platform-heading { min-width: 0; }
 .platform-heading h1 { font-size: 22px; line-height: 1.25; overflow-wrap: anywhere; }
 .minor { font-size: 12px; }
@@ -53,6 +78,8 @@
 .protection-banner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 11px; background: linear-gradient(120deg, #29372f, #25273f 65%); }
 .protection-banner svg { width: 25px; height: 25px; stroke: var(--lime); stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
 .protection-banner h2 { font-size: 14px; }
+.protection-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1px 7px; }
+.protection-amount { color: var(--lime); font-size: 16px; font-weight: 850; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .protection-banner p { color: #d0d6e3; font-size: 11px; }
 .protection-banner .quiet { padding-inline: 7px; white-space: nowrap; font-size: 12px; }
 .platform-tabs { margin-top: 2px; }
@@ -101,7 +128,7 @@
 .binding-row:hover { background: #ffffff07; }
 .binding-row + .binding-row { border-top: 1px solid var(--platform-border); }
 .binding-label { display: grid; }
-.binding-label.minor { text-align: end; }
+.binding-label.minor { text-align: end; min-height: 44px; align-content: center; }
 .binding-protected { color: #a0efcf; }
 .platform-data { display: grid; gap: 0; margin: 0; }
 .platform-data div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); align-items: center; gap: 8px; padding-block: 8px; border-bottom: 1px solid var(--platform-border); font-size: 13px; }

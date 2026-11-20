@@ -4,6 +4,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { api, imageUrl } from './api'
 import heroArt from './assets/home-banner-default.jpg'
 import brandLogo from './assets/pingji-logo.svg'
+import PlatformCard from './PlatformCard.vue'
 import { icons } from './icons'
 import { go } from './navigation'
 
@@ -135,8 +136,8 @@ function copyTextForError() { return props.copy.error }
         <button :aria-pressed="selection === 'favorites'" @click="chooseFavorites">{{ copy.favorites }}</button>
       </div>
       <div v-if="selectedBlock.state === 'ready' && selectedBlock.data.length" class="platform-grid">
-        <button v-for="(platform, index) in selection === 'featured' ? selectedBlock.data.slice(0, 10) : selectedBlock.data"
-                :key="platform.id" class="platform-card" @click="go('/platforms/' + platform.id)">
+        <PlatformCard v-for="(platform, index) in selection === 'featured' ? selectedBlock.data.slice(0, 10) : selectedBlock.data"
+                      :key="platform.id" class="platform-card" :platform-id="platform.id" :name="platform.name" :promotion-url="platform.promotion_url">
           <span v-if="selection === 'featured' && index < 3" class="platform-rank" :data-rank="index + 1">{{ index + 1 }}</span>
           <span class="platform-logo" aria-hidden="true">
             {{ platform.name.slice(0, 1) }}
@@ -145,7 +146,7 @@ function copyTextForError() { return props.copy.error }
           </span>
           <span v-if="platform.rating != null" class="rating"><span aria-hidden="true">★</span> {{ platform.rating }}</span>
           <strong class="platform-summary">{{ platform.name }}</strong>
-        </button>
+        </PlatformCard>
       </div>
       <div v-else-if="selectedBlock.state !== 'loading'" class="state" role="status">
         <span>{{ selectedBlock.state === 'error' ? copy.error : selection === 'favorites' ? copy.noFavorites : copy.empty }}</span>

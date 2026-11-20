@@ -6,6 +6,7 @@ const submissions = new Map()
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
+import PlatformCard from '../PlatformCard.vue'
 import { go, back } from '../navigation'
 import { icons } from '../icons'
 import { useLocale } from '../locale.js'
@@ -423,14 +424,17 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
       <section class="stack" aria-labelledby="shop-funds">
         <h2 id="shop-funds">{{ t('平台资金兑换', 'Resgatar crédito na plataforma') }}</h2>
         <div v-if="catalog.platforms.items.length" class="shop-funds-list">
-          <article v-for="item in catalog.platforms.items" :key="item.id" class="surface shop-fund">
+          <PlatformCard v-for="item in catalog.platforms.items" :key="item.id" class="surface shop-fund" row
+                        :platform-id="item.id" :name="item.name" :promotion-url="item.promotion_url">
             <div class="shop-logo">
               <img v-if="imageUrl(item.logo_url) && !brokenImages.has('platform-' + item.id)" :src="imageUrl(item.logo_url)" alt="" loading="lazy" @error="failedImage('platform-' + item.id)" />
               <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.platforms" /></svg>
             </div>
             <div class="shop-list-text"><h3>{{ item.name }}</h3><p class="muted">{{ rate ? rateText(rate.cents_per_point) : t('暂未取得比例 · 可查看兑换预览', 'Consulte a simulação para ver a taxa de conversão.') }}</p></div>
-            <button class="primary" :aria-label="t('兑换 ', 'Resgatar crédito em ') + item.name" @click="go('/shop/funds/' + item.id)">{{ t('兑换', 'Resgatar') }}</button>
-          </article>
+            <template #controls>
+              <button class="primary platform-entry-control" :aria-label="t('兑换 ', 'Resgatar crédito em ') + item.name" @click="go('/shop/funds/' + item.id)">{{ t('兑换', 'Resgatar') }}</button>
+            </template>
+          </PlatformCard>
         </div>
         <p v-if="!catalog.platforms.loading && !catalog.platforms.error && !catalog.platforms.items.length" class="surface muted">{{ t('暂无匹配平台。', 'Nenhuma plataforma encontrada.') }}</p>
         <button v-if="catalog.platforms.page < catalog.platforms.last && !catalog.platforms.loading" class="quiet" @click="catalogPage('platforms')">{{ catalog.platforms.error ? t('重试', 'Tentar novamente') : t('加载更多平台', 'Ver mais plataformas') }}</button>

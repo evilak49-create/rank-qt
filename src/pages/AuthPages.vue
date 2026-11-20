@@ -2,16 +2,21 @@
 import { useLocale } from '../locale.js'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '../api'
+import { showNotice, watchNotice } from '../feedback'
 import { go, safePath } from '../navigation'
 
 const { t } = useLocale()
+const passwordRequirement = '密码须包含字母和数字，长度为 8–20 位。'
+const newPasswordPattern = '(?=.*[A-Za-z])(?=.*[0-9]).{8,20}'
+const validNewPassword = new RegExp('^(?:' + newPasswordPattern + ')$', 'u')
+const brazilianMobile = /^(?:1[1-9]|2[12478]|3[1-57-8]|4[1-9]|5[1345]|6[1-9]|7[134579]|8[1-9]|9[1-9])9[0-9]{8}$/
 
 const props = defineProps({ route: Object, member: Object, draftPhone: String })
 const emit = defineEmits(['signed-in', 'reset', 'phone'])
 const type = computed(() => props.route.path)
 const signingIn = computed(() => type.value === '/login')
 const registering = computed(() => type.value === '/register')
-const phone = ref(props.member?.phone || props.draftPhone || '')
+const phone = ref(nationalPhone(props.member?.phone || props.draftPhone || ''))
 const code = ref('')
 const verification = ref(null)
 const challenge = ref(null)
@@ -22,7 +27,6 @@ const repeat = ref('')
 const busy = ref(false)
 const smsBusy = ref(false)
 const wait = ref(0)
-const error = ref('')
 const info = ref('')
 const created = ref(false)
 const imageMode = computed(() => verification.value?.mode === 'image')
@@ -49,15 +53,34 @@ watch(type, async (path, previous, onCleanup) => {
   }
 }, { immediate: true })
 
+function nationalPhone(value) {
+  const number = value.trimStart()
+  if (number.startsWith('+55')) return number.slice(3).trimStart()
+  if (!/^[0-9 ()-]+$/.test(number)) return number
+  const digits = number.replace(/\D/g, '')
+  return digits.length === 13 && digits.startsWith('55') ? digits.slice(2) : number
+}
+
+function updatePhone(event) {
+  const input = event.target
+  const number = nationalPhone(input.value)
+  if (number !== input.value) input.value = number
+  phone.value = number
+}
+
 function normalizedPhone() {
   const number = phone.value.replace(/\D/g, '')
-  if (number.length === 11) return number
-  if (number.length === 13 && number.startsWith('55')) return '+' + number
+  if (registering.value) {
+    if (/^[0-9 ()-]+$/.test(phone.value) && brazilianMobile.test(number)) return number
+    throw new Error('请输入有效的巴西手机号码（有效的地区区号 + 以 9 开头的 9 位号码）。')
+  }
+  if (/^[1-9]\d9\d{8}$/.test(number)) return number
   throw new Error('请输入含区号的 11 位巴西手机号。')
 }
 
 function showError(failure) {
-  error.value = Object.values(failure.errors ?? {}).flat()[0] || failure.message
+  const title = signingIn.value ? '登录提醒' : registering.value ? '注册提醒' : '密码修改提醒'
+  showNotice(title, Object.values(failure.errors ?? {}).flat()[0] || failure.message, 'error')
 }
 
 function change(path) {
@@ -67,7 +90,6 @@ function change(path) {
 async function sms() {
   if (smsBusy.value || wait.value > 0) return
   smsBusy.value = true
-  error.value = ''
   try {
     await api('/auth/sms-code', { body: { phone: normalizedPhone(), purpose: registering.value ? 'register' : 'reset_password' } })
     info.value = '验证码已发送。'
@@ -102,7 +124,6 @@ async function submit() {
   if (busy.value || smsBusy.value || (!signingIn.value && !created.value
     && (!verification.value || resetUnavailable.value || (imageMode.value && !challenge.value)))) return
   busy.value = true
-  error.value = ''
   info.value = ''
   try {
     const credentials = { phone: normalizedPhone(), password: password.value }
@@ -111,7 +132,10 @@ async function submit() {
       return
     }
     if (repeat.value !== password.value) throw new Error('两次输入的密码不一致。')
-    if (new TextEncoder().encode(password.value).length > 72) throw new Error('密码不能超过 72 字节。')
+    if (!validNewPassword.test(password.value)) throw new Error(passwordRequirement)
+    if (new TextEncoder().encode(password.value).length > 72 || password.value.includes('\0')) {
+      throw new Error('密码最多 72 字节，且不能包含空字符。')
+    }
     const body = { ...credentials, code: code.value.trim() }
     if (imageMode.value) {
       body.challenge_id = challenge.value.challenge_id
@@ -140,17 +164,20 @@ async function submit() {
   }
 }
 
-import { watchNotice } from '../feedback'
-watchNotice(error, () => signingIn.value ? '登录提醒' : registering.value ? '注册提醒' : '密码修改提醒', 'error')
 watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' : '注册成功', 'success')
 </script>
 
 <template>
   <div class="surface auth-surface">
     <form class="stack" @submit.prevent="submit">
-      <label class="field">{{ t('巴西手机号') }}
-        <input v-model="phone" type="tel" autocomplete="username" placeholder="+55" required :readonly="type === '/reset-password' && Boolean(member)">
-      </label>
+      <div class="field">
+        <label for="auth-phone">{{ registering ? t('真实手机号码') : t('巴西手机号') }}</label>
+        <div class="auth-phone-row">
+          <span id="auth-country-code" class="auth-country-code">+55</span>
+          <input id="auth-phone" :value="phone" type="tel" autocomplete="username" aria-describedby="auth-country-code"
+                 :placeholder="registering ? t('手机号码') : t('地区区号 + 手机号')" required :readonly="type === '/reset-password' && Boolean(member)" @input="updatePhone">
+        </div>
+      </div>
       <p v-if="resetUnavailable" class="muted" role="status">{{ t('短信找回暂不可用，请联系人工客服。') }}</p>
       <div v-if="!signingIn && !created && verification?.mode === 'sms'" class="field">
         <label for="auth-code">{{ t('短信验证码') }}</label>
@@ -172,12 +199,17 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
       <label v-if="!registering && !signingIn && imageMode && !resetUnavailable" class="field">{{ t('当前密码') }}
         <input v-model="currentPassword" type="password" autocomplete="current-password" maxlength="72" required>
       </label>
-      <label class="field">{{ signingIn || registering ? t('密码') : t('新密码') }}
-        <input v-model="password" type="password" :autocomplete="signingIn || created ? 'current-password' : 'new-password'"
-               :minlength="signingIn || created ? undefined : 8" maxlength="72" required>
-      </label>
+      <div class="field">
+        <label for="auth-password">{{ signingIn || registering ? t('密码') : t('新密码') }}</label>
+        <input id="auth-password" v-model="password" type="password" :autocomplete="signingIn || created ? 'current-password' : 'new-password'"
+               :aria-describedby="!signingIn && !created ? 'auth-password-rules' : undefined"
+               :pattern="signingIn || created ? undefined : newPasswordPattern"
+               :title="signingIn || created ? undefined : t(passwordRequirement)"
+               :maxlength="signingIn || created ? 72 : 20" required>
+        <small v-if="!signingIn && !created" id="auth-password-rules" class="muted">{{ t(passwordRequirement) }}</small>
+      </div>
       <label v-if="!signingIn && !created" class="field">{{ t('确认密码') }}
-        <input v-model="repeat" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+        <input v-model="repeat" type="password" autocomplete="new-password" minlength="8" maxlength="20" required>
       </label>
       <div v-if="signingIn" class="action-row"><button type="button" class="text-button" @click="change('/reset-password')">{{ t('忘记密码') }}</button></div>
       <button class="primary" :disabled="busy || smsBusy || (!signingIn && !created && (!verification || resetUnavailable || (imageMode && !challenge)))">{{ signingIn || created ? t('登录') : registering ? t('注册') : t('确认修改') }}</button>
