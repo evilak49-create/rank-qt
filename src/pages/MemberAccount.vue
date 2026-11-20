@@ -1,4 +1,5 @@
 <script setup>
+import { useLocale } from '../locale.js'
 import { computed, onMounted, ref } from 'vue'
 import { api } from '../api'
 import { formatBrl } from '../money'
@@ -7,6 +8,8 @@ import { icons } from '../icons'
 import MemberPagination from './MemberPagination.vue'
 import CheckinCard from './CheckinCard.vue'
 import MemberAvatar from './MemberAvatar.vue'
+
+const { locale, t } = useLocale()
 
 const props = defineProps({ route: Object, member: Object })
 const emit = defineEmits(['logout'])
@@ -44,6 +47,7 @@ const quickLinks = [
 ]
 const accountLinks = [
   ['/bindings', '已绑定平台', icons.bind],
+  ['/withdrawal-history', '提现订单', 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6m-6 4h6'],
   ['/address', '收货地址', 'M20 10c0 5-8 10-8 10S4 15 4 10a8 8 0 1 1 16 0ZM14.5 10a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z'],
   ['/pix', '收款账户', 'M4 5h16v14H4zM4 10h16m-12 5h3'],
 ]
@@ -59,7 +63,7 @@ const relatedPath = computed(() => {
   return '/shop/redemptions/' + related.id + '?type=' + type
 })
 function date(value) {
-  return value ? new Date(value).toLocaleString('pt-BR') : '—'
+  return value ? new Date(value).toLocaleString(locale.value) : '—'
 }
 
 function showError(failure) {
@@ -147,71 +151,71 @@ watchNotice(message, '收货地址已保存', 'success')
         </div>
         <div class="profile-balance-grid">
           <section class="profile-asset">
-            <h2>可用积分</h2>
+            <h2>{{ t('可用积分') }}</h2>
             <strong class="profile-points">{{ member?.points_balance ?? '—' }}</strong>
-            <button class="quiet" type="button" @click="go('/wallet')">积分钱包</button>
+            <button class="quiet" type="button" @click="go('/wallet')">{{ t('积分钱包') }}</button>
           </section>
           <section class="profile-asset profile-cash-balance">
-            <h2>可用余额</h2>
+            <h2>{{ t('可用余额') }}</h2>
             <strong>{{ formatBrl(member?.available_balance_cents) }}</strong>
-            <button class="primary" type="button" @click="go('/cash-wallet/withdraw')">提现</button>
+            <button class="primary" type="button" @click="go('/cash-wallet/withdraw')">{{ t('提现') }}</button>
           </section>
         </div>
       </section>
 
       <CheckinCard entry :state="checkin" @action="go('/check-in')" />
 
-      <nav class="profile-section surface" aria-label="常用功能">
-        <h2>常用功能</h2>
+      <nav class="profile-section surface" :aria-label="t('常用功能')">
+        <h2>{{ t('常用功能') }}</h2>
         <div class="profile-shortcuts">
           <button v-for="[link, label, icon, color] in quickLinks" :key="link" @click="go(link)">
             <span class="profile-icon" :data-color="color" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icon"/></svg></span>
-            {{ label }}
+            {{ t(label) }}
           </button>
         </div>
       </nav>
-      <nav class="profile-section surface" aria-label="账户管理">
-        <h2>账户管理</h2>
+      <nav class="profile-section surface" :aria-label="t('账户管理')">
+        <h2>{{ t('账户管理') }}</h2>
         <ul class="profile-menu">
           <li v-for="[link, label, icon] in accountLinks" :key="link">
-            <button @click="go(link)"><svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icon"/></svg>{{ label }}<span aria-hidden="true">›</span></button>
+            <button @click="go(link)"><svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icon"/></svg>{{ t(label) }}<span aria-hidden="true">›</span></button>
           </li>
         </ul>
       </nav>
       <section class="profile-section surface">
-        <h2>账户安全</h2>
-        <ul class="profile-menu"><li><button @click="go('/reset-password')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h14v11H5zM8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>修改密码<span aria-hidden="true">›</span></button></li></ul>
+        <h2>{{ t('账户安全') }}</h2>
+        <ul class="profile-menu"><li><button @click="go('/reset-password')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h14v11H5zM8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>{{ t('修改密码') }}<span aria-hidden="true">›</span></button></li></ul>
       </section>
-      <button class="profile-logout quiet" @click="emit('logout')">退出登录</button>
+      <button class="profile-logout quiet" @click="emit('logout')">{{ t('退出登录') }}</button>
     </template>
 
     <template v-else-if="isWallet">
       <section class="surface member-hero stack">
-        <p>可用积分</p><strong>{{ balance ?? '—' }}</strong>
+        <p>{{ t('可用积分') }}</p><strong>{{ balance ?? '—' }}</strong>
         <div class="member-actions">
-          <button class="primary" @click="go('/points')">兑换积分</button>
-          <button class="quiet" @click="go('/shop')">去商城</button>
+          <button class="primary" @click="go('/points')">{{ t('兑换积分') }}</button>
+          <button class="quiet" @click="go('/shop')">{{ t('去商城') }}</button>
         </div>
       </section>
       <section class="surface stack">
-        <h2>积分明细</h2>
-        <div class="segmented" aria-label="积分明细筛选">
-          <button v-for="[key, label] in [['', '全部'], ['credit', '获得'], ['debit', '支出']]"
-            :key="key" :aria-pressed="direction === key" @click="walletPage(key)">{{ label }}</button>
+        <h2>{{ t('积分明细') }}</h2>
+        <div class="segmented" :aria-label="t('积分明细筛选')">
+          <button v-for="[key, label] in [['', t('全部')], ['credit', t('获得')], ['debit', t('支出')]]"
+            :key="key" :aria-pressed="direction === key" @click="walletPage(key)">{{ t(label) }}</button>
         </div>
         <div v-if="platformId" class="member-actions">
-          <span class="muted">当前按平台筛选</span>
-          <button class="quiet" @click="walletPage(direction, 1, '')">清除平台筛选</button>
+          <span class="muted">{{ t('当前按平台筛选') }}</span>
+          <button class="quiet" @click="walletPage(direction, 1, '')">{{ t('清除平台筛选') }}</button>
         </div>
         <ul v-if="records?.data.length" class="row-list">
           <li v-for="record in records.data" :key="record.id">
             <button @click="go('/wallet/' + record.id)">
-              <span><strong>{{ record.source_label }}</strong><small>{{ date(record.created_at) }}</small></span>
-              <span :class="{ 'member-positive': record.direction === 'credit' }">{{ record.direction === 'credit' ? '+' : '−' }}{{ record.amount }} 积分 ›</span>
+              <span><strong>{{ t(record.source_label) }}</strong><small>{{ date(record.created_at) }}</small></span>
+              <span :class="{ 'member-positive': record.direction === 'credit' }">{{ record.direction === 'credit' ? '+' : '−' }}{{ record.amount }} {{ t('积分 ›') }}</span>
             </button>
           </li>
         </ul>
-        <p v-else-if="records" class="muted">暂无积分明细。</p>
+        <p v-else-if="records" class="muted">{{ t('暂无积分明细。') }}</p>
         <MemberPagination :page="records" :busy="loading" @page="walletPage(direction, $event)" />
       </section>
     </template>
@@ -219,17 +223,17 @@ watchNotice(message, '收货地址已保存', 'success')
     <section v-else-if="isAddress" class="stack">
       <form v-if="edit" class="surface stack" @submit.prevent="saveAddress">
         <label v-for="[key, label, autocomplete, maxlength] in fields" :key="key" class="field">
-          {{ label }}
+          {{ t(label) }}
           <select v-if="key === 'state'" v-model="edit.state" required :autocomplete="autocomplete" :disabled="working">
-            <option value="">选择州</option><option v-for="state in states" :key="state">{{ state }}</option>
+            <option value="">{{ t('选择州') }}</option><option v-for="state in states" :key="state">{{ state }}</option>
           </select>
           <input v-else v-model.trim="edit[key]" :type="key === 'phone' ? 'tel' : 'text'"
             :inputmode="key === 'postal_code' ? 'numeric' : undefined" :required="key !== 'complement'"
             :maxlength="maxlength" :autocomplete="autocomplete" :disabled="working">
         </label>
         <div class="member-actions centered-actions">
-          <button class="primary" :disabled="working">保存地址</button>
-          <button class="quiet" type="button" :disabled="working" @click="edit = null; error = ''">取消</button>
+          <button class="primary" :disabled="working">{{ t('保存地址') }}</button>
+          <button class="quiet" type="button" :disabled="working" @click="edit = null; error = ''">{{ t('取消') }}</button>
         </div>
       </form>
       <template v-else-if="!loading">
@@ -240,27 +244,27 @@ watchNotice(message, '收货地址已保存', 'success')
               {{ address.city }} / {{ address.state }} · CEP {{ address.postal_code }}<br v-if="address.complement">
               {{ address.complement }}</p>
           </template>
-          <p v-else class="muted">暂无收货地址。</p>
+          <p v-else class="muted">{{ t('暂无收货地址。') }}</p>
         </div>
-        <button v-if="address || !error || working" class="primary" :disabled="working" @click="editAddress">{{ address ? '编辑' : '添加收货地址' }}</button>
+        <button v-if="address || !error || working" class="primary" :disabled="working" @click="editAddress">{{ address ? t('编辑') : t('添加收货地址') }}</button>
       </template>
     </section>
 
     <section v-else-if="entry" class="surface stack">
-      <h2>{{ entry.source_label }}</h2>
+      <h2>{{ t(entry.source_label) }}</h2>
       <dl class="member-definition">
-        <div><dt>积分变动</dt><dd>{{ entry.direction === 'credit' ? '+' : '−' }}{{ entry.amount }} 积分</dd></div>
-        <div><dt>变动前余额</dt><dd>{{ entry.balance_before }}</dd></div>
-        <div><dt>变动后余额</dt><dd>{{ entry.balance_after }}</dd></div>
-        <div><dt>时间</dt><dd>{{ date(entry.created_at) }}</dd></div>
-        <div v-if="entry.related?.name"><dt>平台或商品</dt><dd>{{ entry.related.name }}</dd></div>
-        <div v-if="entry.related?.status"><dt>处理状态</dt><dd>{{ entryStatuses[entry.related.status] || entry.related.status }}</dd></div>
+        <div><dt>{{ t('积分变动') }}</dt><dd>{{ entry.direction === 'credit' ? '+' : '−' }}{{ entry.amount }} {{ t('积分') }}</dd></div>
+        <div><dt>{{ t('变动前余额') }}</dt><dd>{{ entry.balance_before }}</dd></div>
+        <div><dt>{{ t('变动后余额') }}</dt><dd>{{ entry.balance_after }}</dd></div>
+        <div><dt>{{ t('时间') }}</dt><dd>{{ date(entry.created_at) }}</dd></div>
+        <div v-if="entry.related?.name"><dt>{{ t('平台或商品') }}</dt><dd>{{ entry.related.name }}</dd></div>
+        <div v-if="entry.related?.status"><dt>{{ t('处理状态') }}</dt><dd>{{ t(entryStatuses[entry.related.status]) || entry.related.status }}</dd></div>
       </dl>
-      <button v-if="relatedPath" class="quiet" @click="go(relatedPath)">查看关联兑换记录</button>
+      <button v-if="relatedPath" class="quiet" @click="go(relatedPath)">{{ t('查看关联兑换记录') }}</button>
     </section>
 
     <div v-if="error" class="stack">
-      <button v-if="!edit && !working" class="quiet" @click="load">重新加载</button>
+      <button v-if="!edit && !working" class="quiet" @click="load">{{ t('重新加载') }}</button>
     </div>
   </div>
 </template>

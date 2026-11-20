@@ -1,7 +1,10 @@
 <script setup>
+import { useLocale } from '../locale.js'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '../api'
 import { go, safePath } from '../navigation'
+
+const { t } = useLocale()
 
 const props = defineProps({ route: Object, member: Object, draftPhone: String })
 const emit = defineEmits(['signed-in', 'reset', 'phone'])
@@ -145,44 +148,44 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
 <template>
   <div class="surface auth-surface">
     <form class="stack" @submit.prevent="submit">
-      <label class="field">巴西手机号
+      <label class="field">{{ t('巴西手机号') }}
         <input v-model="phone" type="tel" autocomplete="username" placeholder="+55" required :readonly="type === '/reset-password' && Boolean(member)">
       </label>
-      <p v-if="resetUnavailable" class="muted" role="status">短信找回暂不可用，请联系人工客服。</p>
+      <p v-if="resetUnavailable" class="muted" role="status">{{ t('短信找回暂不可用，请联系人工客服。') }}</p>
       <div v-if="!signingIn && !created && verification?.mode === 'sms'" class="field">
-        <label for="auth-code">短信验证码</label>
+        <label for="auth-code">{{ t('短信验证码') }}</label>
         <div class="inline-form">
           <input id="auth-code" v-model="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
-          <button class="quiet" type="button" :disabled="busy || smsBusy || wait > 0" @click="sms">{{ wait ? wait + ' 秒' : '获取验证码' }}</button>
+          <button class="quiet" type="button" :disabled="busy || smsBusy || wait > 0" @click="sms">{{ wait ? wait + t(' 秒') : t('获取验证码') }}</button>
         </div>
       </div>
       <div v-if="!signingIn && !created && imageMode && !resetUnavailable" class="field">
-        <label for="image-code">图片验证码</label>
+        <label for="image-code">{{ t('图片验证码') }}</label>
         <div class="inline-form">
           <input id="image-code" v-model="code" autocomplete="off" pattern="[A-Za-z2-9]{4}" maxlength="4" required>
-          <button class="quiet" type="button" :disabled="imageBusy || busy" @click="refreshCaptcha()" aria-label="换一张验证码">
-            <img v-if="challenge" :src="challenge.image" width="150" height="45" alt="图片验证码">
-            <span v-else>获取图片</span>
+          <button class="quiet" type="button" :disabled="imageBusy || busy" @click="refreshCaptcha()" :aria-label="t('换一张验证码')">
+            <img v-if="challenge" :src="challenge.image" width="150" height="45" :alt="t('图片验证码')">
+            <span v-else>{{ t('获取图片') }}</span>
           </button>
         </div>
       </div>
-      <label v-if="!registering && !signingIn && imageMode && !resetUnavailable" class="field">当前密码
+      <label v-if="!registering && !signingIn && imageMode && !resetUnavailable" class="field">{{ t('当前密码') }}
         <input v-model="currentPassword" type="password" autocomplete="current-password" maxlength="72" required>
       </label>
-      <label class="field">{{ signingIn || registering ? '密码' : '新密码' }}
+      <label class="field">{{ signingIn || registering ? t('密码') : t('新密码') }}
         <input v-model="password" type="password" :autocomplete="signingIn || created ? 'current-password' : 'new-password'"
                :minlength="signingIn || created ? undefined : 8" maxlength="72" required>
       </label>
-      <label v-if="!signingIn && !created" class="field">确认密码
+      <label v-if="!signingIn && !created" class="field">{{ t('确认密码') }}
         <input v-model="repeat" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
       </label>
-      <div v-if="signingIn" class="action-row"><button type="button" class="text-button" @click="change('/reset-password')">忘记密码</button></div>
-      <button class="primary" :disabled="busy || smsBusy || (!signingIn && !created && (!verification || resetUnavailable || (imageMode && !challenge)))">{{ signingIn || created ? '登录' : registering ? '注册' : '确认修改' }}</button>
+      <div v-if="signingIn" class="action-row"><button type="button" class="text-button" @click="change('/reset-password')">{{ t('忘记密码') }}</button></div>
+      <button class="primary" :disabled="busy || smsBusy || (!signingIn && !created && (!verification || resetUnavailable || (imageMode && !challenge)))">{{ signingIn || created ? t('登录') : registering ? t('注册') : t('确认修改') }}</button>
     </form>
     <div class="action-row auth-links">
-      <button v-if="signingIn" class="text-button" @click="change('/register')">去注册</button>
-      <button v-else class="text-button" @click="change('/login')">去登录</button>
-      <button class="text-button" @click="go('/support')">在线客服</button>
+      <button v-if="signingIn" class="text-button" @click="change('/register')">{{ t('去注册') }}</button>
+      <button v-else class="text-button" @click="change('/login')">{{ t('去登录') }}</button>
+      <button class="text-button" @click="go('/support')">{{ t('在线客服') }}</button>
     </div>
   </div>
 </template>

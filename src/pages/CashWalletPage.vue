@@ -1,10 +1,14 @@
 <script setup>
+import { createRequestId } from '../requestId.js'
+import { useLocale } from '../locale.js'
 import { computed, onMounted, ref } from 'vue'
 import { api } from '../api'
 import { showNotice, watchNotice } from '../feedback'
 import { formatBrl, parseBrl } from '../money'
 import { currentRoute, go } from '../navigation'
 import MemberPagination from './MemberPagination.vue'
+
+const { locale, t } = useLocale()
 
 const props = defineProps({ member: Object })
 const emit = defineEmits(['refresh-member'])
@@ -77,7 +81,7 @@ async function submit() {
       if (currentRoute.value.key !== routeKey) return
       if (wallet.value.masked_cpf !== displayedCpf) throw new Error('Pix 收款账户已更新，请核对后重新确认。')
       if (requested > wallet.value.available_balance_cents) throw new Error('可用余额已更新，请重新输入提现金额。')
-      attempt.value = { amount: requested, id: crypto.randomUUID() }
+      attempt.value = { amount: requested, id: createRequestId() }
       try { sessionStorage.setItem(attemptKey, JSON.stringify(attempt.value)) } catch {}
     }
     submitted = true
@@ -101,30 +105,33 @@ watchNotice(error, '余额提现提醒', 'error')
 
 <template>
   <div class="stack" :aria-busy="busy">
-    <button v-if="error && !pending" type="button" class="quiet" :disabled="loading" @click="load()">刷新余额与记录</button>
+    <button v-if="error && !pending" type="button" class="quiet" :disabled="loading" @click="load()">{{ t('刷新余额与记录') }}</button>
 
     <section v-if="wallet" class="surface stack">
       <dl class="summary-list">
-        <div><dt>可用余额</dt><dd>{{ formatBrl(wallet.available_balance_cents) }}</dd></div>
-        <div v-if="wallet.held_balance_cents > 0"><dt>提现处理中</dt><dd>{{ formatBrl(wallet.held_balance_cents) }}</dd></div>
-        <div v-if="wallet.masked_cpf"><dt>Pix 收款账户</dt><dd>{{ wallet.masked_cpf }}</dd></div>
+        <div><dt>{{ t('可用余额') }}</dt><dd>{{ formatBrl(wallet.available_balance_cents) }}</dd></div>
+        <div v-if="wallet.held_balance_cents > 0"><dt>{{ t('提现处理中') }}</dt><dd>{{ formatBrl(wallet.held_balance_cents) }}</dd></div>
+        <div v-if="wallet.masked_cpf"><dt>{{ t('Pix 收款账户') }}</dt><dd>{{ wallet.masked_cpf }}</dd></div>
       </dl>
-      <button v-if="!wallet.masked_cpf && !attempt" type="button" class="primary" @click="go('/pix?next=%2Fcash-wallet%2Fwithdraw')">绑定 Pix 收款账户</button>
+      <button v-if="!wallet.masked_cpf && !attempt" type="button" class="primary" @click="go('/pix?next=%2Fcash-wallet%2Fwithdraw')">{{ t('绑定 Pix 收款账户') }}</button>
       <form v-else class="stack" @submit.prevent="submit">
-        <label class="field">提现金额（BRL）
+        <label class="field">{{ t('提现金额（BRL）') }}
           <input v-model="amount" maxlength="18" inputmode="decimal" autocomplete="off" :disabled="busy || !!attempt" required>
         </label>
-        <p v-if="!attempt && amount && (!cents || cents > wallet.available_balance_cents)" class="muted">请输入不超过可用余额的金额，最多两位小数。</p>
-        <button class="primary" :disabled="busy || !canSubmit">确认申请提现</button>
+        <p v-if="!attempt && amount && (!cents || cents > wallet.available_balance_cents)" class="muted">{{ t('请输入不超过可用余额的金额，最多两位小数。') }}</p>
+        <button class="primary" :disabled="busy || !canSubmit">{{ t('确认申请提现') }}</button>
       </form>
     </section>
 
     <section v-if="history" class="surface stack">
-      <h2>余额提现记录</h2>
-      <p v-if="!history.data.length" class="muted">暂无余额提现记录。</p>
+      <div class="member-actions">
+        <h2>{{ t('余额提现记录') }}</h2>
+        <button class="quiet" type="button" @click="go('/withdrawal-history')">{{ t('全部提现订单') }}</button>
+      </div>
+      <p v-if="!history.data.length" class="muted">{{ t('暂无余额提现记录。') }}</p>
       <article v-for="order in history.data" :key="order.id" class="stack">
-        <strong>{{ formatBrl(order.amount_cents) }} · {{ statuses[order.status] || order.status }}</strong>
-        <time class="muted" :datetime="order.created_at">{{ new Date(order.created_at).toLocaleString('pt-BR') }}</time>
+        <strong>{{ formatBrl(order.amount_cents) }} · {{ t(statuses[order.status]) || order.status }}</strong>
+        <time class="muted" :datetime="order.created_at">{{ new Date(order.created_at).toLocaleString(locale) }}</time>
         <p v-if="order.review_reason">{{ order.review_reason }}</p>
       </article>
       <MemberPagination :page="history" :busy="busy" @page="load" />

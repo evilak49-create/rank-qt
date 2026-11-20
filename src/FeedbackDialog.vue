@@ -1,8 +1,10 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { notices, showNotice } from './feedback'
+import { useLocale } from './locale.js'
 
 defineProps({ language: String })
+const { locale, t } = useLocale()
 const modal = ref(null)
 const active = computed(() => notices.value[0])
 let validating = false
@@ -18,7 +20,13 @@ function invalid(event) {
   validating = true
   setTimeout(() => { validating = false }, 0)
   const field = event.target.labels?.[0]?.textContent?.trim()
-  showNotice(field || '请检查输入', event.target.validationMessage, 'error')
+  const { validity } = event.target
+  const message = locale.value !== 'pt-BR' ? event.target.validationMessage
+    : validity.valueMissing ? 'Preencha este campo.'
+      : validity.tooShort ? 'O valor informado está muito curto.'
+        : validity.tooLong ? 'O valor informado está muito longo.'
+          : 'Confira o formato e o valor informados.'
+  showNotice(field || '请检查输入', message, 'error')
 }
 
 onMounted(() => document.addEventListener('invalid', invalid, true))
@@ -31,8 +39,8 @@ onUnmounted(() => document.removeEventListener('invalid', invalid, true))
             @click.self="modal.close()" @close="notices.shift()">
       <div v-if="active" class="feedback-content" :data-tone="active.tone">
         <div class="feedback-symbol" aria-hidden="true">{{ active.tone === 'error' ? '!' : active.tone === 'success' ? '✓' : '✦' }}</div>
-        <h2 id="feedback-title">{{ active.title }}</h2>
-        <p id="feedback-text">{{ active.text }}</p>
+        <h2 id="feedback-title">{{ t(active.title) }}</h2>
+        <p id="feedback-text">{{ t(active.text) }}</p>
         <form method="dialog">
           <button class="primary" autofocus>{{ language === 'pt-BR' ? 'OK' : '确定' }}</button>
         </form>

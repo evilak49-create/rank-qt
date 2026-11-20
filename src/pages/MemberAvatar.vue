@@ -1,6 +1,9 @@
 <script setup>
+import { useLocale } from '../locale.js'
 import { computed, ref, watch } from 'vue'
 import { showNotice } from '../feedback'
+
+const { t } = useLocale()
 
 const props = defineProps({ accountId: [Number, String] })
 const avatars = import.meta.glob('../assets/avatars/*.jpg', {
@@ -46,7 +49,7 @@ function save() {
 </script>
 
 <template>
-  <button class="avatar-trigger" type="button" aria-label="更换头像" aria-haspopup="dialog" :disabled="!storageKey" @click="open">
+  <button class="avatar-trigger" type="button" :aria-label="t('更换头像')" aria-haspopup="dialog" :disabled="!storageKey" @click="open">
     <img v-if="current" :src="current.url" alt="" width="40" height="40">
     <svg v-else viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 21a7.5 7.5 0 1 1 15 0"/></svg>
     <span class="avatar-edit" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="m4 9 5.8-5.8 3 3L7 12l-3.8.8L4 9Z"/></svg></span>
@@ -56,17 +59,17 @@ function save() {
     <dialog ref="picker" class="avatar-picker" aria-labelledby="avatar-picker-title" @click.self="picker.close()">
       <form @submit.prevent="save">
         <header>
-          <h2 id="avatar-picker-title">更换头像</h2>
-          <button class="avatar-close" type="button" aria-label="关闭" @click="picker.close()">×</button>
+          <h2 id="avatar-picker-title">{{ t('更换头像') }}</h2>
+          <button class="avatar-close" type="button" :aria-label="t('关闭')" @click="picker.close()">×</button>
         </header>
-        <div class="avatar-options" role="group" aria-label="可选头像">
+        <div class="avatar-options" role="group" :aria-label="t('可选头像')">
           <button v-for="(option, index) in options" :key="option.id" class="avatar-option" type="button"
-                  :aria-label="'头像 ' + (index + 1)" :aria-pressed="selected?.id === option.id" @click="selected = option">
+                  :aria-label="t('头像 ') + (index + 1)" :aria-pressed="selected?.id === option.id" @click="selected = option">
             <img :src="option.url" alt="" width="56" height="56" loading="lazy">
             <span v-if="selected?.id === option.id" class="avatar-check" aria-hidden="true">✓</span>
           </button>
         </div>
-        <button class="primary avatar-save" type="submit" :disabled="!selected">保存头像</button>
+        <button class="primary avatar-save" type="submit" :disabled="!selected">{{ t('保存头像') }}</button>
       </form>
     </dialog>
   </Teleport>

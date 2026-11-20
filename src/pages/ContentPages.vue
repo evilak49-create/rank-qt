@@ -1,7 +1,10 @@
 <script setup>
+import { useLocale } from '../locale.js'
 import { ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
 import { go } from '../navigation'
+
+const { t } = useLocale()
 
 const props = defineProps({ route: Object, language: String })
 const data = ref(null)
@@ -48,7 +51,7 @@ watchNotice(error, () => props.route.path.startsWith('/help') ? '帮助中心加
 
 <template>
   <div class="stack">
-    <div v-if="!busy && error" class="state"><button class="text-button" @click="load()">重试</button></div>
+    <div v-if="!busy && error" class="state"><button class="text-button" @click="load()">{{ t('重试') }}</button></div>
     <template v-else-if="!busy && Array.isArray(data)">
       <ul v-if="data.length" class="row-list">
         <li v-for="item in data" :key="item.id">
@@ -57,11 +60,11 @@ watchNotice(error, () => props.route.path.startsWith('/help') ? '帮助中心加
           </button>
         </li>
       </ul>
-      <p v-else class="state">暂无内容。</p>
+      <p v-else class="state">{{ t('暂无内容。') }}</p>
       <div v-if="pagination?.last_page > 1" class="pagination">
-        <button class="quiet" :disabled="pagination.current_page <= 1" @click="go(route.path + '?page=' + (pagination.current_page - 1))">上一页</button>
+        <button class="quiet" :disabled="pagination.current_page <= 1" @click="go(route.path + '?page=' + (pagination.current_page - 1))">{{ t('上一页') }}</button>
         <span>{{ pagination.current_page }} / {{ pagination.last_page }}</span>
-        <button class="quiet" :disabled="pagination.current_page >= pagination.last_page" @click="go(route.path + '?page=' + (pagination.current_page + 1))">下一页</button>
+        <button class="quiet" :disabled="pagination.current_page >= pagination.last_page" @click="go(route.path + '?page=' + (pagination.current_page + 1))">{{ t('下一页') }}</button>
       </div>
     </template>
     <article v-else-if="!busy && data" class="surface stack content-article">
@@ -71,18 +74,18 @@ watchNotice(error, () => props.route.path.startsWith('/help') ? '帮助中心加
       <section v-for="(step, index) in data.steps" :key="index" class="stack">
         <h3 v-if="step.title">{{ step.title }}</h3>
         <p v-if="step.body">{{ step.body }}</p>
-        <button v-if="imageUrl(step.image_url)" class="content-image" @click="enlarge(step)" aria-label="放大步骤图片">
+        <button v-if="imageUrl(step.image_url)" class="content-image" @click="enlarge(step)" :aria-label="t('放大步骤图片')">
           <img :src="imageUrl(step.image_url)" :alt="step.title || ''">
         </button>
         <p v-if="step.caption" class="muted">{{ step.caption }}</p>
       </section>
       <div class="action-row">
-        <button v-if="data.action_target" class="primary" @click="go(data.action_target)">查看相关内容</button>
-        <button v-if="route.path.startsWith('/help/')" class="quiet" @click="go('/support?' + new URLSearchParams({ topic: data.title }))">联系在线客服</button>
+        <button v-if="data.action_target" class="primary" @click="go(data.action_target)">{{ t('查看相关内容') }}</button>
+        <button v-if="route.path.startsWith('/help/')" class="quiet" @click="go('/support?' + new URLSearchParams({ topic: data.title }))">{{ t('联系在线客服') }}</button>
       </div>
     </article>
-    <dialog ref="photoDialog" class="photo-dialog" aria-label="教程图片">
-      <form method="dialog"><button class="close-button" aria-label="关闭">×</button></form>
+    <dialog ref="photoDialog" class="photo-dialog" :aria-label="t('教程图片')">
+      <form method="dialog"><button class="close-button" :aria-label="t('关闭')">×</button></form>
       <img v-if="photo" :src="imageUrl(photo.image_url)" :alt="photo.title || ''">
     </dialog>
   </div>

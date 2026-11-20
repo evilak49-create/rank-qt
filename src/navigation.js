@@ -1,11 +1,12 @@
 import { shallowRef } from 'vue'
+import { createRequestId } from './requestId.js'
 
 const aliases = {
   '': '/', '#': '/', '#register/invite': '/register',
 }
 const scrollPositions = new Map()
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
-let currentKey = history.state?.cashClubKey || crypto.randomUUID()
+let currentKey = history.state?.cashClubKey || createRequestId()
 history.replaceState({ ...history.state, cashClubKey: currentKey }, '')
 let stopRestoring
 
@@ -28,7 +29,7 @@ function update() {
   stopRestoring?.()
   scrollPositions.set(currentKey, window.scrollY)
   const newEntry = !key || key === currentKey
-  currentKey = newEntry ? crypto.randomUUID() : key
+  currentKey = newEntry ? createRequestId() : key
   if (newEntry) history.replaceState({ ...history.state, cashClubKey: currentKey }, '')
   currentRoute.value = readRoute()
 }
@@ -39,7 +40,7 @@ window.addEventListener('hashchange', update)
 export function go(value, { replace = false } = {}) {
   const path = safePath(value)
   if (path === currentRoute.value.fullPath) return
-  const key = crypto.randomUUID()
+  const key = createRequestId()
   const depth = history.state?.cashClubDepth ?? 0
   const previous = replace ? history.state?.cashClubPrevious : currentRoute.value.fullPath
   const state = { cashClubKey: key, cashClubDepth: replace ? depth : depth + 1, cashClubPrevious: previous }

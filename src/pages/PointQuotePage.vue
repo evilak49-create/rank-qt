@@ -1,7 +1,10 @@
 <script setup>
+import { useLocale } from '../locale.js'
 import { ref, watch } from 'vue'
 import { api } from '../api'
 import { formatBrl } from '../money'
+
+const { locale, t } = useLocale()
 
 const props = defineProps({ route: Object })
 const quote = ref(null)
@@ -33,15 +36,15 @@ watchNotice(error, '积分明细加载失败', 'error')
 
 <template>
   <dl v-if="quote" class="surface summary-list">
-    <div><dt>状态</dt><dd>{{ statuses[quote.status] || '处理中' }}</dd></div>
-    <div><dt>{{ quote.status === 'confirmed' ? '实兑积分' : '预计积分' }}</dt><dd>{{ quote.estimated_points }}</dd></div>
-    <div v-if="quote.rebate_enabled || quote.rebate_cents > 0"><dt>{{ quote.status === 'confirmed' ? '已到账返利' : '预计返利' }}</dt><dd>{{ formatBrl(quote.rebate_cents) }}</dd></div>
-    <div><dt>本期待兑存款</dt><dd>{{ format(quote.deposit_cents) }}</dd></div>
-    <div><dt>本期有效投注</dt><dd>{{ format(quote.valid_bet_cents) }}</dd></div>
-    <div><dt>所需投注额</dt><dd>{{ format(quote.required_bet_cents) }}</dd></div>
-    <div v-if="quote.confirmed_at"><dt>入账时间</dt><dd>{{ new Date(quote.confirmed_at).toLocaleString() }}</dd></div>
+    <div><dt>{{ t('状态') }}</dt><dd>{{ t(statuses[quote.status]) || t('处理中') }}</dd></div>
+    <div><dt>{{ quote.status === 'confirmed' ? t('实兑积分') : t('预计积分') }}</dt><dd>{{ quote.estimated_points }}</dd></div>
+    <div v-if="quote.rebate_enabled || quote.rebate_cents > 0"><dt>{{ quote.status === 'confirmed' ? t('已到账返利') : t('预计返利') }}</dt><dd>{{ formatBrl(quote.rebate_cents) }}</dd></div>
+    <div><dt>{{ t('本期待兑存款') }}</dt><dd>{{ format(quote.deposit_cents) }}</dd></div>
+    <div><dt>{{ t('本期有效投注') }}</dt><dd>{{ format(quote.valid_bet_cents) }}</dd></div>
+    <div><dt>{{ t('所需投注额') }}</dt><dd>{{ format(quote.required_bet_cents) }}</dd></div>
+    <div v-if="quote.confirmed_at"><dt>{{ t('入账时间') }}</dt><dd>{{ new Date(quote.confirmed_at).toLocaleString(locale) }}</dd></div>
   </dl>
   <div v-else-if="error" class="state">
-    <button class="text-button" @click="load()">重试</button>
+    <button class="text-button" @click="load()">{{ t('重试') }}</button>
   </div>
 </template>

@@ -2,6 +2,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from './api'
+import { provideLocale } from './locale.js'
 import HomePage from './HomePage.vue'
 import DataLoading from './DataLoading.vue'
 import FeedbackDialog from './FeedbackDialog.vue'
@@ -14,6 +15,7 @@ import AuthPages from './pages/AuthPages.vue'
 import ContentPages from './pages/ContentPages.vue'
 import PointQuotePage from './pages/PointQuotePage.vue'
 import CashWalletPage from './pages/CashWalletPage.vue'
+import WithdrawalHistoryPage from './pages/WithdrawalHistoryPage.vue'
 import PlatformPages from './pages/PlatformPages.vue'
 import ShopPages from './pages/ShopPages.vue'
 import MemberPages from './pages/MemberPages.vue'
@@ -26,6 +28,7 @@ const sessionError = ref('')
 const authPhone = ref('')
 const accountNotice = ref('')
 const language = ref('zh-CN')
+const { t } = provideLocale(language)
 let sessionVersion = 0
 const navbar = {
   '/': 'home', '/platforms': 'platforms', '/shop': 'shop', '/red-packets': 'redPackets', '/member': 'member',
@@ -50,6 +53,7 @@ const pages = [
   [/^\/check-in$/, '每日签到', CheckinPage, true],
   [/^\/wallet$/, '积分钱包', MemberPages, true],
   [/^\/cash-wallet(?:\/withdraw)?$/, '余额提现', CashWalletPage, true],
+  [/^\/withdrawal-history$/, '提现订单', WithdrawalHistoryPage, true],
   [/^\/wallet\/\d+$/, '积分明细', MemberPages, true],
   [/^\/address$/, '收货地址', MemberPages, true],
   [/^\/pix$/, 'Pix 收款账户', MemberPages, true],
@@ -77,7 +81,7 @@ const page = computed(() => configuration.value?.[2])
 const requiresSession = computed(() => configuration.value?.[3] === true
   || (route.value.path === '/' && route.value.query.get('tab') === 'favorites'))
 const auth = computed(() => Object.hasOwn(authTitles, route.value.path))
-const title = computed(() => authTitles[route.value.path] || (route.value.path === '/support' ? copy.value.support : configuration.value?.[1]) || '页面未找到')
+const title = computed(() => t(authTitles[route.value.path] || (route.value.path === '/support' ? copy.value.support : configuration.value?.[1]) || '页面未找到'))
 const navActive = computed(() => navbar[route.value.path])
 const ready = computed(() => !requiresSession.value || (sessionState.value === 'ready' && Boolean(member.value)))
 const cachedView = computed(() => page.value === ContentPages && !route.value.params.id)
@@ -96,8 +100,11 @@ watch([route, sessionState, member], () => {
   }
 }, { immediate: true })
 
+watch([route, title, language], () => {
+  document.title = route.value.path === '/' ? t('评级网 · Slots 平台评级与返利') : title.value + t(' · 评级网')
+}, { immediate: true })
+
 watch(route, async (current, previous) => {
-  document.title = route.value.path === '/' ? '评级网 · Slots 平台评级与返利' : title.value + ' · 评级网'
   if (current.path === '/member' && previous && member.value) refreshMember()
   if (route.value.path !== '/login') accountNotice.value = ''
   await nextTick()
@@ -183,16 +190,16 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
   <template v-else>
     <header v-if="route.path !== '/support'" class="page-topbar">
       <div class="wrap page-header">
-        <button class="page-back" aria-label="返回" @click="back(fallback())">
+        <button class="page-back" :aria-label="t('返回')" @click="back(fallback())">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>
         </button>
         <h1>{{ route.path === '/' ? copy.favorites : title }}</h1>
-        <a class="page-home" href="#/" aria-label="返回首页" @click.prevent="go('/')">✦</a>
+        <a class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
       </div>
     </header>
     <main class="wrap screen" :class="{ 'with-navigation': navActive, 'support-screen': route.path === '/support' }">
       <template v-if="!ready">
-        <div v-if="sessionState === 'error'" class="state"><button class="text-button" @click="refreshMember">重试</button></div>
+        <div v-if="sessionState === 'error'" class="state"><button class="text-button" @click="refreshMember">{{ t('重试') }}</button></div>
       </template>
       <template v-else>
         <AuthPages v-if="auth" :key="route.path" :route="route" :member="member" :draft-phone="authPhone"
@@ -207,13 +214,13 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
         <component :is="page" v-if="page && !cachedView" :key="route.path" :route="route" :member="member" :language="language"
                    @logout="logout" @refresh-member="refreshMember" @credited="refreshMember" />
         <div v-else-if="!page && !auth && route.path !== '/support'" class="state">
-          <p>这个页面不存在。</p><button class="text-button" @click="go('/')">返回首页</button>
+          <p>{{ t('这个页面不存在。') }}</p><button class="text-button" @click="go('/')">{{ t('返回首页') }}</button>
         </div>
       </template>
     </main>
   </template>
 
-  <nav v-if="navActive" class="bottom-nav" :aria-label="language === 'zh-CN' ? '底部导航' : 'Navegação principal'">
+  <nav v-if="navActive" class="bottom-nav" :aria-label="t('底部导航')">
     <button v-for="(icon, path) in navbar" :key="path" :aria-current="navActive === icon ? 'page' : undefined" @click="go(path)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons[icon]"/></svg>
       {{ copy[icon] }}

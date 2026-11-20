@@ -19,18 +19,26 @@ const liveChat = computed(() => settings.value?.mode === 'chat')
 const avatar = computed(() => imageUrl(settings.value?.avatar_url))
 const humanChannels = computed(() => messages.value.findLast(item => item.reply?.type === 'human')?.reply.channels
   ?? settings.value?.channels ?? [])
-const destinations = { '/orders': '/shop/redemptions', '/withdrawals': '/red-packets', '/wallet': '/wallet' }
+const destinations = { '/orders': '/shop/redemptions', '/withdrawals': '/withdrawal-history', '/wallet': '/wallet' }
 
 const labels = computed(() => props.language === 'pt-BR' ? {
-  name: 'Atendimento · 评级网', online: 'Assistente online', human: 'Canais disponíveis',
+  name: 'Atendimento', online: 'Assistente online', human: 'Canais disponíveis',
   offline: 'Indisponível', placeholder: 'Digite sua mensagem',
   send: 'Enviar', retry: 'Tentar de novo', contact: 'Atendimento humano',
   greeting: 'Olá! Como posso ajudar?', back: 'Voltar',
+  records: 'Ver meus registros', close: 'Fechar', copy: 'Copiar',
+  notice: 'Atendimento', copyNotice: 'Contato', copied: 'Contato copiado',
+  copyFailed: 'Não foi possível copiar. Selecione e copie o contato manualmente.',
+  unavailable: 'O atendimento está indisponível no momento. Tente novamente.',
 } : {
   name: '评级网客服', online: 'AI 客服在线', human: '人工渠道可联系',
   offline: '暂不可用', placeholder: '输入消息',
   send: '发送', retry: '重试', contact: '联系人工客服',
   greeting: '您好，请问有什么可以帮您？', back: '返回',
+  records: '查看个人记录', close: '关闭', copy: '复制',
+  notice: '客服服务提醒', copyNotice: '联系方式复制提醒', copied: '已复制联系方式',
+  copyFailed: '无法自动复制，请手动选择联系方式。',
+  unavailable: '客服暂不可用，请稍后重试。',
 })
 const supportName = computed(() => settings.value?.display_name || labels.value.name)
 
@@ -43,8 +51,8 @@ const availability = computed(() => {
 watch(() => props.topic, topic => {
   if (topic && !question.value.trim()) question.value = topic.slice(0, 500)
 }, { immediate: true })
-watchNotice(error, '客服服务提醒', 'error')
-watchNotice(copied, '联系方式复制提醒')
+watchNotice(error, () => labels.value.notice, 'error')
+watchNotice(copied, () => labels.value.copyNotice)
 
 async function scrollToLatest() {
   await nextTick()
@@ -60,9 +68,9 @@ async function copyContact(channel) {
   copied.value = ''
   try {
     await navigator.clipboard.writeText(channel.contact)
-    copied.value = '已复制 ' + channel.name
+    copied.value = labels.value.copied
   } catch {
-    copied.value = '无法自动复制，请手动选择联系方式。'
+    copied.value = labels.value.copyFailed
   }
 }
 
@@ -71,7 +79,7 @@ async function load() {
   try {
     settings.value = (await api('/support?' + new URLSearchParams({ language: props.language }), { fresh: true })).data
   } catch (failure) {
-    error.value = failure.message
+    error.value = props.language === 'pt-BR' ? labels.value.unavailable : failure.message
   }
 }
 
@@ -81,13 +89,22 @@ async function send(item) {
   error.value = ''
   item.state = 'pending'
   scrollToLatest()
+  const history = messages.value.slice(0, messages.value.indexOf(item))
+    .filter(turn => turn.state === 'answered' && turn.reply?.answer?.trim())
+    .slice(-6)
+    .map(turn => ({
+      question: turn.question,
+      answer: Array.from(turn.reply.answer).slice(0, 1400).join(''),
+    }))
   try {
-    const { data } = await api('/support/chat', { body: { question: item.question, language: props.language }, timeoutMs: 18000 })
+    const { data } = await api('/support/chat', {
+      body: { question: item.question, language: props.language, history }, timeoutMs: 18000,
+    })
     item.reply = data
     item.state = 'answered'
   } catch (failure) {
     item.state = 'failed'
-    error.value = failure.message
+    error.value = props.language === 'pt-BR' ? labels.value.unavailable : failure.message
   } finally {
     busy.value = false
     scrollToLatest()
@@ -161,7 +178,7 @@ onActivated(() => {
           <div class="chat-bubble incoming">
             <p>{{ item.reply.answer }}</p>
             <button v-if="item.reply.help" class="chat-bubble-link" @click="emit('follow', item.reply.help.link)">{{ item.reply.help.title }} →</button>
-            <button v-if="item.reply.type === 'personal'" class="chat-bubble-link" @click="emit('account', destinations[item.reply.link])">查看个人记录 →</button>
+            <button v-if="item.reply.type === 'personal'" class="chat-bubble-link" @click="emit('account', destinations[item.reply.link])">{{ labels.records }} →</button>
             <button v-if="item.reply.type === 'human' && humanChannels.length" class="chat-bubble-link" @click="handoff.showModal()">{{ labels.contact }} →</button>
           </div>
         </div>
@@ -178,13 +195,13 @@ onActivated(() => {
     </div>
 
     <dialog ref="handoff" :aria-label="labels.contact">
-      <div class="panel-header"><h2>{{ labels.contact }}</h2><form method="dialog"><button class="close-button" aria-label="关闭">×</button></form></div>
+      <div class="panel-header"><h2>{{ labels.contact }}</h2><form method="dialog"><button class="close-button" :aria-label="labels.close">×</button></form></div>
       <ul v-if="humanChannels.length" class="channels row-list">
         <li v-for="(channel, index) in humanChannels" :key="index" class="channel-row">
           <a v-if="imageUrl(channel.url)" :href="imageUrl(channel.url)" target="_blank" rel="noopener noreferrer">{{ channel.name }}</a>
           <strong v-else>{{ channel.name }}</strong>
           <span v-if="channel.contact">{{ channel.contact }}</span>
-          <button v-if="channel.contact" class="text-button" @click="copyContact(channel)">复制</button>
+          <button v-if="channel.contact" class="text-button" @click="copyContact(channel)">{{ labels.copy }}</button>
         </li>
       </ul>
     </dialog>

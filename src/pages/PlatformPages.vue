@@ -3,10 +3,14 @@ const directoryCache = new Map()
 </script>
 
 <script setup>
+import { createRequestId } from '../requestId.js'
+import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
 import { formatBrl } from '../money'
 import { go, restoreScroll, resume, safePath } from '../navigation'
+
+const { locale, t } = useLocale()
 
 const props = defineProps({ route: { type: Object, required: true }, member: Object })
 const emit = defineEmits(['credited'])
@@ -66,7 +70,7 @@ let reviewIntent
 let disposed = false
 const ticker = window.setInterval(() => { now.value = Date.now() }, 1000)
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-const date = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' })
+const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const eligibility = {
   eligible: '已达到投注要求',
@@ -107,7 +111,7 @@ const promotion = computed(() => {
 })
 
 function formatDate(value) {
-  return value ? date.format(new Date(value)) : '暂无记录'
+  return value ? date.value.format(new Date(value)) : t('暂无记录')
 }
 
 function formatMoney(cents) {
@@ -425,7 +429,7 @@ function submitReview() {
   return run(async current => {
     const payload = { rating: rating.value, body: reviewBody.value.trim() }
     const key = JSON.stringify(payload)
-    if (!reviewIntent || reviewIntent.key !== key) reviewIntent = { key, id: crypto.randomUUID() }
+    if (!reviewIntent || reviewIntent.key !== key) reviewIntent = { key, id: createRequestId() }
     const { data } = await api(platformPath.value + '/reviews', { body: { ...payload, request_id: reviewIntent.id } })
     if (current()) go(platformPath.value + '?review=' + (data.status === 'approved' ? 'approved' : 'pending'), { replace: true })
   })
@@ -557,9 +561,9 @@ watchNotice(() => {
   const result = quote.value
   if (result?.status !== 'confirmed') return ''
   const credited = []
-  if (result.estimated_points > 0) credited.push(result.estimated_points + ' 积分')
-  if (result.rebate_cents > 0) credited.push('返利 ' + formatBrl(result.rebate_cents))
-  return credited.length ? '已到账：' + credited.join('、') + '。' : '兑换已确认。'
+  if (result.estimated_points > 0) credited.push(result.estimated_points + t(' 积分'))
+  if (result.rebate_cents > 0) credited.push(t('返利 ') + formatBrl(result.rebate_cents))
+  return credited.length ? t('已到账：') + credited.join(t('、', ' e ')) + t('。', '.') : '兑换已确认。'
 }, '兑换成功', 'success')
 watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.value.eligibility !== 'eligible'
   ? eligibility[quote.value.eligibility] || '当前报价不可兑换。' : '', '暂不可兑换')
@@ -569,19 +573,19 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
   <section class="stack platform-pages" :class="{ 'with-platform-actions': (screen === 'detail' && platform) || showQuoteAction }" :aria-busy="loading || busy">
     <template v-if="protectedScreens.includes(screen) && !member">
       <div class="surface stack guest-panel">
-        <h2>请先登录</h2>
-        <button class="primary" type="button" @click="requireLogin()">去登录</button>
+        <h2>{{ t('请先登录') }}</h2>
+        <button class="primary" type="button" @click="requireLogin()">{{ t('去登录') }}</button>
       </div>
     </template>
     <template v-else-if="loading"></template>
     <div v-else-if="loadError" class="surface stack message">
-      <button class="quiet" type="button" @click="initialize">重新加载</button>
+      <button class="quiet" type="button" @click="initialize">{{ t('重新加载') }}</button>
     </div>
 
     <template v-else-if="screen === 'directory'">
       <label class="platform-search">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 5 5"/></svg>
-        <input v-model="search" type="search" maxlength="120" aria-label="搜索平台" placeholder="输入平台名称" @input="updateSearch">
+        <input v-model="search" type="search" maxlength="120" :aria-label="t('搜索平台')" :placeholder="t('输入平台名称')" @input="updateSearch">
       </label>
       <div v-if="directory.length" class="directory-grid">
         <a v-for="item in directory" :key="item.id" class="platform-card platform-tile" :href="'#/platforms/' + item.id" @click.prevent="go('/platforms/' + item.id)">
@@ -594,10 +598,10 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </a>
       </div>
       <div v-if="!listing && listingError" class="surface stack message">
-        <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">重试</button>
+        <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">{{ t('重试') }}</button>
       </div>
-      <p v-else-if="!listing && !directory.length" class="surface muted message">未找到匹配的平台。</p>
-      <button v-else-if="!listing && listPage < listLastPage" type="button" class="quiet" @click="listPlatforms(listPage + 1)">加载更多</button>
+      <p v-else-if="!listing && !directory.length" class="surface muted message">{{ t('未找到匹配的平台。') }}</p>
+      <button v-else-if="!listing && listPage < listLastPage" type="button" class="quiet" @click="listPlatforms(listPage + 1)">{{ t('加载更多') }}</button>
     </template>
 
     <template v-else-if="screen === 'detail' && platform">
@@ -608,45 +612,45 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
         <div class="platform-heading">
           <h1>{{ platform.name }}</h1>
-          <p><span class="score">★ {{ platform.rating ?? '—' }}</span><span class="muted"> · {{ platform.review_count }} 条评价</span></p>
-          <p class="muted minor">暂未提供平台客服</p>
+          <p><span class="score">★ {{ platform.rating ?? '—' }}</span><span class="muted"> · {{ platform.review_count }} {{ t('条评价') }}</span></p>
+          <p class="muted minor">{{ t('暂未提供平台客服') }}</p>
         </div>
       </header>
       <section class="surface protection-banner">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z"/><path d="m9 12 2 2 4-4"/></svg>
-        <div><h2>出款保障</h2><p>符合保障条款的拒绝出款申诉，经核实后由本站赔付。</p></div>
-        <button class="quiet" type="button" @click="go(platformPath + '/protection')">查看条款</button>
+        <div><h2>{{ t('出款保障') }}</h2><p>{{ t('符合保障条款的拒绝出款申诉，经核实后由本站赔付。') }}</p></div>
+        <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
-      <nav class="segmented platform-tabs" aria-label="平台详情">
-        <button v-for="[value, label] in [['reviews', '用户评价'], ['description', '平台简介'], ['offers', '优惠活动']]" :key="value" type="button" :aria-pressed="tab === value" @click="tab = value">{{ label }}</button>
+      <nav class="segmented platform-tabs" :aria-label="t('平台详情')">
+        <button v-for="[value, label] in [['reviews', t('用户评价')], ['description', t('平台简介')], ['offers', t('优惠活动')]]" :key="value" type="button" :aria-pressed="tab === value" @click="tab = value">{{ label }}</button>
       </nav>
-      <section v-if="tab === 'reviews'" class="stack" aria-label="用户评价">
+      <section v-if="tab === 'reviews'" class="stack" :aria-label="t('用户评价')">
         <div class="surface review-summary">
-          <div><span class="big-score">{{ platform.rating ?? '—' }}</span><span class="score" aria-hidden="true"> ★</span><p class="muted">{{ platform.review_count }} 条评价</p></div>
-          <button class="quiet" type="button" @click="writeReview">写评价</button>
+          <div><span class="big-score">{{ platform.rating ?? '—' }}</span><span class="score" aria-hidden="true"> ★</span><p class="muted">{{ platform.review_count }} {{ t('条评价') }}</p></div>
+          <button class="quiet" type="button" @click="writeReview">{{ t('写评价') }}</button>
         </div>
         <article v-for="review in reviews" :key="review.id" class="surface review-item">
           <div class="review-meta"><strong>{{ review.display_name }}</strong><time v-if="review.published_at" :datetime="review.published_at" class="muted">{{ formatDate(review.published_at) }}</time></div>
-          <div class="review-stars" :aria-label="review.rating + ' 星'"><span aria-hidden="true">{{ '★'.repeat(review.rating) }}</span><span class="dim-stars" aria-hidden="true">{{ '★'.repeat(5 - review.rating) }}</span></div>
+          <div class="review-stars" :aria-label="review.rating + t(' 星')"><span aria-hidden="true">{{ '★'.repeat(review.rating) }}</span><span class="dim-stars" aria-hidden="true">{{ '★'.repeat(5 - review.rating) }}</span></div>
           <p class="preserved">{{ review.body }}</p>
         </article>
         <div v-if="reviewListError" class="surface stack message">
-          <button class="quiet" type="button" @click="loadPlatformReviews(reviews.length ? reviewPage + 1 : 1, platformPath, loadRequest.signal)">重试</button>
+          <button class="quiet" type="button" @click="loadPlatformReviews(reviews.length ? reviewPage + 1 : 1, platformPath, loadRequest.signal)">{{ t('重试') }}</button>
         </div>
         <div v-else-if="!reviews.length" class="surface message">
-          <p class="muted">暂无评价。</p><button class="quiet" type="button" @click="writeReview">写下第一条评价</button>
+          <p class="muted">{{ t('暂无评价。') }}</p><button class="quiet" type="button" @click="writeReview">{{ t('写下第一条评价') }}</button>
         </div>
-        <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet" :disabled="busy" @click="run(() => loadPlatformReviews(reviewPage + 1, platformPath, loadRequest.signal))">加载更多</button>
+        <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet" :disabled="busy" @click="run(() => loadPlatformReviews(reviewPage + 1, platformPath, loadRequest.signal))">{{ t('加载更多') }}</button>
       </section>
       <section v-else-if="tab === 'description'" class="surface stack platform-content">
-        <p class="preserved">{{ platform.description || '暂无平台简介。' }}</p>
-        <p class="muted">暂未提供独立官网链接。</p>
+        <p class="preserved">{{ platform.description || t('暂无平台简介。') }}</p>
+        <p class="muted">{{ t('暂未提供独立官网链接。') }}</p>
       </section>
-      <section v-else class="surface muted message">暂无优惠活动。</section>
+      <section v-else class="surface muted message">{{ t('暂无优惠活动。') }}</section>
       <div class="platform-actions">
-        <button class="quiet" type="button" :aria-pressed="favorite" :disabled="busy" @click="toggleFavorite">{{ favorite ? '已收藏' : '收藏' }}</button>
-        <a v-if="promotion" class="primary" :href="promotion" target="_blank" rel="noopener noreferrer">通过本站注册 <span aria-hidden="true">↗</span></a>
-        <button v-else class="primary" type="button" disabled>通过本站注册</button>
+        <button class="quiet" type="button" :aria-pressed="favorite" :disabled="busy" @click="toggleFavorite">{{ favorite ? t('已收藏') : t('收藏') }}</button>
+        <a v-if="promotion" class="primary" :href="promotion" target="_blank" rel="noopener noreferrer">{{ t('通过本站注册') }} <span aria-hidden="true">↗</span></a>
+        <button v-else class="primary" type="button" disabled>{{ t('通过本站注册') }}</button>
       </div>
     </template>
 
@@ -655,34 +659,34 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         <h2>{{ terms.title }}</h2>
         <p class="preserved">{{ terms.body }}</p>
       </article>
-      <p v-else class="surface muted message">该平台暂无公开保障条款。</p>
+      <p v-else class="surface muted message">{{ t('该平台暂无公开保障条款。') }}</p>
     </template>
 
     <template v-else-if="screen === 'review' && platform">
       <div v-if="!reviewBinding" class="surface stack platform-content">
         <h2>{{ platform.name }}</h2>
-        <p class="muted">绑定该平台后可发表评价。</p>
-        <button class="primary" type="button" @click="go(bindPath(platform.id, route.fullPath))">去绑定</button>
+        <p class="muted">{{ t('绑定该平台后可发表评价。') }}</p>
+        <button class="primary" type="button" @click="go(bindPath(platform.id, route.fullPath))">{{ t('去绑定') }}</button>
       </div>
       <form v-else class="surface stack platform-content" @submit.prevent="submitReview">
         <h2>{{ platform.name }}</h2>
         <fieldset class="rating-picker" :disabled="busy">
-          <legend>评分</legend>
+          <legend>{{ t('评分') }}</legend>
           <label v-for="star in 5" :key="star" :class="{ highlighted: star <= rating }">
             <input v-model="rating" type="radio" name="platform-rating" required :value="star">
-            <span aria-hidden="true">★</span><span class="visually-hidden">{{ star }} 星</span>
+            <span aria-hidden="true">★</span><span class="visually-hidden">{{ star }} {{ t('星') }}</span>
           </label>
         </fieldset>
-        <label class="field">评价内容
-          <textarea v-model="reviewBody" :disabled="busy" rows="5" maxlength="2000" required placeholder="分享你在该平台的使用体验"></textarea>
+        <label class="field">{{ t('评价内容') }}
+          <textarea v-model="reviewBody" :disabled="busy" rows="5" maxlength="2000" required :placeholder="t('分享你在该平台的使用体验')"></textarea>
         </label>
         <small class="muted word-count">{{ reviewBody.length }} / 2000</small>
-        <button class="primary" :disabled="busy || !rating || !reviewBody.trim()">提交评价</button>
+        <button class="primary" :disabled="busy || !rating || !reviewBody.trim()">{{ t('提交评价') }}</button>
       </form>
     </template>
 
     <template v-else-if="screen === 'bindings'">
-      <button class="primary" type="button" @click="go('/binding')">绑定新平台</button>
+      <button class="primary" type="button" @click="go('/binding')">{{ t('绑定新平台') }}</button>
       <div v-if="ownBindings.length" class="surface">
         <button v-for="item in ownBindings" :key="item.id" type="button" class="binding-row" @click="go('/bindings/' + item.id)">
           <span class="platform-logo small-logo">
@@ -691,47 +695,47 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           </span>
           <span class="binding-label"><strong>{{ item.platform_name }}</strong><small class="muted">{{ item.masked_platform_account }}</small></span>
           <span class="binding-label minor">
-            <strong :class="item.protection_status === 'active' ? 'binding-protected' : 'muted'">{{ bindingStatuses[item.protection_status] || '待确认' }}</strong>
-            <small class="muted">已兑 {{ item.redeemed_points }} 积分 <span aria-hidden="true">›</span></small>
+            <strong :class="item.protection_status === 'active' ? 'binding-protected' : 'muted'">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</strong>
+            <small class="muted">{{ t('已兑') }} {{ item.redeemed_points }} {{ t('积分') }} <span aria-hidden="true">›</span></small>
           </span>
         </button>
       </div>
-      <p v-else class="surface muted message">暂无已绑定平台。</p>
-      <button v-if="bindingPage < bindingLastPage" type="button" class="quiet" :disabled="busy" @click="moreBindings">加载更多</button>
+      <p v-else class="surface muted message">{{ t('暂无已绑定平台。') }}</p>
+      <button v-if="bindingPage < bindingLastPage" type="button" class="quiet" :disabled="busy" @click="moreBindings">{{ t('加载更多') }}</button>
     </template>
 
     <template v-else-if="screen === 'bindingDetail' && bindingDetail">
       <div class="surface stack platform-content">
         <div class="platform-heading"><h2>{{ bindingDetail.platform_name }}</h2><p class="muted">{{ bindingDetail.masked_platform_account }}</p></div>
         <dl class="platform-data">
-          <div><dt>绑定时间</dt><dd>{{ formatDate(bindingDetail.created_at) }}</dd></div>
-          <div><dt>历史已兑换</dt><dd>{{ bindingDetail.redeemed_points }} 积分</dd></div>
-          <div><dt>上次兑换时间</dt><dd>{{ formatDate(bindingDetail.last_redeemed_at) }}</dd></div>
-          <div><dt>保障状态</dt><dd><button type="button" class="inline-action" @click="go('/protection?binding=' + bindingDetail.id)">{{ bindingStatuses[bindingDetail.protection_status] || '查看保障' }} ›</button></dd></div>
+          <div><dt>{{ t('绑定时间') }}</dt><dd>{{ formatDate(bindingDetail.created_at) }}</dd></div>
+          <div><dt>{{ t('历史已兑换') }}</dt><dd>{{ bindingDetail.redeemed_points }} {{ t('积分') }}</dd></div>
+          <div><dt>{{ t('上次兑换时间') }}</dt><dd>{{ formatDate(bindingDetail.last_redeemed_at) }}</dd></div>
+          <div><dt>{{ t('保障状态') }}</dt><dd><button type="button" class="inline-action" @click="go('/protection?binding=' + bindingDetail.id)">{{ t(bindingStatuses[bindingDetail.protection_status]) || t('查看保障') }} ›</button></dd></div>
         </dl>
       </div>
-      <button type="button" class="primary" @click="go('/points?binding=' + bindingDetail.id)">查询积分与返利</button>
-      <button type="button" class="quiet" @click="go('/wallet?platform_id=' + bindingDetail.platform_id)">查看该平台的积分记录</button>
+      <button type="button" class="primary" @click="go('/points?binding=' + bindingDetail.id)">{{ t('查询积分与返利') }}</button>
+      <button type="button" class="quiet" @click="go('/wallet?platform_id=' + bindingDetail.platform_id)">{{ t('查看该平台的积分记录') }}</button>
     </template>
 
     <template v-else-if="screen === 'bind' || screen === 'points'">
       <section class="surface stack platform-content">
         <div ref="pickerBox" class="field platform-picker-field"
              @focusout="$event.relatedTarget && !pickerBox.contains($event.relatedTarget) && closePicker()">
-          <label for="platform-choice">选择平台</label>
+          <label for="platform-choice">{{ t('选择平台') }}</label>
           <div class="platform-select">
             <input id="platform-choice" ref="pickerInput" :value="picker ? search : selected?.name || ''"
                    type="text" role="combobox" aria-autocomplete="list" aria-controls="platform-options"
                    :aria-expanded="picker" :aria-activedescendant="picker && choices[highlighted] ? 'platform-option-' + highlighted : undefined"
-                   :placeholder="picker ? '输入平台名称搜索' : '请选择或搜索平台'" autocomplete="off" maxlength="120" :disabled="busy"
+                   :placeholder="picker ? t('输入平台名称搜索') : t('请选择或搜索平台')" autocomplete="off" maxlength="120" :disabled="busy"
                    @focus="openPicker" @click="openPicker" @input="typePicker" @keydown="pickerKeys">
-            <button type="button" class="picker-toggle" tabindex="-1" :disabled="busy" :aria-label="picker ? '收起选项' : '展开选项'"
+            <button type="button" class="picker-toggle" tabindex="-1" :disabled="busy" :aria-label="picker ? t('收起选项') : t('展开选项')"
                     @mousedown.prevent @click="togglePicker">
               <svg viewBox="0 0 24 24" aria-hidden="true" :class="{ expanded: picker }"><path d="m6 9 6 6 6-6"/></svg>
             </button>
           </div>
           <div v-show="picker" class="picker-panel">
-            <div id="platform-options" class="picker-results" role="listbox" aria-label="匹配平台">
+            <div id="platform-options" class="picker-results" role="listbox" :aria-label="t('匹配平台')">
               <button v-for="(item, index) in choices" :id="'platform-option-' + index" :key="item.id" class="binding-row"
                       :class="{ highlighted: index === highlighted }" type="button" role="option" tabindex="-1"
                       :aria-selected="String(selected?.id) === String(item.id)" :disabled="busy" @mousedown.prevent @click="choose(item)">
@@ -745,78 +749,78 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
               </button>
             </div>
             <div v-if="!listing && listingError" class="stack picker-message">
-              <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">重试</button>
+              <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">{{ t('重试') }}</button>
             </div>
-            <p v-else-if="!listing && !choices.length" class="muted picker-message" role="status">{{ screen === 'bind' ? '未找到可绑定的平台。' : '未找到匹配的平台。' }}</p>
-            <button v-else-if="!listing && listPage < listLastPage" type="button" class="picker-more" @click="listPlatforms(listPage + 1)">加载更多</button>
+            <p v-else-if="!listing && !choices.length" class="muted picker-message" role="status">{{ screen === 'bind' ? t('未找到可绑定的平台。') : t('未找到匹配的平台。') }}</p>
+            <button v-else-if="!listing && listPage < listLastPage" type="button" class="picker-more" @click="listPlatforms(listPage + 1)">{{ t('加载更多') }}</button>
           </div>
         </div>
 
         <template v-if="activeBinding">
-          <div class="field"><span>平台账号</span><div class="masked-account">{{ activeBinding.masked_platform_account }} <span>已绑定</span></div></div>
-          <button v-if="screen === 'points'" class="primary" type="button" :disabled="busy" @click="queryPoints">查询</button>
-          <button v-else-if="target" class="primary" type="button" @click="finishBinding(activeBinding)">继续</button>
-          <button v-else class="quiet" type="button" @click="go('/bindings/' + activeBinding.id)">查看绑定详情</button>
+          <div class="field"><span>{{ t('平台账号') }}</span><div class="masked-account">{{ activeBinding.masked_platform_account }} <span>{{ t('已绑定') }}</span></div></div>
+          <button v-if="screen === 'points'" class="primary" type="button" :disabled="busy" @click="queryPoints">{{ t('查询') }}</button>
+          <button v-else-if="target" class="primary" type="button" @click="finishBinding(activeBinding)">{{ t('继续') }}</button>
+          <button v-else class="quiet" type="button" @click="go('/bindings/' + activeBinding.id)">{{ t('查看绑定详情') }}</button>
         </template>
         <form v-else-if="selected && screen === 'bind'" class="stack" @submit.prevent="bindAccount">
-          <label class="field">平台账号（巴西手机号）
+          <label class="field">{{ t('平台账号（巴西手机号）') }}
             <input v-model.trim="phone" type="tel" maxlength="32" autocomplete="tel" required :disabled="busy" @input="code = ''; status = ''">
           </label>
           <div v-if="requiresCode && bindingVerification === 'sms'" class="code-row">
-            <label class="field">短信验证码
+            <label class="field">{{ t('短信验证码') }}
               <input v-model.trim="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required :disabled="busy">
             </label>
-            <button type="button" class="quiet" :disabled="busy || !phone" @click="sendCode">获取验证码</button>
+            <button type="button" class="quiet" :disabled="busy || !phone" @click="sendCode">{{ t('获取验证码') }}</button>
           </div>
           <div v-if="bindingUsesImage" class="code-row">
-            <label class="field">图片验证码
+            <label class="field">{{ t('图片验证码') }}
               <input v-model.trim="code" type="text" pattern="[A-Za-z2-9]{4}" maxlength="4" autocomplete="off" required :disabled="busy">
             </label>
-            <button type="button" class="quiet" :disabled="busy || captchaLoading" @click="refreshBindingCaptcha()" aria-label="换一张验证码">
-              <img v-if="bindingCaptcha" :src="bindingCaptcha.image" width="150" height="45" alt="图片验证码">
-              <span v-else>获取图片</span>
+            <button type="button" class="quiet" :disabled="busy || captchaLoading" @click="refreshBindingCaptcha()" :aria-label="t('换一张验证码')">
+              <img v-if="bindingCaptcha" :src="bindingCaptcha.image" width="150" height="45" :alt="t('图片验证码')">
+              <span v-else>{{ t('获取图片') }}</span>
             </button>
           </div>
-          <p class="muted">绑定成功后不可更换，请核对平台和账号。</p>
-          <button class="primary" :disabled="busy || !bindingVerification || (bindingUsesImage && !bindingCaptcha)">确认绑定</button>
+          <p class="muted">{{ t('绑定成功后不可更换，请核对平台和账号。') }}</p>
+          <button class="primary" :disabled="busy || !bindingVerification || (bindingUsesImage && !bindingCaptcha)">{{ t('确认绑定') }}</button>
         </form>
         <template v-else-if="selected && screen === 'points'">
-          <p class="muted">请先绑定该平台账号，再查询可兑积分。</p>
-          <button class="primary" type="button" @click="go(bindPath(selected.id, '/points?platform=' + selected.id))">去绑定</button>
+          <p class="muted">{{ t('请先绑定该平台账号，再查询可兑积分。') }}</p>
+          <button class="primary" type="button" @click="go(bindPath(selected.id, '/points?platform=' + selected.id))">{{ t('去绑定') }}</button>
         </template>
       </section>
       <section v-if="screen === 'points' && quote && activeBinding" class="surface stack platform-content quote-result">
         <div class="quote-highlight">
-          <p>{{ quote.status === 'confirmed' ? '已到账' : '预计入账' }}</p>
+          <p>{{ quote.status === 'confirmed' ? t('已到账') : t('预计入账') }}</p>
           <dl class="quote-totals">
-            <div><dt>积分</dt><dd>{{ quote.estimated_points }}</dd></div>
-            <div><dt>返利</dt><dd>{{ formatBrl(quote.rebate_cents) }}</dd></div>
+            <div><dt>{{ t('积分') }}</dt><dd>{{ quote.estimated_points }}</dd></div>
+            <div><dt>{{ t('返利') }}</dt><dd>{{ formatBrl(quote.rebate_cents) }}</dd></div>
           </dl>
         </div>
         <dl class="platform-data">
-          <div><dt>当前充值总额</dt><dd>{{ formatMoney(quote.observed_deposit_cents) }}</dd></div>
-          <div><dt>当前投注额</dt><dd>{{ formatMoney(quote.observed_valid_bet_cents) }}</dd></div>
-          <div><dt>本次待兑换存款</dt><dd>{{ formatMoney(quote.deposit_cents) }}</dd></div>
-          <div><dt>本期有效投注额</dt><dd>{{ formatMoney(quote.valid_bet_cents) }}</dd></div>
-          <div><dt>积分所需投注额（{{ quote.wager_multiplier }} 倍）</dt><dd>{{ formatMoney(quote.point_required_bet_cents ?? quote.required_bet_cents) }}</dd></div>
-          <div v-if="quote.rebate_enabled"><dt>返利所需投注额（{{ quote.rebate_wager_multiplier }} 倍）</dt><dd>{{ formatMoney(quote.rebate_required_bet_cents) }}</dd></div>
-          <div v-if="quote.rebate_enabled"><dt>返利比例</dt><dd>{{ Number(quote.rebate_percent) }}%</dd></div>
-          <div><dt>兑换比例</dt><dd>R$ 1 = {{ quote.points_per_brl }} 积分</dd></div>
-          <div><dt>上次结转积分</dt><dd>{{ quote.remainder_before }}</dd></div>
-          <div><dt>本次结转积分</dt><dd>{{ quote.remainder_after }}</dd></div>
-          <div><dt>历史已兑换</dt><dd>{{ quoteBinding.redeemed_points }} 积分</dd></div>
-          <div><dt>上次兑换时间</dt><dd>{{ formatDate(quoteBinding.last_redeemed_at) }}</dd></div>
-          <div><dt>基线快照读取时间</dt><dd>{{ formatDate(quote.baseline_observed_at) }}</dd></div>
-          <div><dt>本次快照读取时间</dt><dd>{{ formatDate(quote.observed_at) }}</dd></div>
+          <div><dt>{{ t('当前充值总额') }}</dt><dd>{{ formatMoney(quote.observed_deposit_cents) }}</dd></div>
+          <div><dt>{{ t('当前投注额') }}</dt><dd>{{ formatMoney(quote.observed_valid_bet_cents) }}</dd></div>
+          <div><dt>{{ t('本次待兑换存款') }}</dt><dd>{{ formatMoney(quote.deposit_cents) }}</dd></div>
+          <div><dt>{{ t('本期有效投注额') }}</dt><dd>{{ formatMoney(quote.valid_bet_cents) }}</dd></div>
+          <div><dt>{{ t('积分所需投注额（' + quote.wager_multiplier + ' 倍）', 'Apostas exigidas para pontos (' + quote.wager_multiplier + '×)') }}</dt><dd>{{ formatMoney(quote.point_required_bet_cents ?? quote.required_bet_cents) }}</dd></div>
+          <div v-if="quote.rebate_enabled"><dt>{{ t('返利所需投注额（' + quote.rebate_wager_multiplier + ' 倍）', 'Apostas exigidas para cashback (' + quote.rebate_wager_multiplier + '×)') }}</dt><dd>{{ formatMoney(quote.rebate_required_bet_cents) }}</dd></div>
+          <div v-if="quote.rebate_enabled"><dt>{{ t('返利比例') }}</dt><dd>{{ Number(quote.rebate_percent) }}%</dd></div>
+          <div><dt>{{ t('兑换比例') }}</dt><dd>R$ 1 = {{ quote.points_per_brl }} {{ t('积分') }}</dd></div>
+          <div><dt>{{ t('上次结转积分') }}</dt><dd>{{ quote.remainder_before }}</dd></div>
+          <div><dt>{{ t('本次结转积分') }}</dt><dd>{{ quote.remainder_after }}</dd></div>
+          <div><dt>{{ t('历史已兑换') }}</dt><dd>{{ quoteBinding.redeemed_points }} {{ t('积分') }}</dd></div>
+          <div><dt>{{ t('上次兑换时间') }}</dt><dd>{{ formatDate(quoteBinding.last_redeemed_at) }}</dd></div>
+          <div><dt>{{ t('基线快照读取时间') }}</dt><dd>{{ formatDate(quote.baseline_observed_at) }}</dd></div>
+          <div><dt>{{ t('本次快照读取时间') }}</dt><dd>{{ formatDate(quote.observed_at) }}</dd></div>
         </dl>
         <template v-if="quote.status === 'confirmed'">
-          <button class="primary" type="button" @click="go('/wallet?platform_id=' + activeBinding.platform_id)">查看积分记录</button>
-          <button v-if="quote.rebate_enabled || quote.rebate_cents > 0" class="quiet" type="button" @click="go('/cash-wallet/withdraw')">查看可用余额</button>
+          <button class="primary" type="button" @click="go('/wallet?platform_id=' + activeBinding.platform_id)">{{ t('查看积分记录') }}</button>
+          <button v-if="quote.rebate_enabled || quote.rebate_cents > 0" class="quiet" type="button" @click="go('/cash-wallet/withdraw')">{{ t('查看可用余额') }}</button>
         </template>
-        <p v-else class="muted" role="status">{{ quote.eligibility === 'eligible' && !mayConfirm ? '报价已失效，请重新查询。' : quote.rebate_enabled && quote.eligibility === 'insufficient_points' ? '暂无可兑换的积分或返利。' : eligibility[quote.eligibility] || '当前报价不可兑换。' }}</p>
+        <p v-else class="muted" role="status">{{ quote.eligibility === 'eligible' && !mayConfirm ? t('报价已失效，请重新查询。') : quote.rebate_enabled && quote.eligibility === 'insufficient_points' ? t('暂无可兑换的积分或返利。') : t(eligibility[quote.eligibility]) || t('当前报价不可兑换。') }}</p>
       </section>
       <footer v-if="showQuoteAction" class="platform-actions quote-actions">
-        <button class="primary" type="button" :disabled="busy || !mayConfirm" @click="confirmPoints">{{ quote.rebate_enabled ? '确认兑换积分和返利' : '确认兑换' }}</button>
+        <button class="primary" type="button" :disabled="busy || !mayConfirm" @click="confirmPoints">{{ quote.rebate_enabled ? t('确认兑换积分和返利') : t('确认兑换') }}</button>
       </footer>
     </template>
 
