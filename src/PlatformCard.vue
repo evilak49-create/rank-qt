@@ -6,16 +6,18 @@ const activeMenu = shallowRef(null)
 
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue'
-import { api } from './api'
+import { api, imageUrl } from './api'
 import { useLocale } from './locale'
 import { go } from './navigation'
 
 const props = defineProps({
   platformId: [Number, String],
   name: String,
+  logoUrl: String,
+  rating: [Number, String],
+  rank: Number,
   promotionUrl: String,
   detailHref: String,
-  row: Boolean,
 })
 const { t } = useLocale()
 const card = ref(null)
@@ -24,6 +26,7 @@ const menuId = Symbol()
 const discoveredUrl = ref()
 const opened = computed(() => activeMenu.value?.id === menuId)
 const path = computed(() => '/platforms/' + props.platformId)
+const artwork = computed(() => imageUrl(props.logoUrl))
 const url = computed(() => {
   try {
     const link = new URL(props.promotionUrl ?? discoveredUrl.value)
@@ -76,25 +79,74 @@ function details(event) {
 </script>
 
 <template>
-  <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row }"
-       @pointerenter="hover" @pointerleave="leave"
+  <div ref="card" class="platform-entry"
        @focusout="event => { if (!card?.contains(event.relatedTarget)) close() }"
        @keydown.esc.stop="close(); trigger.focus({ preventScroll: true })">
-    <slot />
-    <button ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
-            :aria-expanded="opened" @click="toggle"></button>
-    <div v-if="opened" class="platform-entry-actions">
-      <a class="primary" :href="detailHref || '#' + path" @click="details">{{ t('网站详情', 'Detalhes do site') }}</a>
-      <a v-if="url" class="quiet" :href="url" target="_blank" rel="noopener noreferrer">{{ t('打开网站', 'Abrir site') }}</a>
-      <button v-else class="quiet" type="button" disabled>{{ t('打开网站', 'Abrir site') }}</button>
+    <div class="platform-poster" @pointerenter="hover" @pointerleave="leave">
+      <span class="platform-artwork" aria-hidden="true">
+        {{ name?.slice(0, 1) }}
+        <img v-if="artwork" :src="artwork" alt="" loading="lazy" @error="$event.target.hidden = true" @load="$event.target.hidden = false">
+      </span>
+      <span v-if="rank" class="platform-rank" :data-rank="rank">{{ rank }}</span>
+      <span v-if="rating != null" class="platform-rating"><span aria-hidden="true">★</span> {{ rating }}</span>
+      <strong class="platform-name">{{ name }}</strong>
+      <button ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
+              :aria-expanded="opened" @click="toggle"></button>
+      <div v-if="opened" class="platform-entry-actions">
+        <a class="primary" :href="detailHref || '#' + path" @click="details">{{ t('网站详情', 'Detalhes do site') }}</a>
+        <a v-if="url" class="quiet" :href="url" target="_blank" rel="noopener noreferrer">{{ t('打开网站', 'Abrir site') }}</a>
+        <button v-else class="quiet" type="button" disabled>{{ t('打开网站', 'Abrir site') }}</button>
+      </div>
     </div>
-    <slot name="controls" />
+    <div v-if="$slots.controls" class="platform-entry-controls"><slot name="controls" /></div>
   </div>
 </template>
 
 <style scoped>
-.platform-entry { position: relative; min-width: 0; }
-.platform-entry-row { min-height: 48px; }
+.platform-entry {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line, #2b3650);
+  border-radius: 12px;
+  background: var(--surface, #1a2334);
+}
+.platform-entry:focus-within, .platform-entry:hover { border-color: #9581ed; }
+.platform-poster { position: relative; isolation: isolate; display: grid; min-width: 0; }
+.platform-artwork {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at top, #534083, #202c49 75%);
+  color: #e2d5ff;
+  font-size: clamp(27px, 9vw, 44px);
+  font-weight: 850;
+}
+.platform-artwork img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.platform-artwork img[hidden] { display: none; }
+.platform-name {
+  display: grid;
+  place-items: center;
+  min-height: 39px;
+  padding: 5px 6px;
+  background: linear-gradient(180deg, #9ee8c2, #67c994);
+  color: #0e3225;
+  text-align: center;
+  font-size: clamp(12px, 3.4vw, 15px);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.platform-rating, .platform-rank { position: absolute; top: 5px; padding: 2px 5px; border-radius: 6px; font-size: 10px; font-weight: 800; }
+.platform-rating { right: 5px; color: #f4ffad; background: #121929dc; font-variant-numeric: tabular-nums; }
+.platform-rank { left: 5px; color: #221140; background: #c6b1ff; }
+.platform-rank[data-rank="1"] { color: #36280e; background: #f6cd68; }
+.platform-rank[data-rank="2"] { color: #253752; background: #c2d8f5; }
+.platform-entry-controls { display: grid; gap: 6px; min-width: 0; padding: 8px; overflow-wrap: anywhere; }
+.platform-entry-controls :slotted(button) { align-self: end; white-space: normal; }
 .platform-entry-trigger { position: absolute; z-index: 1; inset: 0; width: 100%; border-radius: inherit; }
 .platform-entry-trigger:focus-visible { outline-offset: -3px; }
 .platform-entry-actions {
@@ -129,7 +181,4 @@ function details(event) {
 .platform-entry-actions .primary { background: #6d4bea; color: #fff; font-weight: 800; }
 .platform-entry-actions .quiet { border: 1px solid #7b6aab; background: transparent; color: #eee7ff; }
 .platform-entry-actions a.quiet:hover { border-color: #b3a2ff; background: transparent; }
-.platform-entry-row .platform-entry-actions { grid-auto-flow: column; justify-content: start; align-items: center; padding-inline: 8px; }
-.platform-entry-row .platform-entry-actions :is(a, button) { padding-inline: 7px; }
-:slotted(.platform-entry-control) { position: relative; z-index: 3; }
 </style>

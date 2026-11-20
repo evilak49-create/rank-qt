@@ -145,18 +145,20 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
     <template v-if="summary">
       <section class="stack">
         <h2>{{ t('平台保障') }}</h2>
-        <article v-for="binding in currentBindings" :key="binding.id" class="surface stack"
-          :ref="element => { if (String(binding.id) === bindingId) selectedBinding = element }"
-          :class="{ 'member-focus': String(binding.id) === bindingId }">
-          <PlatformCard row :platform-id="binding.platform_id" :name="binding.platform_name" :promotion-url="binding.promotion_url">
-            <h3>{{ binding.platform_name }}</h3><p class="muted">{{ binding.masked_platform_account }}</p>
-            <p class="member-status">{{ t('保障状态 ·') }} {{ t(statuses[binding.protection_status]) || t('待确认') }}</p>
-          </PlatformCard>
-          <div class="member-actions">
-            <button class="quiet" @click="go('/protection/bindings/' + binding.id + '/terms')">{{ t('保障条款') }}</button>
-            <button class="primary" @click="go('/protection/claims/new?binding=' + binding.id)">{{ t('申请保障') }}</button>
-          </div>
-        </article>
+        <div v-if="currentBindings.length" class="platform-grid platform-grid-with-controls">
+          <article v-for="binding in currentBindings" :key="binding.id" class="stack"
+            :ref="element => { if (String(binding.id) === bindingId) selectedBinding = element }">
+            <PlatformCard :platform-id="binding.platform_id" :name="binding.platform_name" :logo-url="binding.logo_url"
+                          :promotion-url="binding.promotion_url" :class="{ 'member-focus': String(binding.id) === bindingId }">
+              <template #controls>
+                <p class="muted">{{ binding.masked_platform_account }}</p>
+                <p class="member-status">{{ t('保障状态 ·') }} {{ t(statuses[binding.protection_status]) || t('待确认') }}</p>
+                <button class="quiet" @click="go('/protection/bindings/' + binding.id + '/terms')">{{ t('保障条款') }}</button>
+                <button class="primary" @click="go('/protection/claims/new?binding=' + binding.id)">{{ t('申请保障') }}</button>
+              </template>
+            </PlatformCard>
+          </article>
+        </div>
         <p v-if="bindings && !currentBindings.length" class="surface muted">{{ t('暂无已绑定平台。') }}</p>
         <MemberPagination :page="bindings" :busy="loading" @page="goPage('bindingsPage', $event)" />
       </section>

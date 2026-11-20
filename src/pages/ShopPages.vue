@@ -423,16 +423,13 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 
       <section class="stack" aria-labelledby="shop-funds">
         <h2 id="shop-funds">{{ t('平台资金兑换', 'Resgatar crédito na plataforma') }}</h2>
-        <div v-if="catalog.platforms.items.length" class="shop-funds-list">
-          <PlatformCard v-for="item in catalog.platforms.items" :key="item.id" class="surface shop-fund" row
-                        :platform-id="item.id" :name="item.name" :promotion-url="item.promotion_url">
-            <div class="shop-logo">
-              <img v-if="imageUrl(item.logo_url) && !brokenImages.has('platform-' + item.id)" :src="imageUrl(item.logo_url)" alt="" loading="lazy" @error="failedImage('platform-' + item.id)" />
-              <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.platforms" /></svg>
-            </div>
-            <div class="shop-list-text"><h3>{{ item.name }}</h3><p class="muted">{{ rate ? rateText(rate.cents_per_point) : t('暂未取得比例 · 可查看兑换预览', 'Consulte a simulação para ver a taxa de conversão.') }}</p></div>
+        <div v-if="catalog.platforms.items.length" class="platform-grid platform-grid-with-controls">
+          <PlatformCard v-for="item in catalog.platforms.items" :key="item.id"
+                        :platform-id="item.id" :name="item.name" :logo-url="item.logo_url"
+                        :rating="item.rating" :promotion-url="item.promotion_url">
             <template #controls>
-              <button class="primary platform-entry-control" :aria-label="t('兑换 ', 'Resgatar crédito em ') + item.name" @click="go('/shop/funds/' + item.id)">{{ t('兑换', 'Resgatar') }}</button>
+              <p class="muted">{{ rate ? rateText(rate.cents_per_point) : t('暂未取得比例 · 可查看兑换预览', 'Consulte a simulação para ver a taxa de conversão.') }}</p>
+              <button class="primary" :aria-label="t('兑换 ', 'Resgatar crédito em ') + item.name" @click="go('/shop/funds/' + item.id)">{{ t('兑换', 'Resgatar') }}</button>
             </template>
           </PlatformCard>
         </div>
@@ -585,9 +582,9 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 .shop-highlight { color: var(--lime); font-weight: 800; }
 .shop-highlight small { color: inherit; }
 .shop-product-content .muted, .shop-list-text .muted { font-size: 12px; }
-.shop-funds-list, .shop-records { display: grid; gap: 7px; }
-.shop-fund, .shop-summary, .shop-record { display: flex; align-items: center; gap: 10px; }
-.shop-summary > :last-child:not(.shop-list-text), .shop-fund > :last-child { flex-shrink: 0; }
+.shop-records { display: grid; gap: 7px; }
+.shop-summary, .shop-record { display: flex; align-items: center; gap: 10px; }
+.shop-summary > :last-child:not(.shop-list-text) { flex-shrink: 0; }
 .shop-logo { width: 43px; height: 43px; flex: 0 0 43px; border-radius: 9px; }
 .shop-logo svg { width: 22px; }
 .shop-list-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }

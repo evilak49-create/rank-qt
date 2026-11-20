@@ -18,9 +18,6 @@
 .platform-search:focus-within { border-color: var(--accent); }
 .platform-search svg { width: 19px; height: 19px; flex: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .platform-search input { width: 100%; min-height: 44px; padding: 0; border: 0; color: #fff; background: transparent; outline: 0; }
-.directory-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-
-.platform-tile:hover { border-color: var(--accent); }
 .platform-logo {
   display: grid;
   flex: none;
@@ -35,7 +32,6 @@
 
 .platform-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .platform-logo img[hidden] { display: none; }
-.tile-logo { border: 0; border-radius: 0; }
 .large-logo { width: 64px; height: 64px; font-size: 21px; }
 .large-logo > * { grid-area: 1 / 1; }
 .small-logo { width: 40px; height: 40px; font-size: 13px; }
@@ -127,8 +123,6 @@
 
 .binding-row:hover { background: #ffffff07; }
 .binding-row + .binding-row { border-top: 1px solid var(--platform-border); }
-.binding-label { display: grid; }
-.binding-label.minor { text-align: end; min-height: 44px; align-content: center; }
 .binding-protected { color: #a0efcf; }
 .platform-data { display: grid; gap: 0; margin: 0; }
 .platform-data div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); align-items: center; gap: 8px; padding-block: 8px; border-bottom: 1px solid var(--platform-border); font-size: 13px; }

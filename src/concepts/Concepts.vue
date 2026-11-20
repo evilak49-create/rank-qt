@@ -136,15 +136,16 @@ onMounted(() => {
     <template v-if="panel.status === 'loading'"></template>
     <p v-else-if="panel.status === 'error'" role="status">暂时无法加载，请稍后重试。</p>
     <p v-else-if="panel.status === 'empty' || !panel.data || (Array.isArray(panel.data) && !panel.data.length)">暂无相关内容。</p>
+    <div v-else-if="panel.kind === 'platforms' && Array.isArray(panel.data)" class="proto-list">
+      <PlatformCard v-for="item in panel.data" :key="item.id" :platform-id="item.id" :name="item.name"
+                    :logo-url="item.logo_url" :rating="item.rating"
+                    :promotion-url="item.promotion_url" :detail-href="'./#/platforms/' + item.id" />
+    </div>
     <ul v-else-if="Array.isArray(panel.data)" class="dialog-list">
       <li v-for="item in panel.data" :key="item.id">
         <template v-if="panel.kind === 'shop'">
           <strong>{{ item.name }}</strong><span>{{ item.points_price }} 积分</span>
         </template>
-        <PlatformCard v-else-if="panel.kind === 'platforms'" row :platform-id="item.id" :name="item.name"
-                      :promotion-url="item.promotion_url" :detail-href="'./#/platforms/' + item.id">
-          <strong>{{ item.name }}</strong><span>{{ item.rating == null ? '→' : '★ ' + item.rating }}</span>
-        </PlatformCard>
         <button v-else @click="openItem(item)">
           <strong>{{ item.title || item.name }}</strong><span>{{ item.rating == null ? '→' : '★ ' + item.rating }}</span>
         </button>

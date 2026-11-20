@@ -137,16 +137,9 @@ function copyTextForError() { return props.copy.error }
       </div>
       <div v-if="selectedBlock.state === 'ready' && selectedBlock.data.length" class="platform-grid">
         <PlatformCard v-for="(platform, index) in selection === 'featured' ? selectedBlock.data.slice(0, 10) : selectedBlock.data"
-                      :key="platform.id" class="platform-card home-platform-card" :platform-id="platform.id" :name="platform.name" :promotion-url="platform.promotion_url">
-          <span v-if="selection === 'featured' && index < 3" class="platform-rank" :data-rank="index + 1">{{ index + 1 }}</span>
-          <span class="platform-logo" aria-hidden="true">
-            {{ platform.name.slice(0, 1) }}
-            <img v-if="imageUrl(platform.logo_url)" :src="imageUrl(platform.logo_url)" alt="" loading="lazy"
-                 @error="event => event.target.hidden = true">
-          </span>
-          <span v-if="platform.rating != null" class="rating"><span aria-hidden="true">★</span> {{ platform.rating }}</span>
-          <strong class="platform-summary">{{ platform.name }}</strong>
-        </PlatformCard>
+                      :key="platform.id" :platform-id="platform.id" :name="platform.name" :logo-url="platform.logo_url"
+                      :rating="platform.rating" :rank="selection === 'featured' && index < 3 ? index + 1 : undefined"
+                      :promotion-url="platform.promotion_url" />
       </div>
       <div v-else-if="selectedBlock.state !== 'loading'" class="state" role="status">
         <span>{{ selectedBlock.state === 'error' ? copy.error : selection === 'favorites' ? copy.noFavorites : copy.empty }}</span>
