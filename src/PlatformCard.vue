@@ -87,7 +87,7 @@ function details(event) {
   gap: 5px;
   padding: 5px;
   border-radius: inherit;
-  background: #111628eb;
+  background: transparent;
 }
 .platform-entry-actions :is(a, button) {
   display: grid;
