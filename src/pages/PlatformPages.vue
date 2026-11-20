@@ -287,7 +287,7 @@ function choose(item) {
   status.value = ''
 }
 
-async function loadBindings(signal, allPages = false) {
+async function loadBindings(signal, { allPages = false, throughPage = 1 } = {}) {
   const items = []
   let currentPage = 1
   let result
@@ -295,7 +295,7 @@ async function loadBindings(signal, allPages = false) {
     result = await api('/platform-bindings?page=' + currentPage, { signal, fresh: screen.value === 'bind' })
     items.push(...result.data)
     currentPage++
-  } while (allPages && currentPage <= result.last_page)
+  } while (currentPage <= result.last_page && (allPages || currentPage <= throughPage))
   if (signal.aborted) return
   ownBindings.value = items
   bindingPage.value = result.current_page
@@ -309,6 +309,10 @@ function moreBindings() {
     ownBindings.value.push(...result.data)
     bindingPage.value = result.current_page
     bindingLastPage.value = result.last_page
+    history.replaceState({
+      ...history.state,
+      platformBindingProgress: { memberId: props.member.id, page: bindingPage.value },
+    }, '')
   })
 }
 
@@ -387,7 +391,7 @@ async function initialize() {
         if (signal.aborted) return
         bindingVerification.value = result.data.mode
       }
-      await loadBindings(signal, true)
+      await loadBindings(signal, { allPages: true })
       if (signal.aborted) return
       phone.value = props.member.phone ?? ''
       const bindingId = props.route.query.get('binding')
@@ -405,7 +409,9 @@ async function initialize() {
         if (!signal.aborted) choose(result.data)
       }
     } else if (mode === 'bindings') {
-      await loadBindings(signal)
+      const progress = history.state?.platformBindingProgress
+      const throughPage = progress?.memberId === props.member.id ? progress.page : 1
+      await loadBindings(signal, { throughPage })
     } else if (mode === 'bindingDetail') {
       const result = await api('/platform-bindings/' + props.route.params.id, { signal })
       if (!signal.aborted) bindingDetail.value = result.data
@@ -416,7 +422,7 @@ async function initialize() {
       const result = await api(path, { signal })
       if (signal.aborted) return
       platform.value = result.data
-      if (mode === 'review') await loadBindings(signal, true)
+      if (mode === 'review') await loadBindings(signal, { allPages: true })
       else {
         const posted = props.route.query.get('review')
         if (posted === 'pending') status.value = '评价已提交，审核通过后将公开展示。'

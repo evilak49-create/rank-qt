@@ -70,16 +70,18 @@ export function restoreScroll() {
     window.scrollTo(0, top)
     if (window.scrollY >= top - 1) stop()
   })
-  const timer = setTimeout(stop, 2000)
+  const timer = setTimeout(stop, 12000)
   function stop() {
     observer.disconnect()
     clearTimeout(timer)
     window.removeEventListener('pointerdown', stop)
     window.removeEventListener('wheel', stop)
+    window.removeEventListener('keydown', stop)
     stopRestoring = null
   }
   stopRestoring = stop
   observer.observe(document.body)
   window.addEventListener('pointerdown', stop, { once: true })
   window.addEventListener('wheel', stop, { once: true })
+  window.addEventListener('keydown', stop, { once: true })
 }

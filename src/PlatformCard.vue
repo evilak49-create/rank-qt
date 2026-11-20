@@ -1,5 +1,11 @@
+<script>
+import { shallowRef } from 'vue'
+
+const activeMenu = shallowRef(null)
+</script>
+
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { api } from './api'
 import { useLocale } from './locale'
 import { go } from './navigation'
@@ -14,10 +20,9 @@ const props = defineProps({
 const { t } = useLocale()
 const card = ref(null)
 const trigger = ref(null)
-const hovered = ref(false)
-const expanded = ref(false)
+const menuId = Symbol()
 const discoveredUrl = ref()
-const opened = computed(() => hovered.value || expanded.value)
+const opened = computed(() => activeMenu.value?.id === menuId)
 const path = computed(() => '/platforms/' + props.platformId)
 const url = computed(() => {
   try {
@@ -29,17 +34,31 @@ const url = computed(() => {
 })
 
 function close() {
-  hovered.value = false
-  expanded.value = false
+  if (opened.value) activeMenu.value = null
 }
+
+function hover(event) {
+  if (event.pointerType === 'mouse' && !opened.value) activeMenu.value = { id: menuId, pinned: false }
+}
+
+function leave() {
+  if (opened.value && !activeMenu.value.pinned) close()
+}
+
+function toggle() {
+  if (opened.value && activeMenu.value.pinned) close()
+  else activeMenu.value = { id: menuId, pinned: true }
+}
+
+onUnmounted(close)
 
 watch(opened, (active, _, onCleanup) => {
   if (!active) return
   function outside(event) {
     if (!card.value?.contains(event.target)) close()
   }
-  document.addEventListener('pointerdown', outside)
-  onCleanup(() => document.removeEventListener('pointerdown', outside))
+  document.addEventListener('pointerdown', outside, true)
+  onCleanup(() => document.removeEventListener('pointerdown', outside, true))
   if (props.promotionUrl !== undefined || discoveredUrl.value !== undefined) return
   const request = new AbortController()
   onCleanup(() => request.abort())
@@ -58,13 +77,12 @@ function details(event) {
 
 <template>
   <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row }"
-       @pointerenter="event => { if (event.pointerType === 'mouse') hovered = true }"
-       @pointerleave="hovered = false"
+       @pointerenter="hover" @pointerleave="leave"
        @focusout="event => { if (!card?.contains(event.relatedTarget)) close() }"
-       @keydown.esc.stop="close(); trigger.focus()">
+       @keydown.esc.stop="close(); trigger.focus({ preventScroll: true })">
     <slot />
     <button ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
-            :aria-expanded="opened" @click="expanded = !expanded"></button>
+            :aria-expanded="opened" @click="toggle"></button>
     <div v-if="opened" class="platform-entry-actions">
       <a class="primary" :href="detailHref || '#' + path" @click="details">{{ t('网站详情', 'Detalhes do site') }}</a>
       <a v-if="url" class="quiet" :href="url" target="_blank" rel="noopener noreferrer">{{ t('打开网站', 'Abrir site') }}</a>
@@ -76,6 +94,7 @@ function details(event) {
 
 <style scoped>
 .platform-entry { position: relative; min-width: 0; }
+.platform-entry-row { min-height: 48px; }
 .platform-entry-trigger { position: absolute; z-index: 1; inset: 0; width: 100%; border-radius: inherit; }
 .platform-entry-trigger:focus-visible { outline-offset: -3px; }
 .platform-entry-actions {
@@ -84,8 +103,9 @@ function details(event) {
   inset: 0;
   display: grid;
   align-content: center;
-  gap: 5px;
+  gap: 7px;
   padding: 5px;
+  pointer-events: none;
   border-radius: inherit;
   background: linear-gradient(
     to bottom,
@@ -97,7 +117,9 @@ function details(event) {
 .platform-entry-actions :is(a, button) {
   display: grid;
   place-items: center;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
+  pointer-events: auto;
   padding: 4px 3px;
   text-align: center;
   font-size: 11px;
@@ -108,6 +130,6 @@ function details(event) {
 .platform-entry-actions .quiet { border: 1px solid #7b6aab; background: transparent; color: #eee7ff; }
 .platform-entry-actions a.quiet:hover { border-color: #b3a2ff; background: transparent; }
 .platform-entry-row .platform-entry-actions { grid-auto-flow: column; justify-content: start; align-items: center; padding-inline: 8px; }
-.platform-entry-row .platform-entry-actions :is(a, button) { min-height: 36px; padding-inline: 7px; }
+.platform-entry-row .platform-entry-actions :is(a, button) { padding-inline: 7px; }
 :slotted(.platform-entry-control) { position: relative; z-index: 3; }
 </style>
