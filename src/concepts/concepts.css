@@ -172,12 +172,34 @@ button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid
 .proto-ranking > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
 .proto-ranking h2 { font-weight: 850; font-size: 17px; line-height: 1.2; }
 .proto-ranking header button, .proto-status button { min-height: 32px; color: var(--accent); font-size: 11px; font-weight: 750; }
-.proto-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
-.prototype[data-list="table"] .proto-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.proto-review-count { color: #d9daed; text-align: center; font-size: 10px; }
+.proto-list { display: grid; gap: 5px; }
+.prototype .proto-platform { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; padding: 7px; border-radius: 9px; border: 1px solid color-mix(in srgb, var(--ink) 13%, white); background: white; text-align: left; font-size: 12px; }
+.proto-platform:hover, .proto-links button:hover { border-color: var(--accent); }
+.proto-logo { display: grid; position: relative; place-items: center; width: 33px; height: 33px; overflow: hidden; flex: none; border-radius: 7px; background: var(--tint); color: var(--accent); font-weight: 900; }
+.proto-logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.proto-platform-label { display: grid; min-width: 0; margin-right: auto; overflow-wrap: anywhere; }
+.proto-platform-label small { font-size: 9px; opacity: .8; }
+.proto-rating { color: var(--accent); flex: none; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.position { font-size: 11px; font-weight: 750; color: var(--accent); }
+.prototype[data-list="table"] .proto-list { border-radius: 10px; border: 1px solid color-mix(in srgb, var(--ink) 16%, white); background: white; gap: 0; overflow: hidden; }
+.prototype[data-list="table"] .proto-platform { border: 0; border-radius: 0; }
+.prototype[data-list="table"] .proto-platform + .proto-platform { border-top: 1px solid color-mix(in srgb, var(--ink) 13%, white); }
+.prototype[data-list="cards"] .proto-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.prototype[data-list="cards"] .proto-platform {
+  display: grid;
+  grid-template-columns: 33px minmax(0, 1fr);
+  align-content: start;
+  column-gap: 8px;
+  row-gap: 2px;
+}
+.prototype[data-list="cards"] .proto-logo { grid-row: span 2; align-self: start; }
+.prototype[data-list="cards"] .proto-platform-label { margin: 0; }
+.prototype[data-list="cards"] .proto-rating { grid-column: 2; }
 .prototype[data-list="carousel"] .proto-list { display: flex; gap: 7px; overflow-x: auto; padding: 2px 1px 5px; scroll-snap-type: x mandatory; }
-.prototype[data-list="carousel"] .proto-platform { flex: 0 0 48%; scroll-snap-align: start; }
-.prototype[data-list="spotlight"] .proto-platform:first-child { grid-column: span 2; width: 68%; justify-self: center; }
+.prototype[data-list="carousel"] .proto-platform { flex: 0 0 76%; scroll-snap-align: start; }
+.prototype[data-list="spotlight"] .proto-platform:first-child { padding: 11px; background: linear-gradient(120deg, var(--tint), white 72%); }
+.prototype[data-list="spotlight"] .proto-platform:first-child .proto-logo { width: 40px; height: 40px; }
+.prototype[data-list="spotlight"] .proto-platform:first-child .proto-rating { font-size: 15px; }
 .proto-status { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 7px 10px; border: 1px dashed color-mix(in srgb, var(--ink) 28%, white); border-radius: 9px; font-size: 11px; }
 .proto-footer { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 10px 13px; border-top: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); font-size: 10px; font-weight: 850; }
 .proto-footer span { font-weight: 500; }
@@ -188,9 +210,9 @@ button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid
 .concept-dialog h2 { font-size: 19px; overflow-wrap: anywhere; }
 .concept-dialog header button { border: 0; border-radius: 9px; width: 44px; height: 44px; background: #edf0fc; font-size: 22px; }
 .dialog-list { list-style: none; padding: 0; margin: 0; }
-.dialog-list li, .dialog-list li > button { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dialog-list li, .dialog-list li > button, .dialog-list li > .platform-entry { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .dialog-list li { min-height: 44px; border-bottom: 1px solid #e2e6fa; }
-.dialog-list li > button { border: 0; padding: 4px 0; min-height: 44px; background: transparent; width: 100%; text-align: left; }
+.dialog-list li > :is(button, .platform-entry) { border: 0; padding: 4px 0; min-height: 44px; background: transparent; width: 100%; text-align: left; }
 .dialog-article { white-space: pre-wrap; overflow-wrap: anywhere; }
 .dialog-article > * + * { margin-top: 10px; }
 

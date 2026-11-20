@@ -18,6 +18,7 @@ const props = defineProps({
   rank: Number,
   promotionUrl: String,
   detailHref: String,
+  row: Boolean,
 })
 const { t } = useLocale()
 const card = ref(null)
@@ -79,10 +80,12 @@ function details(event) {
 </script>
 
 <template>
-  <div ref="card" class="platform-entry"
+  <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row, 'platform-entry-poster': !$slots.default }"
+       @pointerenter="hover" @pointerleave="leave"
        @focusout="event => { if (!card?.contains(event.relatedTarget)) close() }"
        @keydown.esc.stop="close(); trigger.focus({ preventScroll: true })">
-    <div class="platform-poster" @pointerenter="hover" @pointerleave="leave">
+    <slot v-if="$slots.default" />
+    <template v-else>
       <span class="platform-artwork" aria-hidden="true">
         {{ name?.slice(0, 1) }}
         <img v-if="artwork" :src="artwork" alt="" loading="lazy" @error="$event.target.hidden = true" @load="$event.target.hidden = false">
@@ -90,30 +93,30 @@ function details(event) {
       <span v-if="rank" class="platform-rank" :data-rank="rank">{{ rank }}</span>
       <span v-if="rating != null" class="platform-rating"><span aria-hidden="true">★</span> {{ rating }}</span>
       <strong class="platform-name">{{ name }}</strong>
-      <button ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
-              :aria-expanded="opened" @click="toggle"></button>
-      <div v-if="opened" class="platform-entry-actions">
-        <a class="primary" :href="detailHref || '#' + path" @click="details">{{ t('网站详情', 'Detalhes do site') }}</a>
-        <a v-if="url" class="quiet" :href="url" target="_blank" rel="noopener noreferrer">{{ t('打开网站', 'Abrir site') }}</a>
-        <button v-else class="quiet" type="button" disabled>{{ t('打开网站', 'Abrir site') }}</button>
-      </div>
+    </template>
+    <button ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
+            :aria-expanded="opened" @click="toggle"></button>
+    <div v-if="opened" class="platform-entry-actions">
+      <a class="primary" :href="detailHref || '#' + path" @click="details">{{ t('网站详情', 'Detalhes do site') }}</a>
+      <a v-if="url" class="quiet" :href="url" target="_blank" rel="noopener noreferrer">{{ t('打开网站', 'Abrir site') }}</a>
+      <button v-else class="quiet" type="button" disabled>{{ t('打开网站', 'Abrir site') }}</button>
     </div>
-    <div v-if="$slots.controls" class="platform-entry-controls"><slot name="controls" /></div>
+    <slot name="controls" />
   </div>
 </template>
 
 <style scoped>
-.platform-entry {
+.platform-entry { position: relative; min-width: 0; }
+.platform-entry-row { min-height: 48px; }
+.platform-entry-poster {
   display: grid;
-  grid-template-rows: auto 1fr;
-  min-width: 0;
+  isolation: isolate;
   overflow: hidden;
   border: 1px solid var(--line, #2b3650);
   border-radius: 12px;
   background: var(--surface, #1a2334);
 }
-.platform-entry:focus-within, .platform-entry:hover { border-color: #9581ed; }
-.platform-poster { position: relative; isolation: isolate; display: grid; min-width: 0; }
+.platform-entry-poster:focus-within, .platform-entry-poster:hover { border-color: #9581ed; }
 .platform-artwork {
   position: relative;
   display: grid;
@@ -145,8 +148,6 @@ function details(event) {
 .platform-rank { left: 5px; color: #221140; background: #c6b1ff; }
 .platform-rank[data-rank="1"] { color: #36280e; background: #f6cd68; }
 .platform-rank[data-rank="2"] { color: #253752; background: #c2d8f5; }
-.platform-entry-controls { display: grid; gap: 6px; min-width: 0; padding: 8px; overflow-wrap: anywhere; }
-.platform-entry-controls :slotted(button) { align-self: end; white-space: normal; }
 .platform-entry-trigger { position: absolute; z-index: 1; inset: 0; width: 100%; border-radius: inherit; }
 .platform-entry-trigger:focus-visible { outline-offset: -3px; }
 .platform-entry-actions {
@@ -181,4 +182,7 @@ function details(event) {
 .platform-entry-actions .primary { background: #6d4bea; color: #fff; font-weight: 800; }
 .platform-entry-actions .quiet { border: 1px solid #7b6aab; background: transparent; color: #eee7ff; }
 .platform-entry-actions a.quiet:hover { border-color: #b3a2ff; background: transparent; }
+.platform-entry-row .platform-entry-actions { grid-auto-flow: column; justify-content: start; align-items: center; padding-inline: 8px; }
+.platform-entry-row .platform-entry-actions :is(a, button) { padding-inline: 7px; }
+:slotted(.platform-entry-control) { position: relative; z-index: 3; }
 </style>

@@ -718,15 +718,18 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
 
     <template v-else-if="screen === 'bindings'">
       <button class="primary" type="button" @click="go('/binding')">{{ t('绑定新平台') }}</button>
-      <div v-if="ownBindings.length" class="platform-grid platform-grid-with-controls">
-        <PlatformCard v-for="item in ownBindings" :key="item.id"
-                      :platform-id="item.platform_id" :name="item.platform_name" :logo-url="item.logo_url" :promotion-url="item.promotion_url">
+      <div v-if="ownBindings.length" class="surface">
+        <PlatformCard v-for="item in ownBindings" :key="item.id" class="binding-row" row
+                      :platform-id="item.platform_id" :name="item.platform_name" :promotion-url="item.promotion_url">
+          <span class="platform-logo small-logo">
+            <img v-if="imageUrl(item.logo_url)" :src="imageUrl(item.logo_url)" width="40" height="40" alt="">
+            <span v-else>{{ item.platform_name.slice(0, 2) }}</span>
+          </span>
+          <span class="binding-label"><strong>{{ item.platform_name }}</strong><small class="muted">{{ item.masked_platform_account }}</small></span>
           <template #controls>
-            <p class="muted">{{ item.masked_platform_account }}</p>
-            <strong class="minor" :class="item.protection_status === 'active' ? 'binding-protected' : 'muted'">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</strong>
-            <p class="muted">{{ t('已兑') }} {{ item.redeemed_points }} {{ t('积分') }}</p>
-            <button type="button" class="quiet minor" :aria-label="t('绑定详情', 'Detalhes do vínculo') + ' · ' + item.platform_name" @click="go('/bindings/' + item.id)">
-              {{ t('绑定详情', 'Detalhes do vínculo') }}
+            <button type="button" class="binding-label minor platform-entry-control" :aria-label="t('绑定详情', 'Detalhes do vínculo') + ' · ' + item.platform_name" @click="go('/bindings/' + item.id)">
+              <strong :class="item.protection_status === 'active' ? 'binding-protected' : 'muted'">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</strong>
+              <small class="muted">{{ t('已兑') }} {{ item.redeemed_points }} {{ t('积分') }} <span aria-hidden="true">›</span></small>
             </button>
           </template>
         </PlatformCard>
