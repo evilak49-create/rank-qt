@@ -116,7 +116,7 @@ async function request(path, { body, signal, timeoutMs = 10000, method = body ==
 export function imageUrl(value) {
   if (!value) return ''
   try {
-    const url = new URL(value, 'https://ht.1234.fund')
+    const url = new URL(value, window.location.origin)
     return ['https:', 'http:'].includes(url.protocol) ? url.href : ''
   } catch {
     return ''

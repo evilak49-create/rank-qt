@@ -4,11 +4,13 @@ import { fileURLToPath } from 'node:url'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const upstream = {
+    target: env.API_UPSTREAM || 'https://ht.1234.fund',
+    changeOrigin: true,
+  }
   const proxy = {
-    '/api/v1/': {
-      target: env.API_UPSTREAM || 'https://ht.1234.fund',
-      changeOrigin: true,
-    },
+    '/api/v1/': upstream,
+    '/uploads/images/': upstream,
   }
 
   return {
