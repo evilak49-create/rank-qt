@@ -13,10 +13,11 @@ const props = defineProps({ route: Object, member: Object, language: String, cop
 const emit = defineEmits(['language'])
 const blocks = reactive({
   banners: { path: '/content/banners', data: [], state: 'loading' },
+  notice: { path: '/content/announcements/latest', data: null, state: 'loading' },
   featured: { path: '/platforms/featured', data: [], state: 'loading' },
   favorites: { path: '/platform-favorites', data: [], state: 'loading' },
 })
-const shortcuts = { bind: '/binding', points: '/points', protection: '/protection', support: '/support' }
+const shortcuts = { bind: '/binding', points: '/points', help: '/help', support: '/support' }
 const languages = [
   { id: 'zh-CN', name: '简体中文' },
   { id: 'pt-BR', name: 'Português' },
@@ -92,7 +93,7 @@ function chooseFavorites() {
   go(props.member ? path : '/login?' + new URLSearchParams({ next: path }))
 }
 
-for (const name of ['banners', 'featured']) loadBlock(blocks[name])
+for (const name of ['banners', 'notice', 'featured']) loadBlock(blocks[name])
 watch(() => [props.route.key, props.member?.id], () => {
   if (selection.value === 'favorites') loadBlock(blocks.favorites)
 }, { immediate: true })
@@ -108,10 +109,7 @@ function copyTextForError() { return props.copy.error }
     <div class="wrap header-inner">
       <a class="brand" href="#/" aria-label="评级网首页" @click.prevent="go('/')">
         <img :src="brandLogo" alt="" width="34" height="34">
-        <span class="home-wordmark">
-          <strong>评级<span>网</span></strong>
-          <small>{{ copy.brandLine }}</small>
-        </span>
+        <span>评级网</span>
       </a>
       <button type="button" class="language-switch" aria-haspopup="dialog" :aria-label="copy.locale + ' · ' + currentLanguage.name"
               @click="localeSheet.showModal()">
@@ -131,15 +129,9 @@ function copyTextForError() { return props.copy.error }
         <img v-if="bannerSource" :key="bannerSource" class="hero-art hero-managed" :src="bannerSource" alt=""
              @load="loadedBanner = bannerSource" @error="brokenBanners.add(banner.id)">
         <span v-if="!managedBanner" class="hero-content">
-          <strong v-if="banner">{{ banner.name }}</strong>
-          <template v-else>
-            <strong>{{ copy.heroLead }} <em>{{ copy.heroAccent }}</em></strong>
-            <small>{{ copy.subtitle }}</small>
-            <span class="hero-promise">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.protection"/></svg>
-              {{ copy.protection }}
-            </span>
-          </template>
+          <span class="hero-prefix">SLOTS</span>
+          <strong>{{ banner?.name || copy.title }}</strong>
+          <small v-if="!banner">{{ copy.subtitle }}</small>
         </span>
       </button>
       <div v-if="banners.length > 1" class="carousel" :aria-label="copy.slides">
@@ -149,6 +141,12 @@ function copyTextForError() { return props.copy.error }
         <button :aria-label="copy.next" @click="changeSlide(1)">›</button>
       </div>
     </section>
+
+    <button class="notice" @click="go('/announcements')">
+      <strong>{{ copy.announcement }}</strong>
+      <span>{{ blocks.notice.data?.title ?? (blocks.notice.state === 'error' ? copy.noticeError : blocks.notice.state === 'ready' ? copy.noticeEmpty : '') }}</span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </button>
 
     <div class="shortcuts" :aria-label="copy.shortcuts">
       <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="go(shortcuts[type])">
