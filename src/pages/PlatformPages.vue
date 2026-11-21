@@ -34,13 +34,21 @@ const platform = ref(null)
 const guaranteeAmount = computed(() => formatGuaranteeAmount(platform.value?.guarantee_amount_brl))
 const terms = ref(null)
 const reviews = ref([])
+const reviewsLoading = ref(false)
 const reviewListError = ref('')
 const reviewPage = ref(1)
 const reviewLastPage = ref(1)
 const favorite = ref(false)
+const favoriteLoading = ref(false)
 const pointRule = ref(null)
 const pointRuleError = ref(false)
+const pointRuleLoading = ref(false)
 const tab = ref('reviews')
+const detailTabs = [
+  ['reviews', '用户评价'],
+  ['description', '平台简介'],
+  ['rebate', '返利规则'],
+]
 const search = ref('')
 const listPage = ref(1)
 const listLastPage = ref(1)
@@ -76,6 +84,23 @@ const ticker = window.setInterval(() => { now.value = Date.now() }, 1000)
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
 const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
+const scoreNumbers = computed(() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
+const platformScore = computed(() => platform.value?.rating == null ? '—' : scoreNumbers.value.format(platform.value.rating))
+const sampleDepositCents = 10000
+const rebateExample = computed(() => {
+  const rate = Number(pointRule.value?.rebate_percent)
+  const pointsWager = Number(pointRule.value?.wager_multiplier)
+  const rebateWager = Number(pointRule.value?.rebate_wager_multiplier)
+  if (!(rate > 0 && pointsWager > 0 && rebateWager > 0)) return null
+
+  // The settlement uses millionths for rates and rounds the wager threshold up to the next cent.
+  const rateMicros = Math.round(rate * 1_000_000)
+  const wagerMicros = Math.round(Math.max(pointsWager, rebateWager) * 1_000_000)
+  return {
+    wagerCents: Math.ceil(sampleDepositCents * wagerMicros / 1_000_000),
+    rebateCents: Math.floor(sampleDepositCents * rateMicros / 100_000_000),
+  }
+})
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const eligibility = {
   eligible: '已达到投注要求',
@@ -124,13 +149,27 @@ function formatRule(value, suffix) {
 }
 
 async function loadPointRule(path = platformPath.value, signal = loadRequest.signal) {
+  if (pointRuleLoading.value) return
+  pointRuleLoading.value = true
   pointRuleError.value = false
   try {
     const { data } = await api(path + '/point-rule', { signal, fresh: true })
     if (!signal.aborted) pointRule.value = data
   } catch {
     if (!signal.aborted) pointRuleError.value = true
+  } finally {
+    if (!signal.aborted) pointRuleLoading.value = false
   }
+}
+
+function moveDetailTab(event, index) {
+  const last = detailTabs.length - 1
+  const indexes = { ArrowLeft: index ? index - 1 : last, ArrowRight: index === last ? 0 : index + 1, Home: 0, End: last }
+  if (!Object.hasOwn(indexes, event.key)) return
+  event.preventDefault()
+  const next = detailTabs[indexes[event.key]][0]
+  tab.value = next
+  document.getElementById('platform-tab-' + next)?.focus()
 }
 
 function formatMoney(cents) {
@@ -317,7 +356,9 @@ function moreBindings() {
   })
 }
 
-async function loadPlatformReviews(page, path, signal) {
+async function loadPlatformReviews(page, path = platformPath.value, signal = loadRequest.signal) {
+  if (reviewsLoading.value) return
+  reviewsLoading.value = true
   reviewListError.value = ''
   try {
     const result = await api(path + '/reviews?page=' + page, { signal })
@@ -327,6 +368,8 @@ async function loadPlatformReviews(page, path, signal) {
     reviewLastPage.value = result.last_page
   } catch (failure) {
     if (!signal.aborted) reviewListError.value = failureMessage(failure)
+  } finally {
+    if (!signal.aborted) reviewsLoading.value = false
   }
 }
 
@@ -342,6 +385,7 @@ async function initialize() {
   platform.value = null
   pointRule.value = null
   pointRuleError.value = false
+  pointRuleLoading.value = false
   terms.value = null
   selected.value = null
   bindingDetail.value = null
@@ -351,6 +395,7 @@ async function initialize() {
   loading.value = false
   status.value = ''
   favorite.value = false
+  favoriteLoading.value = false
   picker.value = false
   search.value = ''
   directory.value = []
@@ -361,6 +406,7 @@ async function initialize() {
   ownBindings.value = []
   quote.value = null
   reviews.value = []
+  reviewsLoading.value = false
   reviewListError.value = ''
   reviewPage.value = 1
   reviewLastPage.value = 1
@@ -425,15 +471,22 @@ async function initialize() {
       platform.value = result.data
       if (mode === 'review') await loadBindings(signal, { allPages: true })
       else {
+        pointRule.value = result.data.point_rule ?? null
         const posted = props.route.query.get('review')
         if (posted === 'pending') status.value = '评价已提交，审核通过后将公开展示。'
         if (posted === 'approved') status.value = '评价已发布。'
         const tasks = [loadPlatformReviews(1, path, signal), loadPointRule(path, signal)]
-        if (props.member) tasks.push(api('/platform-favorites/' + platform.value.id, { signal }).then(result => {
-          if (!signal.aborted) favorite.value = result.data.favorite
-        }).catch(failure => {
-          if (!signal.aborted) error.value = failureMessage(failure)
-        }))
+        if (props.member) {
+          favoriteLoading.value = true
+          tasks.push(api('/platform-favorites/' + platform.value.id, { signal }).then(result => {
+            if (!signal.aborted) favorite.value = result.data.favorite
+          }).catch(failure => {
+            if (!signal.aborted) error.value = failureMessage(failure)
+          }).finally(() => {
+            if (!signal.aborted) favoriteLoading.value = false
+          }))
+        }
+        loading.value = false
         await Promise.all(tasks)
       }
     }
@@ -636,59 +689,133 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
         <div class="platform-heading">
           <h1>{{ platform.name }}</h1>
-          <p><span class="score">★ {{ platform.rating ?? '—' }}</span><span class="muted"> · {{ platform.review_count }} {{ t('条评价') }}</span></p>
-          <p class="muted minor">{{ t('暂未提供平台客服') }}</p>
+          <p class="hero-rating"><span class="score"><span aria-hidden="true">★</span> {{ platformScore }}</span><span class="muted">{{ platform.review_count }} {{ t('条评价') }}</span></p>
         </div>
       </header>
       <section class="surface protection-banner">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+        <span class="protection-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z"/><path d="m9 12 2 2 4-4"/></svg></span>
         <div>
           <h2 class="protection-title">
-            {{ guaranteeAmount ? t('本站担保') : t('出款保障') }}
+            {{ t('出款保障') }}
             <strong v-if="guaranteeAmount" class="protection-amount">{{ guaranteeAmount }}</strong>
           </h2>
           <p>{{ t('符合保障条款的拒绝出款申诉，经核实后由本站赔付。') }}</p>
         </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
-      <dl v-if="!pointRuleError" class="platform-rules" :aria-label="t('积分与返利规则', 'Regras de pontos e cashback')">
+      <dl class="platform-rules surface" :aria-label="t('积分与返利规则', 'Regras de pontos e cashback')" :aria-busy="pointRuleLoading">
         <div><dt>{{ t('积分比例', 'Pontos por real') }}</dt><dd>{{ formatRule(pointRule?.points_per_brl, ' / R$ 1') }}</dd></div>
         <div><dt>{{ t('投注要求', 'Apostas para pontos') }}</dt><dd>{{ formatRule(pointRule?.wager_multiplier, '×') }}</dd></div>
         <div><dt>{{ t('返利比例', 'Percentual de cashback') }}</dt><dd>{{ formatRule(pointRule?.rebate_percent, '%') }}</dd></div>
         <div><dt>{{ t('流水要求', 'Apostas para cashback') }}</dt><dd>{{ formatRule(pointRule?.rebate_wager_multiplier, '×') }}</dd></div>
       </dl>
-      <button v-else class="quiet" type="button" @click="loadPointRule()">{{ t('规则加载失败，点击重试', 'Regras indisponíveis. Tentar novamente') }}</button>
-      <nav class="segmented platform-tabs" :aria-label="t('平台详情')">
-        <button v-for="[value, label] in [['reviews', t('用户评价')], ['description', t('平台简介')], ['offers', t('优惠活动')]]" :key="value" type="button" :aria-pressed="tab === value" @click="tab = value">{{ label }}</button>
-      </nav>
-      <section v-if="tab === 'reviews'" class="stack" :aria-label="t('用户评价')">
+      <button v-if="pointRuleError" class="quiet" type="button" @click="loadPointRule()">{{ t('规则更新失败，点击重试', 'Falha ao atualizar as regras. Tentar novamente') }}</button>
+      <div class="surface platform-tabs" role="tablist" :aria-label="t('平台详情')">
+        <button v-for="([value, label], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
+          type="button" role="tab" :aria-selected="tab === value" :aria-controls="'platform-panel-' + value"
+          :tabindex="tab === value ? 0 : -1" @click="tab = value" @keydown="moveDetailTab($event, index)">{{ t(label) }}</button>
+      </div>
+      <section v-show="tab === 'reviews'" id="platform-panel-reviews" class="stack" role="tabpanel"
+        aria-labelledby="platform-tab-reviews" tabindex="0" :aria-busy="reviewsLoading">
         <div class="surface review-summary">
-          <div><span class="big-score">{{ platform.rating ?? '—' }}</span><span class="score" aria-hidden="true"> ★</span><p class="muted">{{ platform.review_count }} {{ t('条评价') }}</p></div>
+          <div>
+            <h2>{{ t('平台评分', 'Nota da plataforma') }}</h2>
+            <p class="score review-score"><strong class="big-score">{{ platformScore }}</strong> <span>/ 5</span></p>
+            <p class="muted">{{ platform.review_count }} {{ t('条评价') }}</p>
+          </div>
           <button class="quiet" type="button" @click="writeReview">{{ t('写评价') }}</button>
         </div>
         <article v-for="review in reviews" :key="review.id" class="surface review-item">
-          <div class="review-meta"><strong>{{ review.display_name }}</strong><time v-if="review.published_at" :datetime="review.published_at" class="muted">{{ formatDate(review.published_at) }}</time></div>
-          <div class="review-stars" :aria-label="review.rating + t(' 星')"><span aria-hidden="true">{{ '★'.repeat(review.rating) }}</span><span class="dim-stars" aria-hidden="true">{{ '★'.repeat(5 - review.rating) }}</span></div>
+          <header class="review-header">
+            <span class="review-avatar" aria-hidden="true">{{ Array.from(review.display_name || '?')[0] }}</span>
+            <div class="review-meta">
+              <strong>{{ review.display_name }}</strong>
+              <time v-if="review.published_at" :datetime="review.published_at" class="muted">{{ formatDate(review.published_at) }}</time>
+            </div>
+            <div class="review-stars" role="img" :aria-label="review.rating + t(' 星')">
+              <span v-for="star in 5" :key="star" :class="{ 'dim-stars': star > review.rating }" aria-hidden="true">★</span>
+            </div>
+          </header>
           <p class="preserved">{{ review.body }}</p>
         </article>
+        <p v-if="reviewsLoading" class="muted message" role="status">{{ t('正在加载评价…', 'Carregando avaliações…') }}</p>
         <div v-if="reviewListError" class="surface stack message">
-          <button class="quiet" type="button" @click="loadPlatformReviews(reviews.length ? reviewPage + 1 : 1, platformPath, loadRequest.signal)">{{ t('重试') }}</button>
+          <button class="quiet" type="button" @click="loadPlatformReviews(reviews.length ? reviewPage + 1 : 1)">{{ t('重试') }}</button>
         </div>
-        <div v-else-if="!reviews.length" class="surface message">
+        <div v-else-if="!reviewsLoading && !reviews.length" class="surface message">
           <p class="muted">{{ t('暂无评价。') }}</p><button class="quiet" type="button" @click="writeReview">{{ t('写下第一条评价') }}</button>
         </div>
-        <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet" :disabled="busy" @click="run(() => loadPlatformReviews(reviewPage + 1, platformPath, loadRequest.signal))">{{ t('加载更多') }}</button>
+        <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet"
+          :aria-disabled="reviewsLoading" @click="loadPlatformReviews(reviewPage + 1)">{{ t('加载更多') }}</button>
       </section>
-      <section v-else-if="tab === 'description'" class="surface stack platform-content">
-        <p class="preserved">{{ platform.description || t('暂无平台简介。') }}</p>
-        <p v-if="!promotion" class="muted">{{ t('暂未提供独立官网链接。') }}</p>
+      <section v-show="tab === 'description'" id="platform-panel-description" class="stack" role="tabpanel"
+        aria-labelledby="platform-tab-description" tabindex="0">
+        <section class="surface stack platform-content">
+          <h2>{{ t('品牌介绍', 'Sobre a marca') }}</h2>
+          <p class="preserved">{{ platform.description || t('暂无平台简介。') }}</p>
+        </section>
+        <section class="surface stack platform-content">
+          <h2>{{ t('平台信息', 'Informações da plataforma') }}</h2>
+          <dl class="platform-data">
+            <div><dt>{{ t('平台名称', 'Nome da plataforma') }}</dt><dd>{{ platform.name }}</dd></div>
+            <div><dt>{{ t('平台评分', 'Nota da plataforma') }}</dt><dd>{{ platformScore }} / 5</dd></div>
+            <div><dt>{{ t('平台客服', 'Suporte da plataforma') }}</dt><dd class="placeholder">{{ t('预留数据') }}</dd></div>
+          </dl>
+        </section>
+        <section class="surface stack platform-content">
+          <h2>{{ t('平台优势', 'Benefícios da plataforma') }}</h2>
+          <dl v-if="guaranteeAmount || Number(platform.max_rebate_percent) > 0" class="platform-data">
+            <div v-if="guaranteeAmount"><dt>{{ t('本站担保') }}</dt><dd>{{ guaranteeAmount }}</dd></div>
+            <div v-if="Number(platform.max_rebate_percent) > 0"><dt>{{ t('平台标注最高返利', 'Cashback máximo anunciado') }}</dt><dd>{{ formatRule(platform.max_rebate_percent, '%') }}</dd></div>
+          </dl>
+          <p class="placeholder">{{ t('更多平台优势为预留数据。', 'Outros benefícios ainda não foram disponibilizados.') }}</p>
+        </section>
+        <section class="surface stack platform-content">
+          <h2>{{ t('牌照与安全', 'Licenças e segurança') }}</h2>
+          <dl class="platform-data">
+            <div><dt>{{ t('监管牌照', 'Licença regulatória') }}</dt><dd class="placeholder">{{ t('预留数据') }}</dd></div>
+            <div><dt>{{ t('安全资质', 'Certificações de segurança') }}</dt><dd class="placeholder">{{ t('预留数据') }}</dd></div>
+          </dl>
+        </section>
       </section>
-      <section v-else class="surface muted message">{{ t('暂无优惠活动。') }}</section>
-      <div class="platform-actions">
-        <button class="quiet" type="button" :aria-pressed="favorite" :disabled="busy" @click="toggleFavorite">{{ favorite ? t('已收藏') : t('收藏') }}</button>
+      <section v-show="tab === 'rebate'" id="platform-panel-rebate" class="stack" role="tabpanel"
+        aria-labelledby="platform-tab-rebate" tabindex="0" :aria-busy="pointRuleLoading">
+        <section class="surface stack platform-content">
+          <h2 id="rebate-tier-heading">{{ t('充值返利档位', 'Faixas de cashback por depósito') }}</h2>
+          <table class="rebate-table" aria-labelledby="rebate-tier-heading">
+            <thead>
+              <tr><th scope="col">{{ t('充值金额', 'Valor do depósito') }}</th><th scope="col">{{ t('返利比例') }}</th><th scope="col">{{ t('流水要求', 'Apostas para cashback') }}</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="placeholder" colspan="3">{{ t('充值分档为预留数据。', 'As faixas de depósito ainda não foram disponibilizadas.') }}</td></tr>
+            </tbody>
+          </table>
+          <p v-if="pointRule" class="muted">
+            {{ t('当前统一返利比例', 'Taxa de cashback vigente') }} <strong class="score">{{ formatRule(pointRule.rebate_percent, '%') }}</strong>
+          </p>
+          <p v-else-if="!pointRuleLoading && !pointRuleError" class="muted">{{ t('暂无已发布的返利规则。', 'Nenhuma regra de cashback publicada.') }}</p>
+        </section>
+        <section class="surface stack platform-content">
+          <h2>{{ t('计算示例', 'Exemplo de cálculo') }}</h2>
+          <template v-if="rebateExample">
+            <dl class="platform-data">
+              <div><dt>{{ t('本次待兑换存款') }}</dt><dd>{{ formatBrl(sampleDepositCents) }}</dd></div>
+              <div><dt>{{ t('最低有效投注额', 'Apostas válidas mínimas') }}</dt><dd>{{ formatBrl(rebateExample.wagerCents) }}</dd></div>
+              <div><dt>{{ t('预计返利') }}</dt><dd class="score">{{ formatBrl(rebateExample.rebateCents) }}</dd></div>
+            </dl>
+            <p class="muted">{{ t('达到积分和返利所要求的投注额后，按待兑换存款乘以返利比例计算。示例未计入历史结转，到账金额以实际结算为准。', 'Após atingir os requisitos de aposta para pontos e cashback, multiplique o depósito elegível pela taxa de cashback. O exemplo desconsidera saldos residuais. O valor final depende do resgate.') }}</p>
+          </template>
+          <p v-else-if="pointRule && Number(pointRule.rebate_percent) === 0" class="muted">{{ t('当前返利比例为 0%，暂无可计算的返利。', 'A taxa vigente é de 0%. Não há cashback a calcular.') }}</p>
+          <p v-else-if="!pointRuleLoading" class="placeholder">{{ t('返利参数暂不可用，计算示例为预留数据。', 'O exemplo aguarda os parâmetros de cashback.') }}</p>
+        </section>
+      </section>
+      <footer class="platform-actions detail-actions">
+        <button class="quiet" type="button" :aria-pressed="favorite" :disabled="busy || favoriteLoading" @click="toggleFavorite">
+          <span aria-hidden="true">{{ favorite ? '★' : '☆' }}</span> {{ favorite ? t('已收藏') : t('收藏') }}
+        </button>
         <a v-if="promotion" class="primary" :href="promotion" target="_blank" rel="noopener noreferrer">{{ t('通过本站注册') }} <span aria-hidden="true">↗</span></a>
         <button v-else class="primary" type="button" disabled>{{ t('通过本站注册') }}</button>
-      </div>
+      </footer>
     </template>
 
     <template v-else-if="screen === 'terms'">

@@ -369,6 +369,8 @@ export const portuguese = {
   "返利 ": "cashback de ",
   "返利所需投注额（": "Apostas exigidas para cashback (",
   "返利比例": "Percentual de cashback",
+  "返利规则": "Regras de cashback",
+  "预留数据": "Dados ainda indisponíveis",
   "返回": "Voltar",
   "返回红包": "Voltar aos bônus",
   "返回选择平台": "Voltar à seleção de plataforma",

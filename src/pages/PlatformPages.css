@@ -41,27 +41,32 @@
 .message { padding: 14px; text-align: center; overflow-wrap: anywhere; }
 .platform-content, .guest-panel { padding: 15px; }
 .platform-content h2, .guest-panel h2 { font-size: 17px; }
-.platform-hero { display: flex; align-items: center; gap: 13px; padding: 14px; }
+.platform-hero {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-height: 126px;
+  padding: 20px;
+  border-color: var(--line-strong);
+  background: radial-gradient(ellipse at top right, var(--surface-highlight), transparent 68%), var(--surface-gradient);
+}
+.platform-hero .large-logo { border-radius: 16px; box-shadow: 0 4px 14px var(--shadow); }
+.hero-rating { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 6px; }
 .platform-rules {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, auto);
-  grid-auto-flow: column;
-  gap: 5px 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 0;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface-raised);
+  padding: 10px 0;
+  text-align: center;
   font-size: 11px;
 }
-.platform-rules > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 1px 5px; }
-.platform-rules > div:nth-child(n+3) { border-inline-start: 1px solid var(--line-strong); padding-inline-start: 10px; }
-.platform-rules dt { color: var(--text); font-weight: 700; }
+.platform-rules > div { display: grid; grid-template-rows: 1fr auto; align-items: center; gap: 3px; padding-inline: 4px; min-width: 0; }
+.platform-rules > div + div { border-inline-start: 1px solid var(--line); }
+.platform-rules dt { color: var(--muted); font-weight: 700; overflow-wrap: anywhere; }
 .platform-rules dd {
   margin: 0;
   color: var(--accent);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -70,22 +75,40 @@
 .platform-heading { min-width: 0; }
 .platform-heading h1 { font-size: 22px; line-height: 1.25; overflow-wrap: anywhere; }
 .minor { font-size: 12px; }
-.platform-heading .minor { margin-top: 4px; }
-.protection-banner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 11px; background: linear-gradient(120deg, var(--surface-highlight), var(--surface) 65%); }
+.protection-banner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px; border-color: var(--line-strong); background: linear-gradient(120deg, var(--surface-highlight), var(--surface) 75%); }
+.protection-icon { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); }
 .protection-banner svg { width: 25px; height: 25px; stroke: var(--highlight); stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
 .protection-banner h2 { font-size: 14px; }
 .protection-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1px 7px; }
-.protection-amount { color: var(--highlight); font-size: 16px; font-weight: 850; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.protection-amount { color: var(--highlight); font-size: 16px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .protection-banner p { color: var(--muted); font-size: 11px; }
 .protection-banner .quiet { padding-inline: 7px; white-space: nowrap; font-size: 12px; }
-.platform-tabs { margin-top: 2px; }
-.review-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 15px; }
-.big-score { font-size: 27px; font-weight: 800; }
+.platform-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 5px; background: var(--surface); }
+.platform-tabs button {
+  min-height: 48px;
+  padding: 5px 4px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+.platform-tabs button[aria-selected="true"] { border-color: var(--accent); color: var(--accent); }
+.review-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; }
+.review-score { margin-top: 3px; }
+.big-score { font-size: 32px; line-height: 1.1; font-weight: 800; }
 .review-summary .muted { font-size: 12px; }
-.review-item { display: grid; gap: 4px; padding: 12px 14px; }
-.review-meta { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; font-size: 13px; }
+.review-item { display: grid; gap: 10px; padding: 13px 14px; }
+.review-header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.review-avatar { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 50%; background: var(--surface-highlight); color: var(--highlight); font-weight: 800; }
+.review-meta { display: grid; gap: 2px; font-size: 13px; overflow-wrap: anywhere; }
 .review-meta time { font-size: 11px; }
+.review-stars { white-space: nowrap; }
 .preserved { white-space: pre-wrap; overflow-wrap: anywhere; }
+.placeholder { color: var(--muted); font-size: 12px; }
+.rebate-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; text-align: center; }
+.rebate-table :is(th, td) { border: 1px solid var(--line); padding: 8px 3px; overflow-wrap: anywhere; }
+.rebate-table th { background: var(--surface-highlight); color: var(--highlight); }
 .with-platform-actions { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 .platform-actions {
   position: fixed;
@@ -103,6 +126,9 @@
 }
 
 .platform-actions .quiet[aria-pressed="true"] { color: var(--highlight); }
+.detail-actions { box-shadow: 0 -4px 18px var(--shadow); }
+.detail-actions .quiet { gap: 5px; }
+.detail-actions .quiet span { font-size: 19px; line-height: 1; }
 .quote-actions { grid-template-columns: minmax(0, 1fr); }
 .rating-picker { border: 0; padding: 0; margin: 0; }
 .rating-picker label { position: relative; display: inline-grid; width: 45px; height: 44px; place-items: center; color: var(--text-subtle); font-size: 28px; cursor: pointer; }
