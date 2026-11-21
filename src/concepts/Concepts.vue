@@ -82,7 +82,7 @@ onMounted(() => {
 <template>
   <header class="studio-header">
     <div class="studio-wrap studio-bar">
-      <a href="./" class="studio-brand"><img :src="brandLogo" alt="" width="27" height="27">评级网</a>
+      <a href="./" class="studio-brand"><img :src="brandLogo" alt="" width="27" height="27">返利网</a>
       <span>手机版首页方案</span>
       <a href="./" class="studio-home">当前首页 ↗</a>
     </div>

@@ -1,5 +1,5 @@
 export const portuguese = {
-  " · 评级网": " · Avaliações e Cashback",
+  " · 返利网": " · 返利网",
   " 星": " estrelas",
   " 秒": " s",
   " 积分": " pontos",
@@ -343,7 +343,7 @@ export const portuguese = {
   "评价已提交，审核通过后将公开展示。": "Avaliação enviada. Ela será publicada após a aprovação.",
   "评价提醒": "Aviso sobre a avaliação",
   "评分": "Nota",
-  "评级网 · Slots 平台评级与返利": "Avaliações e Cashback · Plataformas de slots",
+  "返利网 · Slots 平台评级与返利": "返利网 · Avaliações e cashback de plataformas de slots",
   "该平台暂无公开保障条款。": "A plataforma ainda não disponibilizou os termos da proteção.",
   "请使用 JPEG、PNG 或 WebP，每张不超过 5 MiB。": "Use arquivos JPEG, PNG ou WebP de até 5 MiB cada.",
   "请先登录": "Entre na sua conta",

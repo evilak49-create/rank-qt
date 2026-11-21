@@ -107,9 +107,9 @@ function copyTextForError() { return props.copy.error }
   <div class="home-gold">
   <header class="site-header">
     <div class="wrap header-inner">
-      <a class="brand" href="#/" aria-label="评级网首页" @click.prevent="go('/')">
+      <a class="brand" href="#/" aria-label="返利网首页" @click.prevent="go('/')">
         <img :src="brandLogo" alt="" width="34" height="34">
-        <span>评级网</span>
+        <span>返利网</span>
       </a>
       <button type="button" class="language-switch" aria-haspopup="dialog" :aria-label="copy.locale + ' · ' + currentLanguage.name"
               @click="localeSheet.showModal()">

@@ -28,7 +28,7 @@ const artwork = { reels: cobalt, prism: cherry, orbit: violet, coin: jade, photo
   <div class="prototype" :data-design="design.id" :data-hero="design.hero" :data-list="design.list"
        :data-art="design.art" :style="design.style">
     <header class="proto-header">
-      <span class="proto-brand"><img :src="brandLogo" alt="" width="31" height="31">评级网</span>
+      <span class="proto-brand"><img :src="brandLogo" alt="" width="31" height="31">返利网</span>
       <button class="header-link" @click="$emit('open', 'platforms')">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4 4"/></svg>
         查平台
@@ -83,6 +83,6 @@ const artwork = { reels: cobalt, prism: cherry, orbit: violet, coin: jade, photo
         </button>
       </template>
     </div>
-    <footer class="proto-footer">评级网 <span>Slots 平台评级与返利</span></footer>
+    <footer class="proto-footer">返利网 <span>Slots 平台评级与返利</span></footer>
   </div>
 </template>

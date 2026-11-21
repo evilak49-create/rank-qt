@@ -31,7 +31,7 @@ const labels = computed(() => props.language === 'pt-BR' ? {
   copyFailed: 'Não foi possível copiar. Selecione e copie o contato manualmente.',
   unavailable: 'O atendimento está indisponível no momento. Tente novamente.',
 } : {
-  name: '评级网客服', online: 'AI 客服在线', human: '人工渠道可联系',
+  name: '返利网客服', online: 'AI 客服在线', human: '人工渠道可联系',
   offline: '暂不可用', placeholder: '输入消息',
   send: '发送', retry: '重试', contact: '联系人工客服',
   greeting: '您好，请问有什么可以帮您？', back: '返回',
