@@ -154,11 +154,11 @@ function details(event) {
   display: grid;
   isolation: isolate;
   overflow: hidden;
-  border: 1px solid var(--line, #2b3650);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--surface, #1a2334);
+  background: var(--surface);
 }
-.platform-entry-poster:focus-within, .platform-entry-poster:hover { border-color: #9581ed; }
+.platform-entry-poster:focus-within, .platform-entry-poster:hover { border-color: var(--accent); }
 .platform-artwork {
   position: relative;
   display: grid;
@@ -166,8 +166,8 @@ function details(event) {
   aspect-ratio: 1;
   min-width: 0;
   overflow: hidden;
-  background: radial-gradient(ellipse at top, #534083, #202c49 75%);
-  color: #e2d5ff;
+  background: radial-gradient(ellipse at top, var(--surface-highlight), var(--surface) 75%);
+  color: var(--text);
   font-size: clamp(27px, 9vw, 44px);
   font-weight: 850;
 }
@@ -178,18 +178,18 @@ function details(event) {
   place-items: center;
   min-height: 39px;
   padding: 5px 6px;
-  background: linear-gradient(180deg, #9ee8c2, #67c994);
-  color: #0e3225;
+  background: var(--surface-highlight);
+  color: var(--text);
   text-align: center;
   font-size: clamp(12px, 3.4vw, 15px);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
 .platform-rating, .platform-rank { position: absolute; top: 5px; padding: 2px 5px; border-radius: 6px; font-size: 10px; font-weight: 800; }
-.platform-rating { right: 5px; color: #f4ffad; background: #121929dc; font-variant-numeric: tabular-nums; }
-.platform-rank { left: 5px; color: #221140; background: #c6b1ff; }
+.platform-rating { right: 5px; color: var(--highlight); background: #090907e8; font-variant-numeric: tabular-nums; }
+.platform-rank { left: 5px; color: var(--on-primary); background: var(--accent); }
 .platform-rank[data-rank="1"] { color: #36280e; background: #f6cd68; }
-.platform-rank[data-rank="2"] { color: #253752; background: #c2d8f5; }
+.platform-rank[data-rank="2"] { color: #28170e; background: #d7c9b8; }
 .platform-entry-trigger { position: absolute; z-index: 1; inset: 0; width: 100%; border-radius: inherit; }
 .platform-entry-trigger:focus-visible { outline-offset: -3px; }
 .platform-entry-actions {
@@ -204,9 +204,9 @@ function details(event) {
   border-radius: inherit;
   background: linear-gradient(
     to bottom,
-    rgb(17 22 40 / 24%),
-    rgb(17 22 40 / 74%) 18% 82%,
-    rgb(17 22 40 / 24%)
+    rgb(17 16 18 / 24%),
+    rgb(17 16 18 / 74%) 18% 82%,
+    rgb(17 16 18 / 24%)
   );
 }
 .platform-entry-actions :is(a, button) {
@@ -221,9 +221,10 @@ function details(event) {
   line-height: 1.15;
   border-radius: 7px;
 }
-.platform-entry-actions .primary { background: #6d4bea; color: #fff; font-weight: 800; }
-.platform-entry-actions .quiet { border: 1px solid #7b6aab; background: transparent; color: #eee7ff; }
-.platform-entry-actions a.quiet:hover { border-color: #b3a2ff; background: transparent; }
+.platform-entry-actions .primary { background: var(--primary, #6d4bea); color: var(--on-primary, #fff); font-weight: 800; }
+.platform-entry-actions .primary:hover { background: var(--primary-hover, #6d4bea); }
+.platform-entry-actions .quiet { border: 1px solid var(--control-line, #7b6aab); background: transparent; color: var(--text, #eee7ff); }
+.platform-entry-actions a.quiet:hover { border-color: var(--accent, #b3a2ff); background: transparent; }
 .platform-entry-row .platform-entry-actions { grid-auto-flow: column; justify-content: start; align-items: center; padding-inline: 8px; }
 .platform-entry-row .platform-entry-actions :is(a, button) { padding-inline: 7px; }
 :slotted(.platform-entry-control) { position: relative; z-index: 3; }
@@ -340,10 +341,10 @@ function details(event) {
 }
 .platform-entry-inline .platform-entry-actions .platform-visit {
   border: 1px solid #ffaf43;
-  background: linear-gradient(175deg, #ffb84b, #ff8d24 52%, #f6760b);
-  color: #281501;
+  background: var(--primary);
+  color: var(--on-primary);
 }
-.platform-entry-inline .platform-entry-actions a.platform-visit:hover { background: linear-gradient(#ffd178, #ff981f); }
+.platform-entry-inline .platform-entry-actions a.platform-visit:hover { background: var(--primary-hover); }
 .platform-entry-inline .platform-entry-actions .platform-details {
   border: 1px solid #b8b0a6;
   background: #1010138c;

@@ -41,9 +41,9 @@ const fields = [
 const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ')
 const shieldIcon = 'M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z M9 12l2 2 4-4'
 const quickLinks = [
-  ['/red-packets', '我的红包', icons.redPackets, 'red'],
-  ['/protection', '我的保障', shieldIcon, 'mint'],
-  ['/shop/redemptions', '兑换记录', icons.shop, 'gold'],
+  ['/red-packets', '我的红包', icons.redPackets],
+  ['/protection', '我的保障', shieldIcon],
+  ['/shop/redemptions', '兑换记录', icons.shop],
 ]
 const accountLinks = [
   ['/bindings', '已绑定平台', icons.bind],
@@ -168,8 +168,8 @@ watchNotice(message, '收货地址已保存', 'success')
       <nav class="profile-section surface" :aria-label="t('常用功能')">
         <h2>{{ t('常用功能') }}</h2>
         <div class="profile-shortcuts">
-          <button v-for="[link, label, icon, color] in quickLinks" :key="link" @click="go(link)">
-            <span class="profile-icon" :data-color="color" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icon"/></svg></span>
+          <button v-for="[link, label, icon] in quickLinks" :key="link" @click="go(link)">
+            <span class="profile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icon"/></svg></span>
             {{ t(label) }}
           </button>
         </div>

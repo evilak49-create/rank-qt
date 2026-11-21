@@ -45,10 +45,10 @@ watch(visible, active => {
   margin: 0;
   padding: 0;
   border: 0;
-  background: #06081299;
+  background: var(--scrim, #06081299);
   pointer-events: none;
 }
-.data-loading img { display: block; object-fit: contain; filter: drop-shadow(0 0 9px #a56cff7a); }
+.data-loading img { display: block; object-fit: contain; filter: drop-shadow(0 0 9px var(--accent-glow, #a56cff7a)); }
 .data-loading-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 @media (prefers-reduced-motion: no-preference) {
   .data-loading img { animation: loading-spin .9s linear infinite; }

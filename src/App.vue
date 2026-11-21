@@ -220,7 +220,7 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
     </main>
   </template>
 
-  <nav v-if="navActive" class="bottom-nav" :class="{ 'home-bottom-nav': route.path === '/' }" :aria-label="t('底部导航')">
+  <nav v-if="navActive" class="bottom-nav" :aria-label="t('底部导航')">
     <button v-for="(icon, path) in navbar" :key="path" :aria-current="navActive === icon ? 'page' : undefined" @click="go(path)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons[icon]"/></svg>
       {{ copy[icon] }}

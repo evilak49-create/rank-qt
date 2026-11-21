@@ -566,23 +566,23 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 .shop-screen h2 { font-size: 17px; line-height: 1.35; }
 .shop-screen h3 { font-size: 14px; overflow-wrap: anywhere; }
 .shop-screen .surface { min-width: 0; }
-.shop-balance { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px; border-color: #5f4b92; background: linear-gradient(112deg, #2b204d, #1b2335); }
-.shop-balance strong { display: block; color: var(--lime); font-size: 28px; line-height: 1.2; }
-.shop-login { padding: 0; min-height: 38px; color: var(--lime); font-weight: 750; }
+.shop-balance { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px; border-color: var(--line-strong); background: linear-gradient(112deg, var(--surface-highlight), var(--surface)); }
+.shop-balance strong { display: block; color: var(--highlight); font-size: 28px; line-height: 1.2; }
+.shop-login { padding: 0; min-height: 38px; color: var(--accent); font-weight: 750; }
 .shop-search, .shop-actions { display: flex; gap: 8px; }
 .shop-search .field { flex: 1; min-width: 0; }
-.shop-screen input.field { width: 100%; min-height: 44px; padding: 8px 11px; border: 1px solid #495879; border-radius: 8px; background: #121927; color: inherit; font-size: 16px; }
+.shop-screen input.field { width: 100%; min-height: 44px; padding: 8px 11px; border: 1px solid var(--control-line); border-radius: 8px; background: var(--surface-recessed); color: inherit; font-size: 16px; }
 .shop-search button { flex-shrink: 0; }
 .shop-actions > * { flex: 1; }
 .shop-products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .shop-product.surface { overflow: hidden; padding: 0; }
-.shop-art, .shop-logo { display: grid; place-items: center; background: #27233f; color: var(--accent); overflow: hidden; }
+.shop-art, .shop-logo { display: grid; place-items: center; background: var(--surface-highlight); color: var(--accent); overflow: hidden; }
 .shop-art { aspect-ratio: 4 / 3; }
 .shop-art img, .shop-logo img { width: 100%; height: 100%; object-fit: cover; min-height: 0; }
 .shop-art svg, .shop-logo svg { width: 32px; fill: none; stroke: currentColor; stroke-width: 1.4; }
 .shop-product-content { display: grid; gap: 5px; padding: 10px; }
 .shop-product-content button { margin-top: 3px; }
-.shop-highlight { color: var(--lime); font-weight: 800; }
+.shop-highlight { color: var(--highlight); font-weight: 800; }
 .shop-highlight small { color: inherit; }
 .shop-product-content .muted, .shop-list-text .muted { font-size: 12px; }
 .shop-funds-list, .shop-records { display: grid; gap: 7px; }
@@ -592,13 +592,13 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 .shop-logo svg { width: 22px; }
 .shop-list-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .shop-record { width: 100%; justify-content: space-between; text-align: left; }
-.shop-record:hover { border-color: #7d69c5; }
+.shop-record:hover { border-color: var(--accent); }
 .shop-record small { display: block; margin-top: 3px; }
 .shop-record-amount { flex-shrink: 0; text-align: right; }
 .shop-record-amount strong { font-size: 13px; }
 .shop-status { color: var(--accent); font-size: 12px; }
-.shop-status[data-status="paid"], .shop-status[data-status="shipped"] { color: var(--lime); }
-.shop-status[data-status="failed"], .shop-status[data-status="rejected"], .shop-status[data-status="cancelled"] { color: #ffb2bc; }
+.shop-status[data-status="paid"], .shop-status[data-status="shipped"] { color: var(--success); }
+.shop-status[data-status="failed"], .shop-status[data-status="rejected"], .shop-status[data-status="cancelled"] { color: var(--danger); }
 .shop-checkout { padding: 14px; overflow-wrap: anywhere; }
 .shop-checkout-art { aspect-ratio: 2 / 1; max-height: 230px; border-radius: 9px; }
 .shop-description { white-space: pre-line; }
@@ -608,5 +608,5 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 .shop-details { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 12px; margin: 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; }
 .shop-details dt { color: var(--muted); }
 .shop-details dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
-.shop-notice { color: #e2ccff; }
+.shop-notice { color: var(--muted); }
 </style>

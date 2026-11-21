@@ -113,15 +113,15 @@ watchNotice(error, '提现订单加载失败', 'error')
 .withdrawal-empty, .withdrawal-summary h2 { margin: 0; }
 .withdrawal-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .withdrawal-summary h2 { font-size: 14px; }
-.withdrawal-status { flex: none; padding: 3px 9px; border-radius: 999px; background: #364156; font-size: 12px; font-weight: 700; }
-.withdrawal-status[data-status="reviewing"] { color: #f5d998; background: #f5d99817; }
-.withdrawal-status[data-status="succeeded"] { color: #8ee1b6; background: #8ee1b619; }
-.withdrawal-status[data-status="failed"] { color: #ffb2c4; background: #ffb2c41a; }
+.withdrawal-status { flex: none; padding: 3px 9px; border-radius: 999px; background: var(--surface-raised); font-size: 12px; font-weight: 700; }
+.withdrawal-status[data-status="reviewing"] { color: var(--highlight); background: var(--surface-highlight); }
+.withdrawal-status[data-status="succeeded"] { color: var(--success); background: var(--success-surface); }
+.withdrawal-status[data-status="failed"] { color: var(--danger); background: var(--danger-surface); }
 .withdrawal-amount { font-size: 26px; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .withdrawal-details { display: grid; gap: 5px; border-top: 1px solid var(--line); margin: 2px 0 0; padding-top: 9px; font-size: 12px; }
 .withdrawal-details > div { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px; }
 .withdrawal-details dt { color: var(--muted); }
 .withdrawal-details dd { margin: 0; text-align: end; overflow-wrap: anywhere; }
-.withdrawal-reason dd { color: #ffb2c4; white-space: pre-wrap; }
+.withdrawal-reason dd { color: var(--danger); white-space: pre-wrap; }
 .withdrawal-pagination { display: flex; align-items: center; justify-content: center; gap: 9px; }
 </style>

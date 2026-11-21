@@ -396,5 +396,5 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
 .reward-rule-copy :deep(ul) { list-style: disc; padding-inline-start: 1.4rem; }
 .reward-rule-copy :deep(ol) { list-style: decimal; padding-inline-start: 1.4rem; }
 .reward-rule-copy :deep(blockquote) { border-inline-start: 2px solid var(--line); padding-inline-start: 0.75rem; }
-.reward-rule-copy :deep(a) { text-decoration: underline; }
+.reward-rule-copy :deep(a) { color: var(--accent); text-decoration: underline; }
 </style>

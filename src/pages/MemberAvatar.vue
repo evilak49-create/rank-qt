@@ -84,10 +84,10 @@ function save() {
   width: 42px;
   height: 42px;
   padding: 0;
-  border: 1px solid #c2aaff80;
+  border: 1px solid var(--line-strong);
   border-radius: 50%;
-  background: linear-gradient(145deg, #574388, #372c58);
-  color: #ece1ff;
+  background: var(--surface-highlight);
+  color: var(--accent);
 }
 .avatar-trigger > svg { width: 21px; height: 21px; }
 .avatar-trigger img, .avatar-option img {
@@ -112,27 +112,27 @@ function save() {
   place-items: center;
   width: 18px;
   height: 18px;
-  border: 1px solid #bba7fd;
+  border: 1px solid var(--accent);
   border-radius: 50%;
-  background: #6446bd;
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
 }
 .avatar-edit svg { width: 12px; height: 12px; }
 .avatar-picker {
   width: min(calc(100% - 24px), 400px);
   max-height: calc(100dvh - 24px);
   padding: 0;
-  border: 1px solid #594b79;
+  border: 1px solid var(--line-strong);
   border-radius: 20px;
-  color: #f6f0ff;
-  background: radial-gradient(ellipse at top right, #3e2c63, transparent 62%), #1b2034;
-  box-shadow: 0 20px 60px #080813b3;
+  color: var(--text);
+  background: radial-gradient(ellipse at top right, var(--surface-highlight), transparent 62%), var(--surface);
+  box-shadow: 0 20px 60px var(--shadow);
 }
-.avatar-picker::backdrop { background: #090b17bd; backdrop-filter: blur(3px); }
+.avatar-picker::backdrop { background: var(--scrim); backdrop-filter: blur(3px); }
 .avatar-picker form { display: grid; gap: 13px; padding: 14px 16px 16px; }
 .avatar-picker header { display: flex; justify-content: space-between; align-items: center; }
 .avatar-picker h2 { margin: 0; font-size: 17px; }
-.avatar-close { width: 44px; height: 44px; border-radius: 12px; color: #e3d9ff; background: #c3abff16; font-size: 23px; }
+.avatar-close { width: 44px; height: 44px; border-radius: 12px; color: var(--text); background: var(--surface-raised); font-size: 23px; }
 .avatar-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px 5px; }
 .avatar-option {
   position: relative;
@@ -140,11 +140,11 @@ function save() {
   width: min(100%, 60px);
   aspect-ratio: 1;
   padding: 3px;
-  border: 1px solid #a48dd038;
+  border: 1px solid var(--line);
   border-radius: 50%;
-  background: #13182a;
+  background: var(--surface-recessed);
 }
-.avatar-option[aria-pressed="true"] { border-color: #b69cff; box-shadow: 0 0 0 2px #b69cff69; }
+.avatar-option[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
 .avatar-check { font-size: 11px; font-weight: 800; }
 .avatar-save { min-height: 44px; }
 </style>

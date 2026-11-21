@@ -1,51 +1,27 @@
-.home-gold {
-  --accent: #ffbf62;
-  --home-gold-text: #ffdb92;
-  --home-orange: linear-gradient(178deg, #ffbd49, #ff840e 57%, #ea5705);
-  min-height: 100dvh;
-  color: #fff7ea;
-  background: radial-gradient(ellipse at 50% 0%, #211710 0, #0c0b0d 280px, #09090b 580px);
-}
-.home-gold .site-header { border-color: #3a2a1d; background: transparent; }
+.home-gold .site-header { background: transparent; }
 .home-gold .brand img { filter: grayscale(1) sepia(1) saturate(5) hue-rotate(348deg) brightness(1.3); }
 .home-gold .language-switch { border-color: #554633; background: linear-gradient(#211e1c, #121212); color: #fff4e1; }
 .home-gold .language-switch svg { stroke: #ffdfb2; }
 .home-gold .hero {
-  border-color: #d18b38;
-  background: #130b07;
   box-shadow: 0 0 14px #fb980b22, inset 0 0 12px #fb980b30;
 }
-.home-gold .hero-area::after { background: linear-gradient(90deg, #0c070475, #0c070420 64%, transparent 80%); }
 .home-gold .hero-content strong { color: #fff9ec; text-shadow: 0 2px 8px #080403; }
 .home-gold .hero-prefix { color: #ffbc49; }
 .home-gold .hero-content small { color: #f4e6d0; }
-.home-gold .carousel { background: #0f0b08b8; }
 .home-gold .carousel button { color: #ffdfa5; }
-.home-gold .carousel button[aria-pressed]::after { background: #baa487; }
 .home-gold .carousel button[aria-pressed="true"]::after { background: #ffbc42; box-shadow: 0 0 6px #ffb22d; }
 .home-gold :is(.notice, .shortcut) {
-  border-color: #3c3329;
-  background: linear-gradient(140deg, #23201e, #111012 78%);
-  color: #fff7e9;
+  border-color: var(--line);
+  background: var(--surface-gradient);
+  color: var(--text);
 }
 .home-gold :is(.notice, .shortcut):hover { border-color: #f0a341; }
-.home-gold .notice span:first-of-type { color: #e9ded1; }
 .home-gold .shortcuts .shortcut .tile-icon { background: #46311c; color: #ffbf56; }
 .home-gold .shortcut .tile-icon svg { filter: drop-shadow(0 0 4px #ff9b2f59); }
 .home-gold .selection-tabs { margin-bottom: 9px; gap: 4px; border: 1px solid #3e3429; border-radius: 999px; background: #171619; }
-.home-gold .selection-tabs button { min-height: 38px; border-radius: 999px; color: #e9ded1; }
-.home-gold .selection-tabs [aria-pressed="true"] { color: #201003; background: var(--home-orange); box-shadow: 0 1px 8px #fa850c45; font-weight: 850; }
+.home-gold .selection-tabs button { border-radius: 999px; }
+.home-gold .selection-tabs [aria-pressed="true"] { box-shadow: 0 1px 8px var(--accent-glow); font-weight: 850; }
 .home-gold .featured { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
-.home-gold .locale-sheet { border-color: #695131; background: radial-gradient(ellipse at top left, #422a16, transparent 70%), #191616; }
 .home-gold .locale-close, .home-gold .locale-option { border-color: #654c33; background: #221b16; }
-.home-gold .locale-option[aria-pressed="true"] { border-color: #d2994c; background: #3b2919; }
+.home-gold .locale-option[aria-pressed="true"] { border-color: #d2994c; background: var(--surface-highlight); }
 .home-gold .locale-check { color: #ffbe58; }
-.bottom-nav.home-bottom-nav {
-  border-color: #45392c;
-  color: #f3e7d9;
-  background: linear-gradient(#1d1a1b, #111012);
-  box-shadow: 0 4px 16px #03020299;
-}
-.bottom-nav.home-bottom-nav button { color: #e4d9cd; }
-.bottom-nav.home-bottom-nav [aria-current] { color: #ffcc65; background: radial-gradient(ellipse at top, #844914, #311c10 76%); box-shadow: inset 0 0 0 1px #ba7b395e; }
-.bottom-nav.home-bottom-nav [aria-current] svg { filter: drop-shadow(0 0 4px #ffad40ad); }
