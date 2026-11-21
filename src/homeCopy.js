@@ -8,6 +8,8 @@ export const homeCopy = {
     error: '暂时无法加载', empty: '暂无推荐平台', noFavorites: '暂无收藏平台',
     retry: '重试', previous: '上一张', next: '下一张', slides: '首页轮播', home: '首页',
     platforms: '平台', shop: '商城', redPackets: '红包', member: '个人',
+    brandLine: '平台评级 · 返利 · 保障', heroLead: '优质平台', heroAccent: '推荐',
+    protection: '平台保障', protectionTerms: '出款保障条款', rebate: '返利比例', activities: '优惠活动', messages: '消息', profile: '个人中心',
   },
   'pt-BR': {
     locale: 'Idioma', chooseLanguage: 'Escolha o idioma', close: 'Fechar', title: 'Avaliações e cashback', subtitle: 'Compare notas e confira as regras',
@@ -18,5 +20,7 @@ export const homeCopy = {
     error: 'Não foi possível carregar', empty: 'Nenhuma plataforma em destaque', noFavorites: 'Nenhuma plataforma favorita',
     retry: 'Tentar de novo', previous: 'Anterior', next: 'Próximo', slides: 'Destaques do início', home: 'Início',
     platforms: 'Plataformas', shop: 'Loja', redPackets: 'Bônus', member: 'Perfil',
+    brandLine: 'Avaliações · Cashback · Proteção', heroLead: 'Plataformas', heroAccent: 'recomendadas',
+    protection: 'Proteção', protectionTerms: 'Regras de proteção', rebate: 'Cashback', activities: 'Ofertas', messages: 'Avisos', profile: 'Minha conta',
   },
 }

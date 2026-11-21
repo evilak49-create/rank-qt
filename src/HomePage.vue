@@ -2,21 +2,21 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { api, imageUrl } from './api'
-import heroArt from './assets/home-banner-default.jpg'
+import heroArt from './assets/home-banner-gold.jpg'
 import brandLogo from './assets/pingji-logo.svg'
 import PlatformCard from './PlatformCard.vue'
 import { icons } from './icons'
 import { go } from './navigation'
+import './home.css'
 
 const props = defineProps({ route: Object, member: Object, language: String, copy: Object })
 const emit = defineEmits(['language'])
 const blocks = reactive({
   banners: { path: '/content/banners', data: [], state: 'loading' },
-  notice: { path: '/content/announcements/latest', data: null, state: 'loading' },
   featured: { path: '/platforms/featured', data: [], state: 'loading' },
   favorites: { path: '/platform-favorites', data: [], state: 'loading' },
 })
-const shortcuts = { bind: '/binding', points: '/points', help: '/help', support: '/support' }
+const shortcuts = { bind: '/binding', points: '/points', protection: '/protection', support: '/support' }
 const languages = [
   { id: 'zh-CN', name: '简体中文' },
   { id: 'pt-BR', name: 'Português' },
@@ -34,7 +34,30 @@ const managedBanner = computed(() => Boolean(bannerSource.value) && loadedBanner
 watch(bannerSource, () => { loadedBanner.value = '' }, { flush: 'sync' })
 const selection = computed(() => props.member && props.route.query.get('tab') === 'favorites' ? 'favorites' : 'featured')
 const selectedBlock = computed(() => blocks[selection.value])
+const rulePlatformId = computed(() => (blocks.featured.data[0] ?? blocks.favorites.data[0])?.id)
+const rebateRate = ref(null)
+const rateFormat = computed(() => new Intl.NumberFormat(props.language, { maximumFractionDigits: 6 }))
 let touchStart
+
+watch(rulePlatformId, async (id, _, onCleanup) => {
+  if (!id) return
+  const controller = new AbortController()
+  onCleanup(() => controller.abort())
+  const { signal } = controller
+  const path = '/platforms/' + id
+  try {
+    const result = await api(path + '/point-rule', { signal }).catch(async error => {
+      if (error.status !== 404 || signal.aborted) throw error
+      return { data: (await api(path, { signal })).data?.point_rule }
+    })
+    if (!signal.aborted) rebateRate.value = result.data?.rebate_percent ?? null
+  } catch {}
+})
+
+function rebateLabel(platform) {
+  const rate = Number(platform.point_rule?.rebate_percent ?? rebateRate.value)
+  return Number.isFinite(rate) && rate > 0 ? rateFormat.value.format(rate) + '%' : ''
+}
 
 function selectLanguage(id) {
   emit('language', id)
@@ -69,7 +92,7 @@ function chooseFavorites() {
   go(props.member ? path : '/login?' + new URLSearchParams({ next: path }))
 }
 
-for (const name of ['banners', 'notice', 'featured']) loadBlock(blocks[name])
+for (const name of ['banners', 'featured']) loadBlock(blocks[name])
 watch(() => [props.route.key, props.member?.id], () => {
   if (selection.value === 'favorites') loadBlock(blocks.favorites)
 }, { immediate: true })
@@ -80,11 +103,15 @@ function copyTextForError() { return props.copy.error }
 </script>
 
 <template>
+  <div class="home-gold">
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="#/" aria-label="评级网首页" @click.prevent="go('/')">
         <img :src="brandLogo" alt="" width="34" height="34">
-        <span>评级网</span>
+        <span class="home-wordmark">
+          <strong>评级<span>网</span></strong>
+          <small>{{ copy.brandLine }}</small>
+        </span>
       </a>
       <button type="button" class="language-switch" aria-haspopup="dialog" :aria-label="copy.locale + ' · ' + currentLanguage.name"
               @click="localeSheet.showModal()">
@@ -104,9 +131,15 @@ function copyTextForError() { return props.copy.error }
         <img v-if="bannerSource" :key="bannerSource" class="hero-art hero-managed" :src="bannerSource" alt=""
              @load="loadedBanner = bannerSource" @error="brokenBanners.add(banner.id)">
         <span v-if="!managedBanner" class="hero-content">
-          <span class="hero-prefix">SLOTS</span>
-          <strong>{{ banner?.name || copy.title }}</strong>
-          <small v-if="!banner">{{ copy.subtitle }}</small>
+          <strong v-if="banner">{{ banner.name }}</strong>
+          <template v-else>
+            <strong>{{ copy.heroLead }} <em>{{ copy.heroAccent }}</em></strong>
+            <small>{{ copy.subtitle }}</small>
+            <span class="hero-promise">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.protection"/></svg>
+              {{ copy.protection }}
+            </span>
+          </template>
         </span>
       </button>
       <div v-if="banners.length > 1" class="carousel" :aria-label="copy.slides">
@@ -116,12 +149,6 @@ function copyTextForError() { return props.copy.error }
         <button :aria-label="copy.next" @click="changeSlide(1)">›</button>
       </div>
     </section>
-
-    <button class="notice" @click="go('/announcements')">
-      <strong>{{ copy.announcement }}</strong>
-      <span>{{ blocks.notice.data?.title ?? (blocks.notice.state === 'error' ? copy.noticeError : blocks.notice.state === 'ready' ? copy.noticeEmpty : '') }}</span>
-      <span class="arrow" aria-hidden="true">→</span>
-    </button>
 
     <div class="shortcuts" :aria-label="copy.shortcuts">
       <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="go(shortcuts[type])">
@@ -133,13 +160,23 @@ function copyTextForError() { return props.copy.error }
     <section class="featured" :aria-label="copy.selection">
       <div class="selection-tabs" :aria-label="copy.selection">
         <button :aria-pressed="selection === 'featured'" @click="go('/')">{{ copy.recommended }}</button>
-        <button :aria-pressed="selection === 'favorites'" @click="chooseFavorites">{{ copy.favorites }}</button>
+        <button :aria-pressed="selection === 'favorites'" @click="chooseFavorites">{{ copy.favorites }} <span aria-hidden="true">♡</span></button>
       </div>
       <div v-if="selectedBlock.state === 'ready' && selectedBlock.data.length" class="platform-grid">
         <PlatformCard v-for="(platform, index) in selection === 'featured' ? selectedBlock.data.slice(0, 10) : selectedBlock.data"
                       :key="platform.id" :platform-id="platform.id" :name="platform.name" :logo-url="platform.logo_url"
                       :rating="platform.rating" :rank="selection === 'featured' && index < 3 ? index + 1 : undefined"
-                      :promotion-url="platform.promotion_url" />
+                      :promotion-url="platform.promotion_url" inline-actions>
+          <template #summary>
+            <div class="home-platform-meta">
+              <a class="home-platform-protection" :href="'#/platforms/' + platform.id + '/protection'"
+                 @click.prevent="go('/platforms/' + platform.id + '/protection')">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.protection"/></svg>{{ copy.protectionTerms }}
+              </a>
+              <span v-if="rebateLabel(platform)" class="home-platform-rebate">{{ copy.rebate }} <strong>{{ rebateLabel(platform) }}</strong></span>
+            </div>
+          </template>
+        </PlatformCard>
       </div>
       <div v-else-if="selectedBlock.state !== 'loading'" class="state" role="status">
         <span>{{ selectedBlock.state === 'error' ? copy.error : selection === 'favorites' ? copy.noFavorites : copy.empty }}</span>
@@ -183,4 +220,5 @@ function copyTextForError() { return props.copy.error }
       </button>
     </div>
   </dialog>
+  </div>
 </template>

@@ -19,6 +19,7 @@ const props = defineProps({
   promotionUrl: String,
   detailHref: String,
   row: Boolean,
+  inlineActions: Boolean,
 })
 const { t } = useLocale()
 const card = ref(null)
@@ -28,6 +29,7 @@ const discoveredUrl = ref()
 const opened = computed(() => activeMenu.value?.id === menuId)
 const path = computed(() => '/platforms/' + props.platformId)
 const artwork = computed(() => imageUrl(props.logoUrl))
+const actionOrder = computed(() => props.inlineActions ? ['open', 'details'] : ['details', 'open'])
 const url = computed(() => {
   try {
     const link = new URL(props.promotionUrl ?? discoveredUrl.value)
@@ -42,7 +44,7 @@ function close() {
 }
 
 function hover(event) {
-  if (event.pointerType === 'mouse' && !opened.value) activeMenu.value = { id: menuId, pinned: false }
+  if (!props.inlineActions && event.pointerType === 'mouse' && !opened.value) activeMenu.value = { id: menuId, pinned: false }
 }
 
 function leave() {
@@ -80,10 +82,10 @@ function details(event) {
 </script>
 
 <template>
-  <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row, 'platform-entry-poster': !$slots.default }"
+  <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row, 'platform-entry-poster': !$slots.default, 'platform-entry-inline': inlineActions }"
        @pointerenter="hover" @pointerleave="leave"
        @focusout="event => { if (!card?.contains(event.relatedTarget)) close() }"
-       @keydown.esc.stop="close(); trigger.focus({ preventScroll: true })">
+       @keydown.esc="event => { if (opened) { event.stopPropagation(); close(); trigger?.focus({ preventScroll: true }) } }">
     <slot v-if="$slots.default" />
     <template v-else>
       <span class="platform-artwork" aria-hidden="true">
@@ -94,12 +96,21 @@ function details(event) {
       <span v-if="rating != null" class="platform-rating"><span aria-hidden="true">★</span> {{ rating }}</span>
       <strong class="platform-name">{{ name }}</strong>
     </template>
-    <button ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
+    <slot name="summary" />
+    <button v-if="!inlineActions" ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
             :aria-expanded="opened" @click="toggle"></button>
-    <div v-if="opened" class="platform-entry-actions">
-      <a class="primary" :href="detailHref || '#' + path" @click="details">{{ t('网站详情', 'Detalhes do site') }}</a>
-      <a v-if="url" class="quiet" :href="url" target="_blank" rel="noopener noreferrer">{{ t('打开网站', 'Abrir site') }}</a>
-      <button v-else class="quiet" type="button" disabled>{{ t('打开网站', 'Abrir site') }}</button>
+    <div v-if="opened || inlineActions" class="platform-entry-actions">
+      <template v-for="action in actionOrder" :key="action">
+        <a v-if="action === 'details'" class="primary platform-details" :href="detailHref || '#' + path" @click="details">
+          {{ inlineActions ? t('品牌详情', 'Detalhes') : t('网站详情', 'Detalhes do site') }}
+        </a>
+        <a v-else-if="url" class="quiet platform-visit" :href="url" target="_blank" rel="noopener noreferrer">
+          {{ inlineActions ? t('进入平台', 'Abrir site') : t('打开网站', 'Abrir site') }}
+        </a>
+        <button v-else class="quiet platform-visit" type="button" disabled>
+          {{ inlineActions ? t('进入平台', 'Abrir site') : t('打开网站', 'Abrir site') }}
+        </button>
+      </template>
     </div>
     <slot name="controls" />
   </div>

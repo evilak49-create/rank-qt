@@ -33,6 +33,12 @@ let sessionVersion = 0
 const navbar = {
   '/': 'home', '/platforms': 'platforms', '/shop': 'shop', '/red-packets': 'redPackets', '/member': 'member',
 }
+const homeNavbar = [
+  ['/', 'home', 'home'], ['/platforms', 'platforms', 'platforms'], ['/red-packets', 'shop', 'activities'],
+  ['/announcements', 'redPackets', 'messages'], ['/member', 'member', 'profile'],
+]
+const navItems = computed(() => route.value.path === '/' ? homeNavbar
+  : Object.entries(navbar).map(([path, icon]) => [path, icon, icon]))
 const authTitles = { '/login': '会员登录', '/register': '注册账号', '/reset-password': '修改密码' }
 const pages = [
   [/^\/platforms$/, '平台目录', PlatformPages],
@@ -220,10 +226,10 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
     </main>
   </template>
 
-  <nav v-if="navActive" class="bottom-nav" :aria-label="t('底部导航')">
-    <button v-for="(icon, path) in navbar" :key="path" :aria-current="navActive === icon ? 'page' : undefined" @click="go(path)">
+  <nav v-if="navActive" class="bottom-nav" :class="{ 'home-bottom-nav': route.path === '/' }" :aria-label="t('底部导航')">
+    <button v-for="[path, icon, label] in navItems" :key="path" :aria-current="route.path === path ? 'page' : undefined" @click="go(path)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons[icon]"/></svg>
-      {{ copy[icon] }}
+      {{ copy[label] }}
     </button>
   </nav>
   <DataLoading :language="language" />
