@@ -7,7 +7,9 @@ const activeMenu = shallowRef(null)
 <script setup>
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { api, imageUrl } from './api'
+import { icons } from './icons'
 import { useLocale } from './locale'
+import { formatGuaranteeAmount } from './money'
 import { go } from './navigation'
 
 const props = defineProps({
@@ -15,13 +17,15 @@ const props = defineProps({
   name: String,
   logoUrl: String,
   rating: [Number, String],
-  rank: Number,
+  rank: [Number, String],
+  guaranteeAmount: [Number, String],
+  maxRebatePercent: [Number, String],
   promotionUrl: String,
   detailHref: String,
   row: Boolean,
   inlineActions: Boolean,
 })
-const { t } = useLocale()
+const { locale, t } = useLocale()
 const card = ref(null)
 const trigger = ref(null)
 const menuId = Symbol()
@@ -29,6 +33,13 @@ const discoveredUrl = ref()
 const opened = computed(() => activeMenu.value?.id === menuId)
 const path = computed(() => '/platforms/' + props.platformId)
 const artwork = computed(() => imageUrl(props.logoUrl))
+const podiumRank = computed(() => [1, 2, 3].find(rank => rank === Number(props.rank)))
+const guarantee = computed(() => formatGuaranteeAmount(props.guaranteeAmount) || '—')
+const rebate = computed(() => {
+  const rate = Number(props.maxRebatePercent)
+  if (props.maxRebatePercent == null || !Number.isFinite(rate) || rate < 0) return '—'
+  return new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }).format(rate) + '%'
+})
 const actionOrder = computed(() => props.inlineActions ? ['open', 'details'] : ['details', 'open'])
 const url = computed(() => {
   try {
@@ -65,13 +76,18 @@ watch(opened, (active, _, onCleanup) => {
   }
   document.addEventListener('pointerdown', outside, true)
   onCleanup(() => document.removeEventListener('pointerdown', outside, true))
-  if (props.promotionUrl !== undefined || discoveredUrl.value !== undefined) return
+})
+
+const shouldDiscoverUrl = computed(() => (opened.value || props.inlineActions) && props.promotionUrl === undefined)
+watch([path, shouldDiscoverUrl], ([urlPath, active], previous, onCleanup) => {
+  if (urlPath !== previous[0]) discoveredUrl.value = undefined
+  if (!active || discoveredUrl.value !== undefined) return
   const request = new AbortController()
   onCleanup(() => request.abort())
-  api(path.value, { signal: request.signal }).then(({ data }) => {
+  api(urlPath, { signal: request.signal }).then(({ data }) => {
     if (!request.signal.aborted) discoveredUrl.value = data.promotion_url ?? null
   }).catch(() => {})
-})
+}, { immediate: true })
 
 function details(event) {
   if (props.detailHref || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
@@ -83,6 +99,7 @@ function details(event) {
 
 <template>
   <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row, 'platform-entry-poster': !$slots.default, 'platform-entry-inline': inlineActions }"
+       :data-top-ranked="inlineActions && podiumRank === 1 ? '' : undefined"
        @pointerenter="hover" @pointerleave="leave"
        @focusout="event => { if (!card?.contains(event.relatedTarget)) close() }"
        @keydown.esc="event => { if (opened) { event.stopPropagation(); close(); trigger?.focus({ preventScroll: true }) } }">
@@ -92,10 +109,24 @@ function details(event) {
         {{ name?.slice(0, 1) }}
         <img v-if="artwork" :src="artwork" alt="" loading="lazy" @error="$event.target.hidden = true" @load="$event.target.hidden = false">
       </span>
-      <span v-if="rank" class="platform-rank" :data-rank="rank">{{ rank }}</span>
+      <span v-if="inlineActions ? podiumRank : rank" class="platform-rank" :data-rank="inlineActions ? podiumRank : rank">
+        {{ inlineActions ? podiumRank : rank }}
+      </span>
       <span v-if="rating != null" class="platform-rating"><span aria-hidden="true">★</span> {{ rating }}</span>
       <strong class="platform-name">{{ name }}</strong>
     </template>
+    <div v-if="inlineActions" class="platform-offers">
+      <a class="platform-guarantee" :href="'#' + path + '/protection'" @click.prevent="go(path + '/protection')">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.protection"/></svg>
+        <span>{{ t('本站担保') }}</span>
+        <strong>{{ guarantee }}</strong>
+      </a>
+      <div class="platform-rebate">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.shop"/></svg>
+        <span>{{ t('最高返利', 'Cashback máximo') }}</span>
+        <strong>{{ rebate }}</strong>
+      </div>
+    </div>
     <slot name="summary" />
     <button v-if="!inlineActions" ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
             :aria-expanded="opened" @click="toggle"></button>
@@ -196,4 +227,128 @@ function details(event) {
 .platform-entry-row .platform-entry-actions { grid-auto-flow: column; justify-content: start; align-items: center; padding-inline: 8px; }
 .platform-entry-row .platform-entry-actions :is(a, button) { padding-inline: 7px; }
 :slotted(.platform-entry-control) { position: relative; z-index: 3; }
+
+.platform-entry-inline {
+  grid-template-rows: auto auto 1fr auto;
+  gap: 4px;
+  padding: 0 8px 8px;
+  border-color: #716255;
+  border-radius: 16px;
+  background:
+    radial-gradient(ellipse at 82% 20%, #6f380d 0, transparent 48%),
+    linear-gradient(155deg, transparent 31%, #e085272b 37%, transparent 44%),
+    linear-gradient(145deg, #271a11, #100f12 70%);
+  box-shadow: inset 0 0 16px #ad753729;
+}
+.platform-entry-inline:nth-child(4n+2), .platform-entry-inline:nth-child(4n+3) {
+  border-color: #537d70;
+  background:
+    radial-gradient(ellipse at 82% 20%, #155940 0, transparent 52%),
+    linear-gradient(155deg, transparent 31%, #56cb9a38 37%, transparent 44%),
+    linear-gradient(145deg, #112e2a, #0e1516 70%);
+  box-shadow: inset 0 0 16px #44ba832e;
+}
+.platform-entry-inline:is(:hover, :focus-within) { border-color: #c4a877; }
+.platform-entry-inline[data-top-ranked] {
+  border-color: #ffca75;
+  box-shadow: inset 0 0 9px #ffb65955, 0 0 8px #ff9d2a66;
+}
+.platform-entry-inline .platform-artwork {
+  height: clamp(70px, 22vw, 100px);
+  margin-top: 28px;
+  aspect-ratio: auto;
+  background: transparent;
+  color: #ffe0a5;
+}
+.platform-entry-inline .platform-artwork:has(img:not([hidden])) { color: transparent; }
+.platform-entry-inline .platform-artwork img { padding: 0 8px; }
+.platform-entry-inline .platform-name {
+  min-height: 24px;
+  padding: 0 4px 4px;
+  background: transparent;
+  color: #fff8ec;
+  font-size: clamp(13px, 3.5vw, 16px);
+}
+.platform-entry-inline .platform-rating {
+  top: 7px;
+  right: 7px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #ffde75;
+  background: #090907e8;
+  font-size: 12px;
+}
+.platform-entry-inline .platform-rank {
+  top: 0;
+  left: 8px;
+  min-width: 26px;
+  padding: 3px 6px 8px;
+  border-radius: 0;
+  color: #28170e;
+  font-size: 13px;
+  text-align: center;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+}
+.platform-entry-inline .platform-rank[data-rank="1"] { background: linear-gradient(120deg, #fbb53e, #fff1a8, #db8a24); }
+.platform-entry-inline .platform-rank[data-rank="2"] { background: linear-gradient(120deg, #b2bac6, #f6f8fc, #8293a5); }
+.platform-entry-inline .platform-rank[data-rank="3"] { background: linear-gradient(120deg, #bd774d, #ffdbb5, #c98657); }
+.platform-offers {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 5px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.platform-offers svg { width: 15px; height: 15px; flex: none; stroke: #ffcf67; fill: none; stroke-width: 1.8; }
+.platform-offers strong { color: #ffdc7e; font-size: 13px; font-variant-numeric: tabular-nums; }
+.platform-guarantee, .platform-rebate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 4px;
+  max-width: 100%;
+}
+.platform-guarantee {
+  min-height: 29px;
+  padding: 4px 6px;
+  border: 1px solid #d7a84b;
+  border-radius: 12px;
+  background: #191106d9;
+  color: #ffe8b2;
+  box-shadow: inset 0 0 5px #e5a33341;
+}
+.platform-guarantee:hover { border-color: #ffdf8b; }
+.platform-rebate { min-height: 22px; color: #f5ead8; }
+.platform-entry-inline .platform-entry-actions {
+  position: static;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  padding: 0;
+  background: none;
+  pointer-events: auto;
+}
+.platform-entry-inline .platform-entry-actions :is(a, button) {
+  min-width: 0;
+  border-radius: 999px;
+  padding: 4px;
+  font-size: clamp(10px, 3vw, 13px);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.platform-entry-inline .platform-entry-actions .platform-visit {
+  border: 1px solid #ffaf43;
+  background: linear-gradient(175deg, #ffb84b, #ff8d24 52%, #f6760b);
+  color: #281501;
+}
+.platform-entry-inline .platform-entry-actions a.platform-visit:hover { background: linear-gradient(#ffd178, #ff981f); }
+.platform-entry-inline .platform-entry-actions .platform-details {
+  border: 1px solid #b8b0a6;
+  background: #1010138c;
+  color: #fff5e9;
+}
+.platform-entry-inline .platform-entry-actions .platform-details:hover { border-color: #ffca7d; }
+.platform-entry-inline :is(a, button):focus-visible { outline-color: #ffdc89; outline-offset: -3px; }
 </style>

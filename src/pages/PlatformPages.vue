@@ -617,7 +617,9 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
       <div v-if="directory.length" class="platform-grid">
         <PlatformCard v-for="item in directory" :key="item.id"
                       :platform-id="item.id" :name="item.name" :logo-url="item.logo_url"
-                      :rating="item.rating" :promotion-url="item.promotion_url" />
+                      :rating="item.rating" :rank="item.featured_position"
+                      :guarantee-amount="item.guarantee_amount_brl" :max-rebate-percent="item.max_rebate_percent"
+                      :promotion-url="item.promotion_url" inline-actions />
       </div>
       <div v-if="!listing && listingError" class="surface stack message">
         <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">{{ t('重试') }}</button>

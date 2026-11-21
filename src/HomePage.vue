@@ -35,30 +35,7 @@ const managedBanner = computed(() => Boolean(bannerSource.value) && loadedBanner
 watch(bannerSource, () => { loadedBanner.value = '' }, { flush: 'sync' })
 const selection = computed(() => props.member && props.route.query.get('tab') === 'favorites' ? 'favorites' : 'featured')
 const selectedBlock = computed(() => blocks[selection.value])
-const rulePlatformId = computed(() => (blocks.featured.data[0] ?? blocks.favorites.data[0])?.id)
-const rebateRate = ref(null)
-const rateFormat = computed(() => new Intl.NumberFormat(props.language, { maximumFractionDigits: 6 }))
 let touchStart
-
-watch(rulePlatformId, async (id, _, onCleanup) => {
-  if (!id) return
-  const controller = new AbortController()
-  onCleanup(() => controller.abort())
-  const { signal } = controller
-  const path = '/platforms/' + id
-  try {
-    const result = await api(path + '/point-rule', { signal }).catch(async error => {
-      if (error.status !== 404 || signal.aborted) throw error
-      return { data: (await api(path, { signal })).data?.point_rule }
-    })
-    if (!signal.aborted) rebateRate.value = result.data?.rebate_percent ?? null
-  } catch {}
-})
-
-function rebateLabel(platform) {
-  const rate = Number(platform.point_rule?.rebate_percent ?? rebateRate.value)
-  return Number.isFinite(rate) && rate > 0 ? rateFormat.value.format(rate) + '%' : ''
-}
 
 function selectLanguage(id) {
   emit('language', id)
@@ -161,21 +138,11 @@ function copyTextForError() { return props.copy.error }
         <button :aria-pressed="selection === 'favorites'" @click="chooseFavorites">{{ copy.favorites }} <span aria-hidden="true">♡</span></button>
       </div>
       <div v-if="selectedBlock.state === 'ready' && selectedBlock.data.length" class="platform-grid">
-        <PlatformCard v-for="(platform, index) in selection === 'featured' ? selectedBlock.data.slice(0, 10) : selectedBlock.data"
+        <PlatformCard v-for="platform in selection === 'featured' ? selectedBlock.data.slice(0, 10) : selectedBlock.data"
                       :key="platform.id" :platform-id="platform.id" :name="platform.name" :logo-url="platform.logo_url"
-                      :rating="platform.rating" :rank="selection === 'featured' && index < 3 ? index + 1 : undefined"
-                      :promotion-url="platform.promotion_url" inline-actions>
-          <template #summary>
-            <div class="home-platform-meta">
-              <a class="home-platform-protection" :href="'#/platforms/' + platform.id + '/protection'"
-                 @click.prevent="go('/platforms/' + platform.id + '/protection')">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.protection"/></svg>
-                {{ copy.guarantee }}{{ platform.guarantee_amount_brl == null ? '—' : Number(platform.guarantee_amount_brl) }}
-              </a>
-              <span v-if="rebateLabel(platform)" class="home-platform-rebate">{{ copy.rebate }} <strong>{{ rebateLabel(platform) }}</strong></span>
-            </div>
-          </template>
-        </PlatformCard>
+                      :rating="platform.rating" :rank="platform.featured_position"
+                      :guarantee-amount="platform.guarantee_amount_brl" :max-rebate-percent="platform.max_rebate_percent"
+                      :promotion-url="platform.promotion_url" inline-actions />
       </div>
       <div v-else-if="selectedBlock.state !== 'loading'" class="state" role="status">
         <span>{{ selectedBlock.state === 'error' ? copy.error : selection === 'favorites' ? copy.noFavorites : copy.empty }}</span>
