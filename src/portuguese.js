@@ -135,6 +135,7 @@ export const portuguese = {
   "巴西手机号": "Celular brasileiro",
   "真实手机号码": "Seu número de celular",
   "手机号码": "Número do celular",
+  "手机号码不正确": "Número de celular inválido",
   "地区区号 + 手机号": "DDD + número do celular",
   "帮助中心": "Central de ajuda",
   "帮助中心加载失败": "Falha ao carregar a central de ajuda",

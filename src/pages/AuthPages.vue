@@ -17,6 +17,10 @@ const type = computed(() => props.route.path)
 const signingIn = computed(() => type.value === '/login')
 const registering = computed(() => type.value === '/register')
 const phone = ref(nationalPhone(props.member?.phone || props.draftPhone || ''))
+const phoneDigits = computed(() => phone.value.replace(/\D/g, ''))
+const phoneChecked = ref(false)
+const registrationPhoneValid = computed(() => /^[0-9 ()-]+$/.test(phone.value) && brazilianMobile.test(phoneDigits.value))
+const showPhoneError = computed(() => registering.value && phoneChecked.value && !registrationPhoneValid.value)
 const code = ref('')
 const verification = ref(null)
 const challenge = ref(null)
@@ -66,14 +70,18 @@ function updatePhone(event) {
   const number = nationalPhone(input.value)
   if (number !== input.value) input.value = number
   phone.value = number
+  if (!number.trim()) phoneChecked.value = false
+  else if (registering.value && phoneDigits.value.length >= 11) checkRegistrationPhone()
+}
+
+function checkRegistrationPhone() {
+  phoneChecked.value = true
+  return registrationPhoneValid.value
 }
 
 function normalizedPhone() {
-  const number = phone.value.replace(/\D/g, '')
-  if (registering.value) {
-    if (/^[0-9 ()-]+$/.test(phone.value) && brazilianMobile.test(number)) return number
-    throw new Error('请输入有效的巴西手机号码（有效的地区区号 + 以 9 开头的 9 位号码）。')
-  }
+  const number = phoneDigits.value
+  if (registering.value) return number
   if (/^[1-9]\d9\d{8}$/.test(number)) return number
   throw new Error('请输入含区号的 11 位巴西手机号。')
 }
@@ -89,6 +97,7 @@ function change(path) {
 
 async function sms() {
   if (smsBusy.value || wait.value > 0) return
+  if (registering.value && !checkRegistrationPhone()) return
   smsBusy.value = true
   try {
     await api('/auth/sms-code', { body: { phone: normalizedPhone(), purpose: registering.value ? 'register' : 'reset_password' } })
@@ -123,6 +132,7 @@ async function refreshCaptcha(signal) {
 async function submit() {
   if (busy.value || smsBusy.value || (!signingIn.value && !created.value
     && (!verification.value || resetUnavailable.value || (imageMode.value && !challenge.value)))) return
+  if (registering.value && !checkRegistrationPhone()) return
   busy.value = true
   info.value = ''
   try {
@@ -174,9 +184,12 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
         <label for="auth-phone">{{ registering ? t('真实手机号码') : t('巴西手机号') }}</label>
         <div class="auth-phone-row">
           <span id="auth-country-code" class="auth-country-code">+55</span>
-          <input id="auth-phone" :value="phone" type="tel" autocomplete="username" aria-describedby="auth-country-code"
-                 :placeholder="registering ? t('手机号码') : t('地区区号 + 手机号')" required :readonly="type === '/reset-password' && Boolean(member)" @input="updatePhone">
+          <input id="auth-phone" :value="phone" type="tel" autocomplete="username" :aria-invalid="showPhoneError || undefined"
+                 :aria-describedby="showPhoneError ? 'auth-country-code auth-phone-error' : 'auth-country-code'"
+                 :placeholder="registering ? t('手机号码') : t('地区区号 + 手机号')" required :readonly="type === '/reset-password' && Boolean(member)"
+                 @input="updatePhone" @blur="registering && phone.trim() && checkRegistrationPhone()">
         </div>
+        <p v-if="showPhoneError" id="auth-phone-error" class="auth-phone-error" role="status">{{ t('手机号码不正确') }}</p>
       </div>
       <p v-if="resetUnavailable" class="muted" role="status">{{ t('短信找回暂不可用，请联系人工客服。') }}</p>
       <div v-if="!signingIn && !created && verification?.mode === 'sms'" class="field">
