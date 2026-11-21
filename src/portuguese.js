@@ -55,6 +55,7 @@ export const portuguese = {
   "凭证加载失败": "Falha ao carregar comprovantes",
   "凭证图片": "Imagens dos comprovantes",
   "出款保障": "Proteção de saque",
+  "本站担保": "Garantia do site",
   "出款处理中": "Pagamento em processamento",
   "出款失败，已退回": "Pagamento falhou e o valor foi devolvido",
   "出款时间": "Data e hora do saque",

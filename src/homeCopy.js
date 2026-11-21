@@ -8,7 +8,7 @@ export const homeCopy = {
     error: '暂时无法加载', empty: '暂无推荐平台', noFavorites: '暂无收藏平台',
     retry: '重试', previous: '上一张', next: '下一张', slides: '首页轮播', home: '首页',
     platforms: '平台', shop: '商城', redPackets: '红包', member: '个人',
-    protectionTerms: '出款保障条款', rebate: '返利比例',
+    guarantee: amount => amount ? '本站担保 ' + amount : '查看条款', rebate: '返利比例',
   },
   'pt-BR': {
     locale: 'Idioma', chooseLanguage: 'Escolha o idioma', close: 'Fechar', title: 'Avaliações e cashback', subtitle: 'Compare notas e confira as regras',
@@ -19,6 +19,6 @@ export const homeCopy = {
     error: 'Não foi possível carregar', empty: 'Nenhuma plataforma em destaque', noFavorites: 'Nenhuma plataforma favorita',
     retry: 'Tentar de novo', previous: 'Anterior', next: 'Próximo', slides: 'Destaques do início', home: 'Início',
     platforms: 'Plataformas', shop: 'Loja', redPackets: 'Bônus', member: 'Perfil',
-    protectionTerms: 'Regras de proteção', rebate: 'Cashback',
+    guarantee: amount => amount ? 'Garantia do site ' + amount : 'Ver termos', rebate: 'Cashback',
   },
 }

@@ -6,6 +6,7 @@ import heroArt from './assets/home-banner-gold.jpg'
 import brandLogo from './assets/pingji-logo.svg'
 import PlatformCard from './PlatformCard.vue'
 import { icons } from './icons'
+import { formatGuaranteeAmount } from './money'
 import { go } from './navigation'
 import './home.css'
 
@@ -169,7 +170,8 @@ function copyTextForError() { return props.copy.error }
             <div class="home-platform-meta">
               <a class="home-platform-protection" :href="'#/platforms/' + platform.id + '/protection'"
                  @click.prevent="go('/platforms/' + platform.id + '/protection')">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.protection"/></svg>{{ copy.protectionTerms }}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.protection"/></svg>
+                {{ copy.guarantee(formatGuaranteeAmount(platform.guarantee_amount_brl)) }}
               </a>
               <span v-if="rebateLabel(platform)" class="home-platform-rebate">{{ copy.rebate }} <strong>{{ rebateLabel(platform) }}</strong></span>
             </div>

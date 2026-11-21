@@ -7,7 +7,7 @@ import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
-import { formatBrl } from '../money'
+import { formatBrl, formatGuaranteeAmount } from '../money'
 import PlatformCard from '../PlatformCard.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
 
@@ -31,6 +31,7 @@ const target = computed(() => safePath(props.route.query.get('return'), ''))
 const directory = ref([])
 const selected = ref(null)
 const platform = ref(null)
+const guaranteeAmount = computed(() => formatGuaranteeAmount(platform.value?.guarantee_amount_brl))
 const terms = ref(null)
 const reviews = ref([])
 const reviewListError = ref('')
@@ -640,7 +641,10 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
       <section class="surface protection-banner">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z"/><path d="m9 12 2 2 4-4"/></svg>
         <div>
-          <h2 class="protection-title">{{ t('出款保障') }} <strong class="protection-amount">R$ 1000,000</strong></h2>
+          <h2 class="protection-title">
+            {{ guaranteeAmount ? t('本站担保') : t('出款保障') }}
+            <strong v-if="guaranteeAmount" class="protection-amount">{{ guaranteeAmount }}</strong>
+          </h2>
           <p>{{ t('符合保障条款的拒绝出款申诉，经核实后由本站赔付。') }}</p>
         </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>

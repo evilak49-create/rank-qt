@@ -1,5 +1,10 @@
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 
+export function formatGuaranteeAmount(amount) {
+  const value = Number(amount)
+  return Number.isFinite(value) && value > 0 ? brl.format(value) : ''
+}
+
 export function formatBrl(cents) {
   if (cents == null) return '—'
   const digits = String(cents).padStart(3, '0')
