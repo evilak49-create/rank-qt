@@ -101,7 +101,7 @@ watch([route, sessionState, member], () => {
 }, { immediate: true })
 
 watch([route, title, language], () => {
-  document.title = route.value.path === '/' ? t('返利网 · Slots 平台评级与返利') : title.value + t(' · 返利网')
+  document.title = route.value.path === '/' ? '返利网' : title.value + t(' · 返利网')
 }, { immediate: true })
 
 watch(route, async (current, previous) => {
