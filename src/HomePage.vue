@@ -23,6 +23,7 @@ const languages = [
   { id: 'pt-BR', name: 'Português' },
 ]
 const localeSheet = ref(null)
+const search = ref('')
 const currentLanguage = computed(() => languages.find(item => item.id === props.language))
 const slide = ref(0)
 const brokenBanners = ref(new Set())
@@ -70,6 +71,11 @@ function chooseFavorites() {
   go(props.member ? path : '/login?' + new URLSearchParams({ next: path }))
 }
 
+function searchPlatforms() {
+  const keyword = search.value.trim()
+  go(keyword ? '/platforms?' + new URLSearchParams({ search: keyword }) : '/platforms')
+}
+
 for (const name of ['banners', 'notice', 'featured']) loadBlock(blocks[name])
 watch(() => [props.route.key, props.member?.id], () => {
   if (selection.value === 'favorites') loadBlock(blocks.favorites)
@@ -85,7 +91,7 @@ function copyTextForError() { return props.copy.error }
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="#/" aria-label="返利网首页" @click.prevent="go('/')">
-        <img :src="brandLogo" alt="" width="34" height="34">
+        <img :src="brandLogo" alt="" width="36" height="36">
         <span>返利网</span>
       </a>
       <button type="button" class="language-switch" aria-haspopup="dialog" :aria-label="copy.locale + ' · ' + currentLanguage.name"
@@ -106,9 +112,11 @@ function copyTextForError() { return props.copy.error }
         <img v-if="bannerSource" :key="bannerSource" class="hero-art hero-managed" :src="bannerSource" alt=""
              @load="loadedBanner = bannerSource" @error="brokenBanners.add(banner.id)">
         <span v-if="!managedBanner" class="hero-content">
-          <span class="hero-prefix">SLOTS</span>
-          <strong>{{ banner?.name || copy.title }}</strong>
-          <small v-if="!banner">{{ copy.subtitle }}</small>
+          <strong v-if="banner">{{ banner.name }}</strong>
+          <template v-else>
+            <strong>{{ copy.heroLead }} <em>{{ copy.heroAccent }}</em></strong>
+            <small>{{ copy.subtitle }}</small>
+          </template>
         </span>
       </button>
       <div v-if="banners.length > 1" class="carousel" :aria-label="copy.slides">
@@ -119,22 +127,29 @@ function copyTextForError() { return props.copy.error }
       </div>
     </section>
 
+    <form class="home-search" role="search" @submit.prevent="searchPlatforms">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.search"/></svg>
+      <input v-model="search" type="search" maxlength="120" :aria-label="copy.searchLabel" :placeholder="copy.searchPlaceholder">
+      <button type="submit" class="primary">{{ copy.search }}</button>
+    </form>
+
+    <div class="shortcuts" :aria-label="copy.shortcuts">
+      <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="go(shortcuts[type])">
+        <span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icons[type === 'points' ? 'shop' : type]"/></svg></span>
+        <strong>{{ copy[type] }}</strong>
+      </button>
+    </div>
+
     <button class="notice" @click="go('/announcements')">
       <strong>{{ copy.announcement }}</strong>
       <span>{{ blocks.notice.data?.title ?? (blocks.notice.state === 'error' ? copy.noticeError : blocks.notice.state === 'ready' ? copy.noticeEmpty : '') }}</span>
       <span class="arrow" aria-hidden="true">→</span>
     </button>
 
-    <div class="shortcuts" :aria-label="copy.shortcuts">
-      <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="go(shortcuts[type])">
-        <span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icons[type]"/></svg></span>
-        <strong>{{ copy[type] }}</strong>
-      </button>
-    </div>
-
     <section class="featured" :aria-label="copy.selection">
       <div class="selection-tabs" :aria-label="copy.selection">
         <button :aria-pressed="selection === 'featured'" @click="go('/')">{{ copy.recommended }}</button>
+        <a href="#/platforms" @click.prevent="go('/platforms')">{{ copy.allPlatforms }}</a>
         <button :aria-pressed="selection === 'favorites'" @click="chooseFavorites">{{ copy.favorites }} <span aria-hidden="true">♡</span></button>
       </div>
       <div v-if="selectedBlock.state === 'ready' && selectedBlock.data.length" class="platform-grid">
@@ -142,7 +157,7 @@ function copyTextForError() { return props.copy.error }
                       :key="platform.id" :platform-id="platform.id" :name="platform.name" :logo-url="platform.logo_url"
                       :rating="platform.rating" :rank="platform.featured_position"
                       :guarantee-amount="platform.guarantee_amount_brl" :max-rebate-percent="platform.max_rebate_percent"
-                      :promotion-url="platform.promotion_url" inline-actions />
+                      :promotion-url="platform.promotion_url" inline-actions home />
       </div>
       <div v-else-if="selectedBlock.state !== 'loading'" class="state" role="status">
         <span>{{ selectedBlock.state === 'error' ? copy.error : selection === 'favorites' ? copy.noFavorites : copy.empty }}</span>

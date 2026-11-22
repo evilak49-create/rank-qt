@@ -9,4 +9,7 @@ export const icons = {
   redPackets: 'M4 4h16v16H4zM4 7l8 6 8-6',
   help: 'M4 5h5a3 3 0 0 1 3 3v12a3 3 0 0 0-3-3H4zm16 0h-5a3 3 0 0 0-3 3v12a3 3 0 0 1 3-3h5z',
   protection: 'M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Zm-3-10 2 2 4-4',
+  search: 'M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM15 15l5 5',
+  external: 'M13 4h7v7m0-7-9 9m7 0v6H5V6h6',
+  document: 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h5',
 }

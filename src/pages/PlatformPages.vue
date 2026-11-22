@@ -417,6 +417,7 @@ async function initialize() {
 
   if (protectedScreens.includes(mode) && !props.member) return
   if (mode === 'directory') {
+    search.value = (props.route.query.get('search') ?? '').trim().slice(0, 120)
     const cached = directoryCache.get(props.route.key)
     if (cached) {
       search.value = cached.keyword

@@ -24,6 +24,7 @@ const props = defineProps({
   detailHref: String,
   row: Boolean,
   inlineActions: Boolean,
+  home: Boolean,
 })
 const { locale, t } = useLocale()
 const card = ref(null)
@@ -98,7 +99,7 @@ function details(event) {
 </script>
 
 <template>
-  <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row, 'platform-entry-poster': !$slots.default, 'platform-entry-inline': inlineActions }"
+  <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row, 'platform-entry-poster': !$slots.default, 'platform-entry-inline': inlineActions, 'platform-entry-home': home }"
        :data-top-ranked="inlineActions && podiumRank === 1 ? '' : undefined"
        @pointerenter="hover" @pointerleave="leave"
        @focusout="event => { if (!card?.contains(event.relatedTarget)) close() }"
@@ -133,12 +134,15 @@ function details(event) {
     <div v-if="opened || inlineActions" class="platform-entry-actions">
       <template v-for="action in actionOrder" :key="action">
         <a v-if="action === 'details'" class="primary platform-details" :href="detailHref || '#' + path" @click="details">
+          <svg v-if="home" class="platform-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.document"/></svg>
           {{ inlineActions ? t('品牌详情', 'Detalhes') : t('网站详情', 'Detalhes do site') }}
         </a>
         <a v-else-if="url" class="quiet platform-visit" :href="url" target="_blank" rel="noopener noreferrer">
+          <svg v-if="home" class="platform-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.external"/></svg>
           {{ inlineActions ? t('进入平台', 'Abrir site') : t('打开网站', 'Abrir site') }}
         </a>
         <button v-else class="quiet platform-visit" type="button" disabled>
+          <svg v-if="home" class="platform-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.external"/></svg>
           {{ inlineActions ? t('进入平台', 'Abrir site') : t('打开网站', 'Abrir site') }}
         </button>
       </template>
@@ -352,4 +356,48 @@ function details(event) {
 }
 .platform-entry-inline .platform-entry-actions .platform-details:hover { border-color: #ffca7d; }
 .platform-entry-inline :is(a, button):focus-visible { outline-color: #ffdc89; outline-offset: -3px; }
+
+.platform-entry-home {
+  gap: 3px;
+  padding: 0 clamp(5px, 1.8vw, 9px) 8px;
+  border-radius: 16px;
+  border-color: #8d7557;
+}
+.platform-entry-home[data-top-ranked] {
+  border-color: #ffd492;
+  box-shadow: inset 0 0 8px #ffaf544c, 0 0 0 1px #ffc47166, 0 0 10px #ff9d2a58;
+}
+.platform-entry-home .platform-artwork { height: clamp(36px, 11.5vw, 55px); margin-top: 21px; }
+.platform-entry-home .platform-artwork img { padding: 0 6px; }
+.platform-entry-home .platform-name { min-height: 17px; padding: 0 2px; }
+.platform-entry-home .platform-offers { gap: 3px; }
+.platform-entry-home .platform-guarantee {
+  width: 100%;
+  padding-block: 3px;
+  border-radius: 999px;
+  background: linear-gradient(#38210b, #160e06);
+  box-shadow: inset 0 0 8px #f8a92245, 0 0 5px #f8a92237;
+}
+.platform-entry-home .platform-guarantee strong { overflow-wrap: anywhere; }
+.platform-entry-home .platform-entry-actions :is(a, button) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  padding-inline: 3px;
+  font-size: clamp(10px, 2.9vw, 13px);
+}
+.platform-action-icon {
+  width: clamp(12px, 3.5vw, 17px);
+  height: auto;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (max-width: 360px) {
+  .platform-entry-home:lang(pt-BR) .platform-entry-actions :is(a, button) { flex-direction: column; gap: 2px; }
+}
 </style>
