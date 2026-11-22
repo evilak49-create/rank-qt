@@ -49,7 +49,6 @@ const detailTabs = [
   ['information', '网站信息', 'Informações do site'],
   ['about', '关于网站', 'Sobre o site'],
 ]
-const rebateTiers = computed(() => platform.value?.rebate_tiers ?? [])
 const search = ref('')
 const listPage = ref(1)
 const listLastPage = ref(1)
@@ -88,6 +87,8 @@ const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: '
 const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const scoreNumbers = computed(() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
 const platformScore = computed(() => platform.value?.rating == null ? '—' : scoreNumbers.value.format(platform.value.rating))
+const maxRebate = computed(() => formatRule(platform.value?.max_rebate_percent, '%', ''))
+const rebateWager = computed(() => formatRule(platform.value?.min_rebate_wager_multiplier, '×', ''))
 const platformDescription = computed(() => platform.value?.description?.trim())
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const eligibility = {
@@ -134,8 +135,10 @@ function formatDate(value) {
   return value ? date.value.format(new Date(value)) : t('暂无记录')
 }
 
-function formatRule(value, suffix) {
-  return value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : ruleNumbers.value.format(value) + suffix
+function formatRule(value, suffix, fallback = '—') {
+  return value == null || value === '' || !Number.isFinite(Number(value)) || Number(value) < 0
+    ? fallback
+    : ruleNumbers.value.format(value) + suffix
 }
 
 function moveDetailTab(event, index) {
@@ -689,6 +692,16 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
+      <dl class="surface platform-rebate-summary" :aria-label="t('返利信息', 'Informações de cashback')">
+        <div>
+          <dt>{{ t('最高返利', 'Cashback máximo') }}</dt>
+          <dd>{{ maxRebate || t('未公布', 'Não informado') }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('最低打码要求', 'Requisito mínimo de apostas') }}</dt>
+          <dd>{{ rebateWager || t('未公布', 'Não informado') }}</dd>
+        </div>
+      </dl>
       <div class="surface platform-tabs"
         role="tablist" :aria-label="t('平台详情')">
         <button v-for="([value, label, translation], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
@@ -725,28 +738,9 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet"
           :aria-disabled="reviewsLoading" @click="loadPlatformReviews(reviewPage + 1)">{{ t('加载更多') }}</button>
       </section>
-      <section v-show="tab === 'information'" id="platform-panel-information" class="stack" role="tabpanel"
+      <section v-show="tab === 'information'" id="platform-panel-information" role="tabpanel"
         aria-labelledby="platform-tab-information" tabindex="0">
-        <PlatformIntroduction :platform="platform" />
-        <section class="surface stack platform-content" aria-labelledby="rebate-tier-heading">
-          <h2 id="rebate-tier-heading">{{ t('充值返利规则', 'Regras de cashback por depósito') }}</h2>
-          <table v-if="rebateTiers.length" class="rebate-table" aria-labelledby="rebate-tier-heading">
-            <thead>
-              <tr>
-                <th scope="col">{{ t('最低打码倍数要求', 'Multiplicador mínimo de apostas') }}</th>
-                <th scope="col">{{ t('返利比例', 'Percentual de cashback') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="tier in rebateTiers" :key="tier.wager_multiplier">
-                <td>{{ formatRule(tier.wager_multiplier, '×') }}</td>
-                <td>{{ formatRule(tier.rebate_percent, '%') }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <p v-else class="muted">{{ t('返利暂未开放') }}</p>
-          <p v-if="rebateTiers.length" class="muted">{{ t('按达到的最高打码档位，将该档比例应用于本期全部有效充值。', 'O percentual da maior faixa atingida é aplicado a todos os depósitos válidos do período.') }}</p>
-        </section>
+        <PlatformIntroduction :platform="platform" :max-rebate="maxRebate" />
       </section>
       <section v-show="tab === 'about'" id="platform-panel-about" role="tabpanel"
         aria-labelledby="platform-tab-about" tabindex="0">

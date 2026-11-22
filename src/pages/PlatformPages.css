@@ -41,12 +41,6 @@
 .message { padding: 14px; text-align: center; overflow-wrap: anywhere; }
 .platform-content, .guest-panel { padding: 15px; }
 .platform-content h2, .guest-panel h2 { font-size: 17px; }
-.rebate-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
-.rebate-table th, .rebate-table td { padding: 7px 4px; text-align: start; }
-.rebate-table th { color: var(--muted); font-size: 12px; }
-.rebate-table tbody tr { border-top: 1px solid var(--line); }
-.rebate-table :is(th, td):last-child { text-align: end; }
-.rebate-table td:last-child { color: var(--highlight); font-weight: 750; }
 .platform-hero {
   display: flex;
   align-items: center;
@@ -69,6 +63,11 @@
 .protection-amount { color: var(--highlight); font-size: 16px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .protection-banner p { color: var(--muted); font-size: 11px; }
 .protection-banner .quiet { padding-inline: 7px; white-space: nowrap; font-size: 12px; }
+.platform-rebate-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 10px 12px; }
+.platform-rebate-summary > div { min-width: 0; text-align: center; }
+.platform-rebate-summary > div + div { border-inline-start: 1px solid var(--line); }
+.platform-rebate-summary dt { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.platform-rebate-summary dd { margin: 3px 0 0; color: var(--highlight); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .platform-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 5px; background: var(--surface); }
 .platform-tabs button {
   min-height: 48px;
