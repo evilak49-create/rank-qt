@@ -451,7 +451,7 @@ function details(event) {
   border: 0;
   background: transparent;
 }
-.platform-entry-home .platform-entry-actions :is(a, button)::before {
+.platform-entry-home .platform-entry-actions :is(.platform-visit, .platform-details)::before {
   content: '';
   position: absolute;
   inset: 5px 0;

@@ -694,7 +694,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           </div>
         </div>
         <div class="platform-hero-actions">
-          <button class="quiet" type="button" @click="go(bindPath(platform.id))">{{ t('绑定平台', 'Vincular conta') }}</button>
+          <button class="primary" type="button" @click="go(bindPath(platform.id))">{{ t('绑定平台', 'Vincular conta') }}</button>
           <button class="primary" type="button" @click="go('/cashback?platform=' + platform.id + '&amp;auto=1')">{{ t('一键返利', 'Consultar cashback') }}</button>
         </div>
       </header>
