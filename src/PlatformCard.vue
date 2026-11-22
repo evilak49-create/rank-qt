@@ -382,10 +382,11 @@ function details(event) {
 .platform-entry-inline :is(a, button):focus-visible { outline-color: #ffdc89; outline-offset: -3px; }
 
 .platform-entry-home {
-  min-height: calc((100cqi - 10px) / 2);
+  --card-inline-padding: clamp(5px, 1.8vw, 9px);
+  min-height: calc((100cqi - 10px) / 2 + 47px);
   grid-template-rows: auto minmax(min-content, 1fr) auto;
   gap: 3px;
-  padding: 30px clamp(5px, 1.8vw, 9px) 5px;
+  padding: 30px var(--card-inline-padding) 5px;
   border-radius: 16px;
   border-color: #8d7557;
 }
@@ -403,9 +404,10 @@ function details(event) {
 }
 .platform-entry-home .platform-artwork {
   position: absolute;
-  inset: auto 0 0;
+  grid-area: 1 / 1 / 3 / 2;
+  inset: auto calc(-1 * var(--card-inline-padding)) 0;
   z-index: -2;
-  width: 100%;
+  width: auto;
   height: auto;
   margin: 0;
   aspect-ratio: 1;
