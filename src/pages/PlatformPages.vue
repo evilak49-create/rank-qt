@@ -7,6 +7,7 @@ import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
+import { icons } from '../icons'
 import { formatBrl, formatGuaranteeAmount } from '../money'
 import PlatformCard from '../PlatformCard.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
@@ -49,6 +50,13 @@ const detailTabs = [
   ['description', '平台简介'],
   ['rebate', '返利规则'],
 ]
+const exampleTier = { min: 1000, max: 2999, rate: 357 }
+const rebateTiers = [
+  { min: 1, max: 299, rate: 214 },
+  { min: 300, max: 999, rate: 286 },
+  exampleTier,
+  { min: 3000, max: null, rate: 500 },
+]
 const search = ref('')
 const listPage = ref(1)
 const listLastPage = ref(1)
@@ -86,19 +94,19 @@ const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: '
 const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const scoreNumbers = computed(() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
 const platformScore = computed(() => platform.value?.rating == null ? '—' : scoreNumbers.value.format(platform.value.rating))
-const sampleDepositCents = 10000
+const rebateRates = computed(() => new Intl.NumberFormat(locale.value, {
+  style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2,
+}))
+const rebateAmounts = computed(() => new Intl.NumberFormat(locale.value, {
+  minimumFractionDigits: 2, maximumFractionDigits: 2,
+}))
 const rebateExample = computed(() => {
-  const rate = Number(pointRule.value?.rebate_percent)
-  const pointsWager = Number(pointRule.value?.wager_multiplier)
-  const rebateWager = Number(pointRule.value?.rebate_wager_multiplier)
-  if (!(rate > 0 && pointsWager > 0 && rebateWager > 0)) return null
-
-  // The settlement uses millionths for rates and rounds the wager threshold up to the next cent.
-  const rateMicros = Math.round(rate * 1_000_000)
-  const wagerMicros = Math.round(Math.max(pointsWager, rebateWager) * 1_000_000)
+  const { min: deposit, rate } = exampleTier
+  const payout = 'R$\u00a0' + rebateAmounts.value.format(deposit * rate / 10_000)
   return {
-    wagerCents: Math.ceil(sampleDepositCents * wagerMicros / 1_000_000),
-    rebateCents: Math.floor(sampleDepositCents * rateMicros / 100_000_000),
+    deposit: 'R$\u00a0' + rebateAmounts.value.format(deposit),
+    payout,
+    formula: rebateTierAmount(deposit) + ' × ' + rebateRate(rate) + ' = ' + payout,
   }
 })
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
@@ -146,6 +154,14 @@ function formatDate(value) {
 
 function formatRule(value, suffix) {
   return value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : ruleNumbers.value.format(value) + suffix
+}
+
+function rebateTierAmount(amount) {
+  return 'R$\u00a0' + ruleNumbers.value.format(amount)
+}
+
+function rebateRate(basisPoints) {
+  return rebateRates.value.format(basisPoints / 10_000)
 }
 
 async function loadPointRule(path = platformPath.value, signal = loadRequest.signal) {
@@ -711,7 +727,8 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         <div><dt>{{ t('流水要求', 'Apostas para cashback') }}</dt><dd>{{ formatRule(pointRule?.rebate_wager_multiplier, '×') }}</dd></div>
       </dl>
       <button v-if="pointRuleError" class="quiet" type="button" @click="loadPointRule()">{{ t('规则更新失败，点击重试', 'Falha ao atualizar as regras. Tentar novamente') }}</button>
-      <div class="surface platform-tabs" role="tablist" :aria-label="t('平台详情')">
+      <div class="surface platform-tabs" :class="{ 'rebate-tab-selected': tab === 'rebate' }"
+        role="tablist" :aria-label="t('平台详情')">
         <button v-for="([value, label], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
           type="button" role="tab" :aria-selected="tab === value" :aria-controls="'platform-panel-' + value"
           :tabindex="tab === value ? 0 : -1" @click="tab = value" @keydown="moveDetailTab($event, index)">{{ t(label) }}</button>
@@ -779,35 +796,53 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           </dl>
         </section>
       </section>
-      <section v-show="tab === 'rebate'" id="platform-panel-rebate" class="stack" role="tabpanel"
-        aria-labelledby="platform-tab-rebate" tabindex="0" :aria-busy="pointRuleLoading">
-        <section class="surface stack platform-content">
-          <h2 id="rebate-tier-heading">{{ t('充值返利档位', 'Faixas de cashback por depósito') }}</h2>
-          <table class="rebate-table" aria-labelledby="rebate-tier-heading">
-            <thead>
-              <tr><th scope="col">{{ t('充值金额', 'Valor do depósito') }}</th><th scope="col">{{ t('返利比例') }}</th><th scope="col">{{ t('流水要求', 'Apostas para cashback') }}</th></tr>
-            </thead>
-            <tbody>
-              <tr><td class="placeholder" colspan="3">{{ t('充值分档为预留数据。', 'As faixas de depósito ainda não foram disponibilizadas.') }}</td></tr>
-            </tbody>
-          </table>
-          <p v-if="pointRule" class="muted">
-            {{ t('当前统一返利比例', 'Taxa de cashback vigente') }} <strong class="score">{{ formatRule(pointRule.rebate_percent, '%') }}</strong>
-          </p>
-          <p v-else-if="!pointRuleLoading && !pointRuleError" class="muted">{{ t('暂无已发布的返利规则。', 'Nenhuma regra de cashback publicada.') }}</p>
+      <section v-show="tab === 'rebate'" id="platform-panel-rebate" class="rebate-panel" role="tabpanel"
+        aria-labelledby="platform-tab-rebate" tabindex="0">
+        <section class="rebate-rules" aria-labelledby="rebate-tier-heading">
+          <header class="rebate-heading">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.shop"/></svg>
+            <div>
+              <h2 id="rebate-tier-heading">{{ t('充值返利规则', 'Regras de cashback por depósito') }}</h2>
+              <p>{{ t('返利根据充值金额计算，充值越多，返利比例越高。', 'O cashback é calculado sobre o valor do depósito. Quanto maior o depósito, maior o percentual de cashback.') }}</p>
+            </div>
+          </header>
+          <div class="rebate-table-frame">
+            <table class="rebate-table" aria-labelledby="rebate-tier-heading">
+              <thead>
+                <tr>
+                  <th scope="col">{{ t('充值金额', 'Valor do depósito') }}</th>
+                  <th scope="col">{{ t('返利比例', 'Percentual de cashback') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="{ min, max, rate } in rebateTiers" :key="min">
+                  <td>{{ rebateTierAmount(min) }} {{ max === null ? t('及以上', 'ou mais') : '– ' + rebateTierAmount(max) }}</td>
+                  <td>{{ rebateRate(rate) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
-        <section class="surface stack platform-content">
-          <h2>{{ t('计算示例', 'Exemplo de cálculo') }}</h2>
-          <template v-if="rebateExample">
-            <dl class="platform-data">
-              <div><dt>{{ t('本次待兑换存款') }}</dt><dd>{{ formatBrl(sampleDepositCents) }}</dd></div>
-              <div><dt>{{ t('最低有效投注额', 'Apostas válidas mínimas') }}</dt><dd>{{ formatBrl(rebateExample.wagerCents) }}</dd></div>
-              <div><dt>{{ t('预计返利') }}</dt><dd class="score">{{ formatBrl(rebateExample.rebateCents) }}</dd></div>
-            </dl>
-            <p class="muted">{{ t('达到积分和返利所要求的投注额后，按待兑换存款乘以返利比例计算。示例未计入历史结转，到账金额以实际结算为准。', 'Após atingir os requisitos de aposta para pontos e cashback, multiplique o depósito elegível pela taxa de cashback. O exemplo desconsidera saldos residuais. O valor final depende do resgate.') }}</p>
-          </template>
-          <p v-else-if="pointRule && Number(pointRule.rebate_percent) === 0" class="muted">{{ t('当前返利比例为 0%，暂无可计算的返利。', 'A taxa vigente é de 0%. Não há cashback a calcular.') }}</p>
-          <p v-else-if="!pointRuleLoading" class="placeholder">{{ t('返利参数暂不可用，计算示例为预留数据。', 'O exemplo aguarda os parâmetros de cashback.') }}</p>
+        <section class="rebate-example" aria-labelledby="rebate-example-heading">
+          <header class="rebate-heading">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 7h8M8 12h1m6 0h1m-8 3h1m6 0h1m-8 3h1m6 0h1"/></svg>
+            <h2 id="rebate-example-heading">{{ t('计算示例', 'Exemplo de cálculo') }}</h2>
+          </header>
+          <dl class="rebate-example-flow">
+            <div class="rebate-example-amount">
+              <dt>{{ t('充值金额', 'Valor do depósito') }}</dt>
+              <dd>{{ rebateExample.deposit }}</dd>
+              <svg class="rebate-example-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h17m-7-7 7 7-7 7"/></svg>
+            </div>
+            <div class="rebate-example-amount rebate-example-result">
+              <dt>{{ t('可获得返利', 'Cashback estimado') }}</dt>
+              <dd>{{ rebateExample.payout }}</dd>
+            </div>
+          </dl>
+          <div class="rebate-example-note">
+            <p>{{ t('示例：', 'Exemplo: ') }}{{ rebateExample.formula }}</p>
+            <p>{{ t('实际返利以平台结算为准。', 'O cashback final depende da liquidação da plataforma.') }}</p>
+          </div>
         </section>
       </section>
       <footer class="platform-actions detail-actions">
