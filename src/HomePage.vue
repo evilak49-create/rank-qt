@@ -7,10 +7,12 @@ import brandLogo from './assets/pingji-logo.svg'
 import PlatformCard from './PlatformCard.vue'
 import { icons } from './icons'
 import { go } from './navigation'
+import { useLocale } from './locale.js'
 import './home.css'
 
 const props = defineProps({ route: Object, member: Object, language: String, copy: Object })
 const emit = defineEmits(['language'])
+const { t } = useLocale()
 const blocks = reactive({
   banners: { path: '/content/banners', data: [], state: 'loading' },
   notice: { path: '/content/announcements/latest', data: null, state: 'loading' },
@@ -88,12 +90,16 @@ function copyTextForError() { return props.copy.error }
         <img :src="brandLogo" alt="" width="36" height="36">
         <span>返利网</span>
       </a>
-      <button type="button" class="language-switch" aria-haspopup="dialog" :aria-label="copy.locale + ' · ' + currentLanguage.name"
-              @click="localeSheet.showModal()">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/></svg>
-        {{ currentLanguage.name }}
-        <svg class="language-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
+      <div class="header-actions" :class="{ 'header-actions-guest': !member }">
+        <button v-if="!member" class="quiet header-auth" type="button" @click="go('/login')">{{ t('登录') }}</button>
+        <button v-if="!member" class="primary header-auth" type="button" @click="go('/register')">{{ t('注册') }}</button>
+        <button type="button" class="language-switch" aria-haspopup="dialog" :aria-label="copy.locale + ' · ' + currentLanguage.name"
+                @click="localeSheet.showModal()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/></svg>
+          <span class="header-language-name">{{ currentLanguage.name }}</span>
+          <svg class="language-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 

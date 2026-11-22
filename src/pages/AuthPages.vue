@@ -12,7 +12,7 @@ const validNewPassword = new RegExp('^(?:' + newPasswordPattern + ')$', 'u')
 const brazilianMobile = /^(?:1[1-9]|2[12478]|3[1-57-8]|4[1-9]|5[1345]|6[1-9]|7[134579]|8[1-9]|9[1-9])9[0-9]{8}$/
 
 const props = defineProps({ route: Object, member: Object, draftPhone: String })
-const emit = defineEmits(['signed-in', 'reset', 'phone'])
+const emit = defineEmits(['signed-in', 'reset', 'phone', 'change'])
 const type = computed(() => props.route.path)
 const signingIn = computed(() => type.value === '/login')
 const registering = computed(() => type.value === '/register')
@@ -92,7 +92,7 @@ function showError(failure) {
 }
 
 function change(path) {
-  go(path + '?' + new URLSearchParams({ next: destination.value }), { replace: true })
+  emit('change', path)
 }
 
 async function sms() {

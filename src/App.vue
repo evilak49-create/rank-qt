@@ -1,6 +1,6 @@
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { api } from './api'
 import { provideLocale } from './locale.js'
 import HomePage from './HomePage.vue'
@@ -76,15 +76,42 @@ try {
 } catch {}
 
 const copy = computed(() => homeCopy[language.value])
-const configuration = computed(() => pages.find(([pattern]) => pattern.test(route.value.path)))
-const page = computed(() => configuration.value?.[2])
-const requiresSession = computed(() => configuration.value?.[3] === true
-  || (route.value.path === '/' && route.value.query.get('tab') === 'favorites'))
 const auth = computed(() => Object.hasOwn(authTitles, route.value.path))
-const title = computed(() => t(authTitles[route.value.path] || (route.value.path === '/support' ? copy.value.support : configuration.value?.[1]) || '页面未找到'))
-const navActive = computed(() => navbar[route.value.path])
+const authDialog = ref(null)
+const homeRoute = { path: '/', fullPath: '/', query: new URLSearchParams(), params: {}, key: 'auth-home' }
+const lastView = shallowRef(homeRoute)
+const viewRoute = computed(() => {
+  if (!auth.value) return route.value
+  const previous = lastView.value
+  return !member.value && requiresMember(previous) ? homeRoute : previous
+})
+const viewConfiguration = computed(() => pages.find(([pattern]) => pattern.test(viewRoute.value.path)))
+const page = computed(() => viewConfiguration.value?.[2])
+const requiresSession = computed(() => requiresMember(route.value))
+const title = computed(() => t(authTitles[route.value.path] || pageTitle(viewRoute.value, viewConfiguration.value)))
+const viewTitle = computed(() => t(pageTitle(viewRoute.value, viewConfiguration.value)))
+const navActive = computed(() => navbar[viewRoute.value.path])
 const ready = computed(() => !requiresSession.value || (sessionState.value === 'ready' && Boolean(member.value)))
-const cachedView = computed(() => page.value === ContentPages && !route.value.params.id)
+const viewReady = computed(() => auth.value || ready.value)
+const cachedView = computed(() => page.value === ContentPages && !viewRoute.value.params.id)
+function requiresMember(value) {
+  return pages.some(([pattern, , , protectedPage]) => protectedPage === true && pattern.test(value.path))
+    || (value.path === '/' && value.query.get('tab') === 'favorites')
+}
+function pageTitle(value, entry) {
+  return value.path === '/support' ? copy.value.support : entry?.[1] || '页面未找到'
+}
+function switchAuth(path) {
+  if (path !== route.value.path) go(path + (route.value.query.size ? '?' + route.value.query : ''), { replace: true })
+}
+watch([route, ready], ([current, available]) => {
+  if (!auth.value && available) lastView.value = current
+}, { flush: 'sync', immediate: true })
+watch([auth, authDialog], ([open, dialog]) => {
+  if (!dialog || dialog.open === open) return
+  if (open) dialog.showModal()
+  else dialog.close()
+}, { flush: 'post' })
 const loginPath = (next = route.value.fullPath) => '/login?' + new URLSearchParams({ next })
 watchNotice(sessionError, '账户状态提醒', 'error')
 watchNotice(accountNotice, '密码已更新', 'success')
@@ -108,7 +135,7 @@ watch(route, async (current, previous) => {
   if (current.path === '/member' && previous && member.value) refreshMember()
   if (route.value.path !== '/login') accountNotice.value = ''
   await nextTick()
-  restoreScroll()
+  if (!auth.value) restoreScroll()
 }, { immediate: true })
 
 async function refreshMember() {
@@ -173,7 +200,7 @@ function fallback() {
   if (path.startsWith('/red-packets/')) return '/red-packets'
   if (path.startsWith('/help/')) return '/help'
   if (path.startsWith('/announcements/')) return '/announcements'
-  if (configuration.value?.[3]) return '/member'
+  if (requiresSession.value) return '/member'
   return '/'
 }
 
@@ -185,35 +212,33 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
 </script>
 
 <template>
-  <HomePage v-if="route.path === '/' && ready" :route="route" :language="language" :copy="copy" :member="member"
+  <HomePage v-if="viewRoute.path === '/' && viewReady" :route="viewRoute" :language="language" :copy="copy" :member="member"
             @language="language = $event" />
   <template v-else>
-    <header v-if="route.path !== '/support'" class="page-topbar">
+    <header v-if="viewRoute.path !== '/support'" class="page-topbar">
       <div class="wrap page-header">
         <button class="page-back" :aria-label="t('返回')" @click="back(fallback())">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>
         </button>
-        <h1>{{ route.path === '/' ? copy.favorites : title }}</h1>
+        <h1>{{ viewRoute.path === '/' ? copy.favorites : viewTitle }}</h1>
         <a class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
       </div>
     </header>
-    <main class="wrap screen" :class="{ 'with-navigation': navActive, 'support-screen': route.path === '/support' }">
-      <template v-if="!ready">
+    <main class="wrap screen" :class="{ 'with-navigation': navActive, 'support-screen': viewRoute.path === '/support' }">
+      <template v-if="!viewReady">
         <div v-if="sessionState === 'error'" class="state"><button class="text-button" @click="refreshMember">{{ t('重试') }}</button></div>
       </template>
       <template v-else>
-        <AuthPages v-if="auth" :key="route.path" :route="route" :member="member" :draft-phone="authPhone"
-                   @phone="authPhone = $event" @signed-in="signedIn" @reset="passwordReset" />
         <KeepAlive>
-          <SupportChat v-if="route.path === '/support'" :key="language" :language="language" :topic="route.query.get('topic')"
+          <SupportChat v-if="viewRoute.path === '/support'" :key="language" :language="language" :topic="viewRoute.query.get('topic')"
                        @follow="go" @account="go($event || '/member')" @back="back('/')" />
         </KeepAlive>
         <KeepAlive :max="8">
-          <component :is="page" v-if="cachedView" :key="route.fullPath" :route="route" :language="language" />
+          <component :is="page" v-if="cachedView" :key="viewRoute.fullPath" :route="viewRoute" :language="language" />
         </KeepAlive>
-        <component :is="page" v-if="page && !cachedView" :key="route.path" :route="route" :member="member" :language="language"
+        <component :is="page" v-if="page && !cachedView" :key="viewRoute.path" :route="viewRoute" :member="member" :language="language"
                    @logout="logout" @refresh-member="refreshMember" @credited="refreshMember" />
-        <div v-else-if="!page && !auth && route.path !== '/support'" class="state">
+        <div v-else-if="!page && viewRoute.path !== '/support'" class="state">
           <p>{{ t('这个页面不存在。') }}</p><button class="text-button" @click="go('/')">{{ t('返回首页') }}</button>
         </div>
       </template>
@@ -226,6 +251,22 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
       {{ copy[icon] }}
     </button>
   </nav>
+  <dialog ref="authDialog" class="auth-sheet" :aria-label="title" @cancel.prevent="back('/')" @click.self="back('/')">
+    <div class="auth-sheet-panel">
+      <header class="auth-sheet-heading">
+        <div class="auth-sheet-tabs" role="group" :aria-label="t('会员登录')">
+          <button v-for="[path, label] in [['/login', '登录'], ['/register', '注册']]" :key="path"
+                  type="button" :aria-pressed="route.path === path" @click="switchAuth(path)">{{ t(label) }}</button>
+        </div>
+        <button class="auth-sheet-close" type="button" :aria-label="t('关闭')" autofocus @click="back('/')">×</button>
+      </header>
+      <div class="auth-sheet-body">
+        <h2 v-if="route.path === '/reset-password'" class="auth-sheet-title">{{ title }}</h2>
+        <AuthPages v-if="auth" :key="route.path" :route="route" :member="member" :draft-phone="authPhone"
+                   @phone="authPhone = $event" @signed-in="signedIn" @reset="passwordReset" @change="switchAuth" />
+      </div>
+    </div>
+  </dialog>
   <DataLoading :language="language" />
   <FeedbackDialog :language="language" />
 </template>
