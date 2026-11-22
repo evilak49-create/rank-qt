@@ -374,9 +374,10 @@ function details(event) {
 .platform-entry-home .platform-guarantee {
   width: 100%;
   padding-block: 3px;
+  border-color: transparent;
   border-radius: 999px;
   background: linear-gradient(#38210b, #160e06);
-  box-shadow: inset 0 0 8px #f8a92245, 0 0 5px #f8a92237;
+  box-shadow: none;
 }
 .platform-entry-home .platform-guarantee strong { overflow-wrap: anywhere; }
 .platform-entry-home .platform-entry-actions :is(a, button) {
