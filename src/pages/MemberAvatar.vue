@@ -2,17 +2,11 @@
 import { useLocale } from '../locale.js'
 import { computed, ref, watch } from 'vue'
 import { showNotice } from '../feedback'
+import { memberAvatars as options } from './memberAvatars.js'
 
 const { t } = useLocale()
 
 const props = defineProps({ accountId: [Number, String] })
-const avatars = import.meta.glob('../assets/avatars/*.jpg', {
-  eager: true, import: 'default', query: '?url',
-})
-const options = Object.entries(avatars).sort().map(([path, url]) => ({
-  id: path.split('/').pop().slice(0, -4),
-  url,
-}))
 const storageKey = computed(() => props.accountId == null ? '' : 'cash-club:avatar:' + props.accountId)
 const current = ref(null)
 const selected = ref(null)

@@ -11,6 +11,7 @@ import { icons } from '../icons'
 import { formatBrl, formatGuaranteeAmount } from '../money'
 import PlatformCard from '../PlatformCard.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
+import { avatarForReview } from './memberAvatars.js'
 import PlatformIntroduction from './PlatformIntroduction.vue'
 
 const { locale, t } = useLocale()
@@ -101,11 +102,7 @@ const rebateAmounts = computed(() => new Intl.NumberFormat(locale.value, {
 const rebateExample = computed(() => {
   const { min: deposit, rate } = exampleTier
   const payout = 'R$\u00a0' + rebateAmounts.value.format(deposit * rate / 10_000)
-  return {
-    deposit: 'R$\u00a0' + rebateAmounts.value.format(deposit),
-    payout,
-    formula: rebateTierAmount(deposit) + ' × ' + rebateRate(rate) + ' = ' + payout,
-  }
+  return rebateTierAmount(deposit) + ' × ' + rebateRate(rate) + ' = ' + payout
 })
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const eligibility = {
@@ -700,7 +697,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
-      <div class="surface platform-tabs" :class="{ 'rebate-tab-selected': tab === 'rebate' }"
+      <div class="surface platform-tabs"
         role="tablist" :aria-label="t('平台详情')">
         <button v-for="([value, label], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
           type="button" role="tab" :aria-selected="tab === value" :aria-controls="'platform-panel-' + value"
@@ -709,16 +706,13 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
       <section v-show="tab === 'reviews'" id="platform-panel-reviews" class="stack" role="tabpanel"
         aria-labelledby="platform-tab-reviews" tabindex="0" :aria-busy="reviewsLoading">
         <div class="surface review-summary">
-          <div>
-            <h2>{{ t('平台评分', 'Nota da plataforma') }}</h2>
-            <p class="score review-score"><strong class="big-score">{{ platformScore }}</strong> <span>/ 5</span></p>
-            <p class="muted">{{ platform.review_count }} {{ t('条评价') }}</p>
-          </div>
+          <h2>{{ t('平台评分', 'Nota da plataforma') }}</h2>
+          <p class="review-score"><span class="score"><strong class="big-score">{{ platformScore }}</strong> <span>/ 5</span></span> <span class="muted">{{ platform.review_count }} {{ t('条评价') }}</span></p>
           <button class="quiet" type="button" @click="writeReview">{{ t('写评价') }}</button>
         </div>
         <article v-for="review in reviews" :key="review.id" class="surface review-item">
           <header class="review-header">
-            <span class="review-avatar" aria-hidden="true">{{ Array.from(review.display_name || '?')[0] }}</span>
+            <img class="review-avatar" :src="avatarForReview(review.id)" alt="" width="35" height="35" loading="lazy">
             <div class="review-meta">
               <strong>{{ review.display_name }}</strong>
               <time v-if="review.published_at" :datetime="review.published_at" class="muted">{{ formatDate(review.published_at) }}</time>
@@ -744,53 +738,29 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         <PlatformIntroduction :platform="platform" :guarantee-amount="guaranteeAmount"
           :max-rebate="platform.max_rebate_percent == null ? '' : formatRule(platform.max_rebate_percent, '%')" />
       </section>
-      <section v-show="tab === 'rebate'" id="platform-panel-rebate" class="rebate-panel" role="tabpanel"
+      <section v-show="tab === 'rebate'" id="platform-panel-rebate" class="stack" role="tabpanel"
         aria-labelledby="platform-tab-rebate" tabindex="0">
-        <section class="rebate-rules" aria-labelledby="rebate-tier-heading">
-          <header class="rebate-heading">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.shop"/></svg>
-            <div>
-              <h2 id="rebate-tier-heading">{{ t('充值返利规则', 'Regras de cashback por depósito') }}</h2>
-              <p>{{ t('返利根据充值金额计算，充值越多，返利比例越高。', 'O cashback é calculado sobre o valor do depósito. Quanto maior o depósito, maior o percentual de cashback.') }}</p>
-            </div>
-          </header>
-          <div class="rebate-table-frame">
-            <table class="rebate-table" aria-labelledby="rebate-tier-heading">
-              <thead>
-                <tr>
-                  <th scope="col">{{ t('充值金额', 'Valor do depósito') }}</th>
-                  <th scope="col">{{ t('返利比例', 'Percentual de cashback') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="{ min, max, rate } in rebateTiers" :key="min">
-                  <td>{{ rebateTierAmount(min) }} {{ max === null ? t('及以上', 'ou mais') : '– ' + rebateTierAmount(max) }}</td>
-                  <td>{{ rebateRate(rate) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <section class="surface stack platform-content" aria-labelledby="rebate-tier-heading">
+          <h2 id="rebate-tier-heading">{{ t('充值返利规则', 'Regras de cashback por depósito') }}</h2>
+          <table class="rebate-table" aria-labelledby="rebate-tier-heading">
+            <thead>
+              <tr>
+                <th scope="col">{{ t('充值金额', 'Valor do depósito') }}</th>
+                <th scope="col">{{ t('返利比例', 'Percentual de cashback') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="{ min, max, rate } in rebateTiers" :key="min">
+                <td>{{ rebateTierAmount(min) }} {{ max === null ? t('及以上', 'ou mais') : '– ' + rebateTierAmount(max) }}</td>
+                <td>{{ rebateRate(rate) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </section>
-        <section class="rebate-example" aria-labelledby="rebate-example-heading">
-          <header class="rebate-heading">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 7h8M8 12h1m6 0h1m-8 3h1m6 0h1m-8 3h1m6 0h1"/></svg>
-            <h2 id="rebate-example-heading">{{ t('计算示例', 'Exemplo de cálculo') }}</h2>
-          </header>
-          <dl class="rebate-example-flow">
-            <div class="rebate-example-amount">
-              <dt>{{ t('充值金额', 'Valor do depósito') }}</dt>
-              <dd>{{ rebateExample.deposit }}</dd>
-              <svg class="rebate-example-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h17m-7-7 7 7-7 7"/></svg>
-            </div>
-            <div class="rebate-example-amount rebate-example-result">
-              <dt>{{ t('可获得返利', 'Cashback estimado') }}</dt>
-              <dd>{{ rebateExample.payout }}</dd>
-            </div>
-          </dl>
-          <div class="rebate-example-note">
-            <p>{{ t('示例：', 'Exemplo: ') }}{{ rebateExample.formula }}</p>
-            <p>{{ t('实际返利以平台结算为准。', 'O cashback final depende da liquidação da plataforma.') }}</p>
-          </div>
+        <section class="surface stack platform-content" aria-labelledby="rebate-example-heading">
+          <h2 id="rebate-example-heading">{{ t('计算示例', 'Exemplo de cálculo') }}</h2>
+          <p class="score">{{ rebateExample }}</p>
+          <p class="muted">{{ t('实际返利以平台结算为准。', 'O cashback final depende da liquidação da plataforma.') }}</p>
         </section>
       </section>
       <footer class="platform-actions detail-actions">
