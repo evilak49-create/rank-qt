@@ -5,12 +5,10 @@ import { formatBrl } from '../money.js'
 
 const props = defineProps({
   platform: { type: Object, required: true },
-  guaranteeAmount: { type: String, required: true },
-  maxRebate: { type: String, required: true },
 })
 
-const { t } = useLocale()
-const description = computed(() => props.platform.description?.trim())
+const { locale, t } = useLocale()
+const percent = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const supportUrl = computed(() => {
   try {
     const url = new URL(props.platform.support_url)
@@ -20,47 +18,42 @@ const supportUrl = computed(() => {
   }
 })
 
-function formatMinimum(amount) {
+function formatAmount(amount) {
   return amount == null || amount === '' ? '' : formatBrl(Math.round(Number(amount) * 100))
 }
 
+const maxRebate = computed(() => {
+  const value = props.platform.max_rebate_percent
+  return value == null || value === '' ? '' : percent.value.format(value) + '%'
+})
+
 const information = computed(() => [
-  ['最低存款', 'Depósito mínimo', formatMinimum(props.platform.minimum_deposit_brl)],
-  ['最低提现', 'Saque mínimo', formatMinimum(props.platform.minimum_withdrawal_brl)],
-  ['提现时间', 'Prazo de saque', props.platform.withdrawal_time?.trim()],
-  ['担保金额', 'Valor da garantia', props.guaranteeAmount],
+  ['最低存款', 'Depósito mínimo', formatAmount(props.platform.minimum_deposit_brl)],
+  ['最低取款', 'Saque mínimo', formatAmount(props.platform.minimum_withdrawal_brl)],
+  ['提现速度', 'Prazo de saque', props.platform.withdrawal_time?.trim()],
+  ['保障状态', 'Status da proteção', t('保障中', 'Proteção ativa')],
+  ['担保金额', 'Valor da garantia', formatAmount(props.platform.guarantee_amount_brl)],
+  ['最高返利', 'Cashback máximo', maxRebate.value],
 ])
 </script>
 
 <template>
-  <div class="stack">
-    <section class="surface stack platform-content" aria-labelledby="platform-intro-facts">
-      <h2 id="platform-intro-facts">{{ t('平台信息', 'Informações da plataforma') }}</h2>
-      <dl class="intro-information">
-        <div v-for="[label, translation, value] in information" :key="label">
-          <dt>{{ t(label, translation) }}</dt>
-          <dd :class="{ 'intro-unavailable': !value }">{{ value || t('未公布', 'Não informado') }}</dd>
-        </div>
-        <div>
-          <dt>{{ t('在线客服', 'Atendimento online') }}</dt>
-          <dd v-if="supportUrl">
-            <a :href="supportUrl" target="_blank" rel="noopener noreferrer">{{ t('联系平台客服', 'Falar com o suporte') }} <span aria-hidden="true">↗</span></a>
-          </dd>
-          <dd v-else class="intro-unavailable">{{ t('未公布', 'Não informado') }}</dd>
-        </div>
-        <div v-if="maxRebate && maxRebate !== '—'">
-          <dt>{{ t('平台标注最高返利', 'Cashback máximo anunciado') }}</dt>
-          <dd>{{ maxRebate }}</dd>
-        </div>
-      </dl>
-    </section>
-
-    <section class="surface stack platform-content" aria-labelledby="platform-intro-description">
-      <h2 id="platform-intro-description">{{ t('平台详细介绍', 'Sobre a plataforma') }}</h2>
-      <p v-if="description" class="preserved">{{ description }}</p>
-      <p v-else class="muted">{{ t('暂无平台简介。', 'Descrição indisponível') }}</p>
-    </section>
-  </div>
+  <section class="surface stack platform-content" aria-labelledby="platform-intro-facts">
+    <h2 id="platform-intro-facts">{{ t('网站信息', 'Informações do site') }}</h2>
+    <dl class="intro-information">
+      <div v-for="[label, translation, value] in information" :key="label">
+        <dt>{{ t(label, translation) }}</dt>
+        <dd :class="{ 'intro-unavailable': !value }">{{ value || t('未公布', 'Não informado') }}</dd>
+      </div>
+      <div>
+        <dt>{{ t('在线客服', 'Atendimento online') }}</dt>
+        <dd v-if="supportUrl">
+          <a :href="supportUrl" target="_blank" rel="noopener noreferrer">{{ t('联系平台客服', 'Falar com o suporte') }} <span aria-hidden="true">↗</span></a>
+        </dd>
+        <dd v-else class="intro-unavailable">{{ t('未公布', 'Não informado') }}</dd>
+      </div>
+    </dl>
+  </section>
 </template>
 
 <style scoped>

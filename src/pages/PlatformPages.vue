@@ -45,16 +45,9 @@ const favorite = ref(false)
 const favoriteLoading = ref(false)
 const tab = ref('reviews')
 const detailTabs = [
-  ['reviews', '用户评价'],
-  ['description', '平台简介'],
-  ['rebate', '返利规则'],
-]
-const exampleTier = { min: 1000, max: 2999, rate: 357 }
-const rebateTiers = [
-  { min: 1, max: 299, rate: 214 },
-  { min: 300, max: 999, rate: 286 },
-  exampleTier,
-  { min: 3000, max: null, rate: 500 },
+  ['reviews', '网站评价', 'Avaliações do site'],
+  ['information', '网站信息', 'Informações do site'],
+  ['about', '关于网站', 'Sobre o site'],
 ]
 const search = ref('')
 const listPage = ref(1)
@@ -91,20 +84,9 @@ let disposed = false
 const ticker = window.setInterval(() => { now.value = Date.now() }, 1000)
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
-const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const scoreNumbers = computed(() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
 const platformScore = computed(() => platform.value?.rating == null ? '—' : scoreNumbers.value.format(platform.value.rating))
-const rebateRates = computed(() => new Intl.NumberFormat(locale.value, {
-  style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2,
-}))
-const rebateAmounts = computed(() => new Intl.NumberFormat(locale.value, {
-  minimumFractionDigits: 2, maximumFractionDigits: 2,
-}))
-const rebateExample = computed(() => {
-  const { min: deposit, rate } = exampleTier
-  const payout = 'R$\u00a0' + rebateAmounts.value.format(deposit * rate / 10_000)
-  return rebateTierAmount(deposit) + ' × ' + rebateRate(rate) + ' = ' + payout
-})
+const platformDescription = computed(() => platform.value?.description?.trim())
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const eligibility = {
   eligible: '已达到投注要求',
@@ -147,18 +129,6 @@ const promotion = computed(() => {
 
 function formatDate(value) {
   return value ? date.value.format(new Date(value)) : t('暂无记录')
-}
-
-function formatRule(value, suffix) {
-  return value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : ruleNumbers.value.format(value) + suffix
-}
-
-function rebateTierAmount(amount) {
-  return 'R$\u00a0' + ruleNumbers.value.format(amount)
-}
-
-function rebateRate(basisPoints) {
-  return rebateRates.value.format(basisPoints / 10_000)
 }
 
 function moveDetailTab(event, index) {
@@ -714,9 +684,9 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
       </section>
       <div class="surface platform-tabs"
         role="tablist" :aria-label="t('平台详情')">
-        <button v-for="([value, label], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
+        <button v-for="([value, label, translation], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
           type="button" role="tab" :aria-selected="tab === value" :aria-controls="'platform-panel-' + value"
-          :tabindex="tab === value ? 0 : -1" @click="tab = value" @keydown="moveDetailTab($event, index)">{{ t(label) }}</button>
+          :tabindex="tab === value ? 0 : -1" @click="tab = value" @keydown="moveDetailTab($event, index)">{{ t(label, translation) }}</button>
       </div>
       <section v-show="tab === 'reviews'" id="platform-panel-reviews" class="stack" role="tabpanel"
         aria-labelledby="platform-tab-reviews" tabindex="0" :aria-busy="reviewsLoading">
@@ -748,35 +718,17 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet"
           :aria-disabled="reviewsLoading" @click="loadPlatformReviews(reviewPage + 1)">{{ t('加载更多') }}</button>
       </section>
-      <section v-show="tab === 'description'" id="platform-panel-description" role="tabpanel"
-        aria-labelledby="platform-tab-description" tabindex="0">
-        <PlatformIntroduction :platform="platform" :guarantee-amount="guaranteeAmount"
-          :max-rebate="platform.max_rebate_percent == null ? '' : formatRule(platform.max_rebate_percent, '%')" />
+      <section v-show="tab === 'information'" id="platform-panel-information" role="tabpanel"
+        aria-labelledby="platform-tab-information" tabindex="0">
+        <PlatformIntroduction :platform="platform" />
       </section>
-      <section v-show="tab === 'rebate'" id="platform-panel-rebate" class="stack" role="tabpanel"
-        aria-labelledby="platform-tab-rebate" tabindex="0">
-        <section class="surface stack platform-content" aria-labelledby="rebate-tier-heading">
-          <h2 id="rebate-tier-heading">{{ t('充值返利规则', 'Regras de cashback por depósito') }}</h2>
-          <table class="rebate-table" aria-labelledby="rebate-tier-heading">
-            <thead>
-              <tr>
-                <th scope="col">{{ t('充值金额', 'Valor do depósito') }}</th>
-                <th scope="col">{{ t('返利比例', 'Percentual de cashback') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="{ min, max, rate } in rebateTiers" :key="min">
-                <td>{{ rebateTierAmount(min) }} {{ max === null ? t('及以上', 'ou mais') : '– ' + rebateTierAmount(max) }}</td>
-                <td>{{ rebateRate(rate) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-        <section class="surface stack platform-content" aria-labelledby="rebate-example-heading">
-          <h2 id="rebate-example-heading">{{ t('计算示例', 'Exemplo de cálculo') }}</h2>
-          <p class="score">{{ rebateExample }}</p>
-          <p class="muted">{{ t('实际返利以平台结算为准。', 'O cashback final depende da liquidação da plataforma.') }}</p>
-        </section>
+      <section v-show="tab === 'about'" id="platform-panel-about" role="tabpanel"
+        aria-labelledby="platform-tab-about" tabindex="0">
+        <article class="surface stack platform-content" aria-labelledby="platform-about-heading">
+          <h2 id="platform-about-heading">{{ t('平台详细介绍', 'Sobre a plataforma') }}</h2>
+          <p v-if="platformDescription" class="preserved">{{ platformDescription }}</p>
+          <p v-else class="muted">{{ t('暂无平台简介。', 'Descrição indisponível') }}</p>
+        </article>
       </section>
       <footer class="platform-actions detail-actions">
         <button class="quiet" type="button" :aria-pressed="favorite" :disabled="busy || favoriteLoading" @click="toggleFavorite">

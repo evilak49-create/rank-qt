@@ -87,12 +87,6 @@
 .review-meta time { font-size: 11px; }
 .review-stars { white-space: nowrap; }
 .preserved { white-space: pre-wrap; overflow-wrap: anywhere; }
-.rebate-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
-.rebate-table th, .rebate-table td { padding: 7px 4px; text-align: start; }
-.rebate-table th { color: var(--muted); font-size: 12px; }
-.rebate-table tbody tr { border-top: 1px solid var(--line); }
-.rebate-table :is(th, td):last-child { text-align: end; }
-.rebate-table td:last-child { color: var(--highlight); font-weight: 750; }
 .with-platform-actions { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
 .platform-actions {
   position: fixed;
