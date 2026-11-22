@@ -33,7 +33,31 @@ const menuId = Symbol()
 const discoveredUrl = ref()
 const opened = computed(() => activeMenu.value?.id === menuId)
 const path = computed(() => '/platforms/' + props.platformId)
-const artwork = computed(() => imageUrl(props.logoUrl))
+const artwork = ref('')
+const artworkLoaded = ref(false)
+const originalArtwork = computed(() => imageUrl(props.logoUrl))
+watch(originalArtwork, (url) => {
+  artworkLoaded.value = false
+  artwork.value = url
+}, { immediate: true })
+
+function uploadedImageFallback(url) {
+  const image = new URL(url)
+  const upstream = import.meta.env.VITE_IMAGE_ORIGIN || 'https://ht.1234.fund'
+  const origin = new URL(upstream).origin
+  if (image.origin !== window.location.origin && image.origin !== origin) return ''
+  if (!/^\/uploads\/images\/[\da-f-]+\.(jpg|png|webp)$/i.test(image.pathname)) return ''
+
+  // The hosted image route returns 200 with a trailing slash.
+  return new URL(image.pathname + '/', import.meta.env.DEV ? image.origin : origin).href
+}
+
+function retryArtwork() {
+  artworkLoaded.value = false
+  artwork.value = props.home && artwork.value === originalArtwork.value
+    ? uploadedImageFallback(originalArtwork.value)
+    : ''
+}
 const podiumRank = computed(() => [1, 2, 3].find(rank => rank === Number(props.rank)))
 const guarantee = computed(() => formatGuaranteeAmount(props.guaranteeAmount))
 const rebate = computed(() => {
@@ -106,9 +130,9 @@ function details(event) {
        @keydown.esc="event => { if (opened) { event.stopPropagation(); close(); trigger?.focus({ preventScroll: true }) } }">
     <slot v-if="$slots.default" />
     <template v-else>
-      <span class="platform-artwork" aria-hidden="true">
+      <span class="platform-artwork" :class="{ 'has-artwork': artworkLoaded }" aria-hidden="true">
         {{ name?.slice(0, 1) }}
-        <img v-if="artwork" :src="artwork" alt="" loading="lazy" @error="$event.target.hidden = true" @load="$event.target.hidden = false">
+        <img v-if="artwork" :key="artwork" :src="artwork" alt="" loading="lazy" @error="retryArtwork" @load="artworkLoaded = true">
       </span>
       <span v-if="inlineActions ? podiumRank : rank" class="platform-rank" :data-rank="inlineActions ? podiumRank : rank">
         {{ inlineActions ? podiumRank : rank }}
@@ -176,7 +200,7 @@ function details(event) {
   font-weight: 850;
 }
 .platform-artwork img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.platform-artwork img[hidden] { display: none; }
+.platform-artwork:not(.has-artwork) img { opacity: 0; }
 .platform-name {
   display: grid;
   place-items: center;
@@ -265,7 +289,7 @@ function details(event) {
   background: transparent;
   color: #ffe0a5;
 }
-.platform-entry-inline .platform-artwork:has(img:not([hidden])) { color: transparent; }
+.platform-entry-inline .platform-artwork.has-artwork { color: transparent; }
 .platform-entry-inline .platform-artwork img { padding: 0 8px; }
 .platform-entry-inline .platform-name {
   min-height: 24px;
@@ -358,8 +382,10 @@ function details(event) {
 .platform-entry-inline :is(a, button):focus-visible { outline-color: #ffdc89; outline-offset: -3px; }
 
 .platform-entry-home {
+  min-height: calc((100cqi - 10px) / 2);
+  grid-template-rows: auto minmax(min-content, 1fr) auto;
   gap: 3px;
-  padding: 0 clamp(5px, 1.8vw, 9px) 8px;
+  padding: 30px clamp(5px, 1.8vw, 9px) 5px;
   border-radius: 16px;
   border-color: #8d7557;
 }
@@ -367,19 +393,37 @@ function details(event) {
   border-color: #ffd492;
   box-shadow: inset 0 0 8px #ffaf544c, 0 0 0 1px #ffc47166, 0 0 10px #ff9d2a58;
 }
-.platform-entry-home .platform-artwork { height: clamp(44px, 13vw, 60px); margin-top: 21px; }
-.platform-entry-home .platform-artwork img { padding: 0 8px; }
-.platform-entry-home .platform-name { min-height: 17px; padding: 0 2px; }
-.platform-entry-home .platform-offers { gap: 3px; }
+.platform-entry-home::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #10090520, #10090512 26%, #1009059e 67%, #100905ba);
+  pointer-events: none;
+}
+.platform-entry-home .platform-artwork {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: -2;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  aspect-ratio: 1;
+  background: transparent;
+}
+.platform-entry-home .platform-artwork img { padding: 0; }
+.platform-entry-home .platform-name { min-height: 17px; padding: 0 2px; text-shadow: 0 1px 4px #090604, 0 1px 10px #090604; }
+.platform-entry-home .platform-offers { gap: 3px; align-content: end; font-size: clamp(9px, 2.7vw, 11px); }
 .platform-entry-home .platform-guarantee {
   width: 100%;
   padding-block: 3px;
   border-color: transparent;
   border-radius: 999px;
-  background: linear-gradient(#38210b, #160e06);
+  background: rgb(35 19 8 / 70%);
   box-shadow: none;
 }
-.platform-entry-home .platform-guarantee strong { overflow-wrap: anywhere; }
+.platform-entry-home .platform-offers strong { font-size: clamp(11px, 3.3vw, 13px); overflow-wrap: anywhere; }
+.platform-entry-home .platform-rebate { padding: 2px 7px; border-radius: 999px; background: rgb(14 12 11 / 68%); }
 .platform-entry-home .platform-entry-actions :is(a, button) {
   display: flex;
   justify-content: center;
@@ -403,9 +447,9 @@ function details(event) {
   border: 1px solid;
   border-radius: inherit;
 }
-.platform-entry-home .platform-entry-actions .platform-visit::before { border-color: #ffaf43; background: var(--primary); }
-.platform-entry-home .platform-entry-actions a.platform-visit:hover::before { background: var(--primary-hover); }
-.platform-entry-home .platform-entry-actions .platform-details::before { border-color: #b8b0a6; background: #1010138c; }
+.platform-entry-home .platform-entry-actions .platform-visit::before { border-color: #ffaf43c4; background: linear-gradient(#ffbd49de, #f97813d9); }
+.platform-entry-home .platform-entry-actions a.platform-visit:hover::before { background: linear-gradient(#ffd178eb, #ff981fe0); }
+.platform-entry-home .platform-entry-actions .platform-details::before { border-color: #b8b0a6ba; background: rgb(16 16 19 / 68%); }
 .platform-entry-home .platform-entry-actions .platform-details:hover::before { border-color: #ffca7d; }
 .platform-action-icon {
   width: clamp(12px, 3.5vw, 17px);
