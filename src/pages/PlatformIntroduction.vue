@@ -8,7 +8,7 @@ const props = defineProps({
 })
 
 const { locale, t } = useLocale()
-const percent = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
+const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const supportUrl = computed(() => {
   try {
     const url = new URL(props.platform.support_url)
@@ -22,10 +22,9 @@ function formatAmount(amount) {
   return amount == null || amount === '' ? '' : formatBrl(Math.round(Number(amount) * 100))
 }
 
-const maxRebate = computed(() => {
-  const value = props.platform.max_rebate_percent
-  return value == null || value === '' ? '' : percent.value.format(value) + '%'
-})
+function formatRule(value, suffix) {
+  return value == null || value === '' ? '' : ruleNumbers.value.format(value) + suffix
+}
 
 const information = computed(() => [
   ['最低存款', 'Depósito mínimo', formatAmount(props.platform.minimum_deposit_brl)],
@@ -33,7 +32,8 @@ const information = computed(() => [
   ['提现速度', 'Prazo de saque', props.platform.withdrawal_time?.trim()],
   ['保障状态', 'Status da proteção', t('保障中', 'Proteção ativa')],
   ['担保金额', 'Valor da garantia', formatAmount(props.platform.guarantee_amount_brl)],
-  ['最高返利', 'Cashback máximo', maxRebate.value],
+  ['最低打码倍数要求', 'Multiplicador mínimo de apostas', formatRule(props.platform.min_rebate_wager_multiplier, '×')],
+  ['最高返利', 'Cashback máximo', formatRule(props.platform.max_rebate_percent, '%')],
 ])
 </script>
 

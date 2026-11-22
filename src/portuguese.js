@@ -160,6 +160,7 @@ export const portuguese = {
   "当前密码": "Senha atual",
   "当前投注额": "Valor apostado",
   "当前投注额未达兑换要求": "O valor apostado está abaixo do mínimo para resgate",
+  "当前打码未达到返利标准": "O volume de apostas ainda não atingiu o mínimo para cashback",
   "当前报价不可兑换。": "Esta cotação está indisponível para resgate.",
   "当前按平台筛选": "Filtro de plataforma ativo",
   "当前没有可提现的红包余额。": "Nenhum saldo de bônus disponível para saque.",

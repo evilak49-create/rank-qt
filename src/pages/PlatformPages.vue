@@ -49,6 +49,7 @@ const detailTabs = [
   ['information', '网站信息', 'Informações do site'],
   ['about', '关于网站', 'Sobre o site'],
 ]
+const rebateTiers = computed(() => platform.value?.rebate_tiers ?? [])
 const search = ref('')
 const listPage = ref(1)
 const listLastPage = ref(1)
@@ -84,13 +85,15 @@ let disposed = false
 const ticker = window.setInterval(() => { now.value = Date.now() }, 1000)
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
+const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const scoreNumbers = computed(() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
 const platformScore = computed(() => platform.value?.rating == null ? '—' : scoreNumbers.value.format(platform.value.rating))
 const platformDescription = computed(() => platform.value?.description?.trim())
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const eligibility = {
   eligible: '已达到投注要求',
-  insufficient_wager: '当前投注额未达兑换要求',
+  insufficient_wager: '当前打码未达到返利标准',
+  insufficient_rebate: '暂无可领取的返利',
   insufficient_points: '暂无可领取的返利',
   no_deposit: '暂无可领取的返利',
   rebate_disabled: '返利暂未开放',
@@ -129,6 +132,10 @@ const promotion = computed(() => {
 
 function formatDate(value) {
   return value ? date.value.format(new Date(value)) : t('暂无记录')
+}
+
+function formatRule(value, suffix) {
+  return value == null || value === '' || !Number.isFinite(Number(value)) ? '—' : ruleNumbers.value.format(value) + suffix
 }
 
 function moveDetailTab(event, index) {
@@ -588,7 +595,7 @@ function confirmCashback() {
     } catch (failure) {
       if (failure.status && failure.status < 500 && failure.status !== 409) throw failure
       result = await api(path).catch(() => { throw failure })
-      if (result.data.status === 'pending') throw failure
+      if (result.data.status === 'pending' && result.data.eligibility === 'eligible') throw failure
     }
     if (result.data.status === 'confirmed') {
       if (current()) {
@@ -718,9 +725,28 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet"
           :aria-disabled="reviewsLoading" @click="loadPlatformReviews(reviewPage + 1)">{{ t('加载更多') }}</button>
       </section>
-      <section v-show="tab === 'information'" id="platform-panel-information" role="tabpanel"
+      <section v-show="tab === 'information'" id="platform-panel-information" class="stack" role="tabpanel"
         aria-labelledby="platform-tab-information" tabindex="0">
         <PlatformIntroduction :platform="platform" />
+        <section class="surface stack platform-content" aria-labelledby="rebate-tier-heading">
+          <h2 id="rebate-tier-heading">{{ t('充值返利规则', 'Regras de cashback por depósito') }}</h2>
+          <table v-if="rebateTiers.length" class="rebate-table" aria-labelledby="rebate-tier-heading">
+            <thead>
+              <tr>
+                <th scope="col">{{ t('最低打码倍数要求', 'Multiplicador mínimo de apostas') }}</th>
+                <th scope="col">{{ t('返利比例', 'Percentual de cashback') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="tier in rebateTiers" :key="tier.wager_multiplier">
+                <td>{{ formatRule(tier.wager_multiplier, '×') }}</td>
+                <td>{{ formatRule(tier.rebate_percent, '%') }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else class="muted">{{ t('返利暂未开放') }}</p>
+          <p v-if="rebateTiers.length" class="muted">{{ t('按达到的最高打码档位，将该档比例应用于本期全部有效充值。', 'O percentual da maior faixa atingida é aplicado a todos os depósitos válidos do período.') }}</p>
+        </section>
       </section>
       <section v-show="tab === 'about'" id="platform-panel-about" role="tabpanel"
         aria-labelledby="platform-tab-about" tabindex="0">
@@ -889,13 +915,15 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           <div><dt>{{ t('本次待兑换存款') }}</dt><dd>{{ formatMoney(quote.deposit_cents) }}</dd></div>
           <div><dt>{{ t('本期有效投注额') }}</dt><dd>{{ formatMoney(quote.valid_bet_cents) }}</dd></div>
           <div v-if="quote.rebate_enabled"><dt>{{ t('返利所需投注额（' + quote.rebate_wager_multiplier + ' 倍）', 'Apostas exigidas para cashback (' + quote.rebate_wager_multiplier + '×)') }}</dt><dd>{{ formatMoney(quote.rebate_required_bet_cents) }}</dd></div>
-          <div v-if="quote.rebate_enabled"><dt>{{ t('返利比例') }}</dt><dd>{{ Number(quote.rebate_percent) }}%</dd></div>
+          <div v-if="quote.matched_rebate_wager_multiplier != null"><dt>{{ t('命中打码档位', 'Faixa de apostas atingida') }}</dt><dd>{{ formatRule(quote.matched_rebate_wager_multiplier, '×') }}</dd></div>
+          <div v-if="quote.rebate_enabled"><dt>{{ t('返利比例') }}</dt><dd>{{ formatRule(quote.rebate_percent, '%') }}</dd></div>
           <div><dt>{{ t('基线快照读取时间') }}</dt><dd>{{ formatDate(quote.baseline_observed_at) }}</dd></div>
           <div><dt>{{ t('本次快照读取时间') }}</dt><dd>{{ formatDate(quote.observed_at) }}</dd></div>
         </dl>
         <template v-if="quote.status === 'confirmed'">
           <button v-if="quote.rebate_enabled || quote.rebate_cents > 0" class="quiet" type="button" @click="go('/cash-wallet/withdraw')">{{ t('查看可用余额') }}</button>
         </template>
+        <p v-else-if="mayConfirm" class="muted">{{ t('确认领取时按平台最新数据计算返利。', 'O cashback será recalculado com os dados mais recentes da plataforma ao confirmar.') }}</p>
         <p v-else class="muted" role="status">{{ quote.eligibility === 'eligible' && !mayConfirm ? t('报价已失效，请重新查询。') : t(eligibility[quote.eligibility]) || t('当前报价不可兑换。') }}</p>
       </section>
       <footer v-if="showQuoteAction" class="platform-actions quote-actions">

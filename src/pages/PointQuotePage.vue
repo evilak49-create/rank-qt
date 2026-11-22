@@ -37,7 +37,7 @@ watchNotice(error, '积分明细加载失败', 'error')
 <template>
   <dl v-if="quote" class="surface summary-list">
     <div><dt>{{ t('状态') }}</dt><dd>{{ t(statuses[quote.status]) || t('处理中') }}</dd></div>
-    <div><dt>{{ quote.status === 'confirmed' ? t('实兑积分') : t('预计积分') }}</dt><dd>{{ quote.estimated_points }}</dd></div>
+    <div v-if="!quote.cash_only"><dt>{{ quote.status === 'confirmed' ? t('实兑积分') : t('预计积分') }}</dt><dd>{{ quote.estimated_points }}</dd></div>
     <div v-if="quote.rebate_enabled || quote.rebate_cents > 0"><dt>{{ quote.status === 'confirmed' ? t('已到账返利') : t('预计返利') }}</dt><dd>{{ formatBrl(quote.rebate_cents) }}</dd></div>
     <div><dt>{{ t('本期待兑存款') }}</dt><dd>{{ format(quote.deposit_cents) }}</dd></div>
     <div><dt>{{ t('本期有效投注') }}</dt><dd>{{ format(quote.valid_bet_cents) }}</dd></div>
