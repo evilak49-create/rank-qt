@@ -43,15 +43,17 @@
 .platform-content h2, .guest-panel h2 { font-size: 17px; }
 .platform-hero {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
   min-height: 126px;
-  padding: 20px;
+  padding: 16px clamp(12px, 4vw, 20px);
   border-color: var(--line-strong);
   background: radial-gradient(ellipse at top right, var(--surface-highlight), transparent 68%), var(--surface-gradient);
 }
+.platform-hero-identity { display: flex; flex: 999 1 max-content; align-items: center; gap: 12px; min-width: 0; max-width: 100%; }
 .platform-hero .large-logo { border-radius: 16px; box-shadow: 0 4px 14px var(--shadow); }
-.hero-rating { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 6px; }
+.hero-rating { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 7px; margin-top: 6px; font-size: 13px; }
 .platform-heading { min-width: 0; }
 .platform-heading h1 { font-size: 22px; line-height: 1.25; overflow-wrap: anywhere; }
 .minor { font-size: 12px; }
@@ -63,11 +65,21 @@
 .protection-amount { color: var(--highlight); font-size: 16px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .protection-banner p { color: var(--muted); font-size: 11px; }
 .protection-banner .quiet { padding-inline: 7px; white-space: nowrap; font-size: 12px; }
-.platform-rebate-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 10px 12px; }
-.platform-rebate-summary > div { min-width: 0; text-align: center; }
-.platform-rebate-summary > div + div { border-inline-start: 1px solid var(--line); }
-.platform-rebate-summary dt { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
-.platform-rebate-summary dd { margin: 3px 0 0; color: var(--highlight); font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.platform-rebate-summary {
+  flex: 1 0 114px;
+  container: platform-rebate / inline-size;
+  display: grid;
+  gap: 5px 12px;
+  margin: 0;
+}
+.platform-rebate-summary > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-end; gap: 1px 5px; min-width: 0; text-align: end; }
+.platform-rebate-summary dt { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.platform-rebate-summary dd { margin: 0; color: var(--highlight); font-size: 14px; line-height: 1.15; font-weight: 800; font-variant-numeric: tabular-nums; }
+.platform-rebate-summary .platform-rebate-rate dd { font-size: 19px; }
+@container platform-rebate (min-width: 225px) {
+  .platform-rebate-summary:has(> :nth-child(2)) > div { grid-row: 1; }
+  .platform-rebate-summary > div { justify-content: start; text-align: start; }
+}
 .platform-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 5px; background: var(--surface); }
 .platform-tabs button {
   min-height: 48px;

@@ -672,14 +672,26 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
 
     <template v-else-if="screen === 'detail' && platform">
       <header class="surface platform-hero">
-        <div class="platform-logo large-logo">
-          <span>{{ platform.name.slice(0, 2) }}</span>
-          <img v-if="imageUrl(platform.logo_url)" :src="imageUrl(platform.logo_url)" width="64" height="64" alt="" @error="$event.target.hidden = true" @load="$event.target.hidden = false">
+        <div class="platform-hero-identity">
+          <div class="platform-logo large-logo">
+            <span>{{ platform.name.slice(0, 2) }}</span>
+            <img v-if="imageUrl(platform.logo_url)" :src="imageUrl(platform.logo_url)" width="64" height="64" alt="" @error="$event.target.hidden = true" @load="$event.target.hidden = false">
+          </div>
+          <div class="platform-heading">
+            <h1>{{ platform.name }}</h1>
+            <p class="hero-rating"><span class="score"><span aria-hidden="true">★</span> {{ platformScore }}</span><span class="muted">{{ platform.review_count }} {{ t('条评价') }}</span></p>
+          </div>
         </div>
-        <div class="platform-heading">
-          <h1>{{ platform.name }}</h1>
-          <p class="hero-rating"><span class="score"><span aria-hidden="true">★</span> {{ platformScore }}</span><span class="muted">{{ platform.review_count }} {{ t('条评价') }}</span></p>
-        </div>
+        <dl v-if="maxRebate || rebateWager" class="platform-rebate-summary" :aria-label="t('返利信息', 'Informações de cashback')">
+          <div v-if="maxRebate" class="platform-rebate-rate">
+            <dt>{{ t('最高返利', 'Cashback máximo') }}</dt>
+            <dd>{{ maxRebate }}</dd>
+          </div>
+          <div v-if="rebateWager" class="platform-rebate-wager">
+            <dt>{{ t('最低打码要求', 'Apostas mínimas') }}</dt>
+            <dd>{{ rebateWager }}</dd>
+          </div>
+        </dl>
       </header>
       <section class="surface protection-banner">
         <span class="protection-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z"/><path d="m9 12 2 2 4-4"/></svg></span>
@@ -692,16 +704,6 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
-      <dl class="surface platform-rebate-summary" :aria-label="t('返利信息', 'Informações de cashback')">
-        <div>
-          <dt>{{ t('最高返利', 'Cashback máximo') }}</dt>
-          <dd>{{ maxRebate || t('未公布', 'Não informado') }}</dd>
-        </div>
-        <div>
-          <dt>{{ t('最低打码要求', 'Requisito mínimo de apostas') }}</dt>
-          <dd>{{ rebateWager || t('未公布', 'Não informado') }}</dd>
-        </div>
-      </dl>
       <div class="surface platform-tabs"
         role="tablist" :aria-label="t('平台详情')">
         <button v-for="([value, label, translation], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
