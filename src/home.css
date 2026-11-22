@@ -68,43 +68,6 @@
   box-shadow: 0 0 6px #ffb22d;
 }
 
-.home-search {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  padding-left: 12px;
-  border: 1px solid #9c8565;
-  border-radius: 999px;
-  background: var(--home-panel);
-}
-.home-search svg {
-  width: 22px;
-  height: 22px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-}
-.home-search input {
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font-size: 16px;
-}
-.home-search input::placeholder { color: #c0bec2; opacity: 1; }
-.home-search .primary {
-  min-width: clamp(62px, 18vw, 88px);
-  min-height: 42px;
-  border-radius: 999px;
-  padding-inline: 12px;
-}
-.home-search .primary:focus-visible { outline-offset: -3px; }
-
 .home-gold .shortcuts { gap: 7px; margin-block: 9px 5px; }
 .home-gold .shortcut {
   min-height: clamp(60px, 15.5vw, 76px);

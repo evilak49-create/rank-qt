@@ -23,7 +23,6 @@ const languages = [
   { id: 'pt-BR', name: 'Português' },
 ]
 const localeSheet = ref(null)
-const search = ref('')
 const currentLanguage = computed(() => languages.find(item => item.id === props.language))
 const slide = ref(0)
 const brokenBanners = ref(new Set())
@@ -69,11 +68,6 @@ async function loadBlock(block) {
 function chooseFavorites() {
   const path = '/?tab=favorites'
   go(props.member ? path : '/login?' + new URLSearchParams({ next: path }))
-}
-
-function searchPlatforms() {
-  const keyword = search.value.trim()
-  go(keyword ? '/platforms?' + new URLSearchParams({ search: keyword }) : '/platforms')
 }
 
 for (const name of ['banners', 'notice', 'featured']) loadBlock(blocks[name])
@@ -126,12 +120,6 @@ function copyTextForError() { return props.copy.error }
         <button :aria-label="copy.next" @click="changeSlide(1)">›</button>
       </div>
     </section>
-
-    <form class="home-search" role="search" @submit.prevent="searchPlatforms">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.search"/></svg>
-      <input v-model="search" type="search" maxlength="120" :aria-label="copy.searchLabel" :placeholder="copy.searchPlaceholder">
-      <button type="submit" class="primary">{{ copy.search }}</button>
-    </form>
 
     <div class="shortcuts" :aria-label="copy.shortcuts">
       <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="go(shortcuts[type])">

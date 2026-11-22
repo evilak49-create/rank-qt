@@ -15,7 +15,7 @@
   color: var(--muted);
 }
 
-.platform-search:focus-within { border-color: var(--accent); }
+.platform-search:focus-within { border-color: var(--text-subtle); }
 .platform-search svg { width: 19px; height: 19px; flex: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
 .platform-search input { width: 100%; min-height: 44px; padding: 0; border: 0; color: var(--text); background: transparent; outline: 0; }
 .platform-logo {
@@ -288,7 +288,7 @@
 }
 
 .platform-select { padding: 0 0 0 12px; }
-.platform-select:focus-within { border-color: var(--accent); }
+.platform-select:focus-within { border-color: var(--text-subtle); }
 .platform-select input { min-width: 0; border: 0; padding: 0; background: transparent; outline: none; }
 .picker-toggle { display: grid; place-items: center; flex: 0 0 43px; min-height: 44px; color: var(--accent); }
 .picker-toggle svg { width: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }

@@ -35,10 +35,10 @@ const opened = computed(() => activeMenu.value?.id === menuId)
 const path = computed(() => '/platforms/' + props.platformId)
 const artwork = computed(() => imageUrl(props.logoUrl))
 const podiumRank = computed(() => [1, 2, 3].find(rank => rank === Number(props.rank)))
-const guarantee = computed(() => formatGuaranteeAmount(props.guaranteeAmount) || '—')
+const guarantee = computed(() => formatGuaranteeAmount(props.guaranteeAmount))
 const rebate = computed(() => {
   const rate = Number(props.maxRebatePercent)
-  if (props.maxRebatePercent == null || !Number.isFinite(rate) || rate < 0) return '—'
+  if (props.maxRebatePercent == null || String(props.maxRebatePercent).trim() === '' || !Number.isFinite(rate) || rate < 0 || rate > 100) return ''
   return new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }).format(rate) + '%'
 })
 const actionOrder = computed(() => props.inlineActions ? ['open', 'details'] : ['details', 'open'])
@@ -117,12 +117,12 @@ function details(event) {
       <strong class="platform-name">{{ name }}</strong>
     </template>
     <div v-if="inlineActions" class="platform-offers">
-      <a class="platform-guarantee" :href="'#' + path + '/protection'" @click.prevent="go(path + '/protection')">
+      <a v-if="guarantee" class="platform-guarantee" :href="'#' + path + '/protection'" @click.prevent="go(path + '/protection')">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.protection"/></svg>
         <span>{{ t('本站担保') }}</span>
         <strong>{{ guarantee }}</strong>
       </a>
-      <div class="platform-rebate">
+      <div v-if="rebate" class="platform-rebate">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.shop"/></svg>
         <span>{{ t('最高返利', 'Cashback máximo') }}</span>
         <strong>{{ rebate }}</strong>
