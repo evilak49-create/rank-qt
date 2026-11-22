@@ -77,10 +77,6 @@
   color: var(--text);
   font-size: clamp(10px, 2.9vw, 14px);
 }
-.home-gold .shortcut[data-shortcut="help"] {
-  border-color: #a76e32;
-  box-shadow: inset 0 0 10px #ffad393b;
-}
 .home-gold .shortcut:hover { border-color: #ffbf62; }
 .home-gold .shortcut .tile-icon { background: none; color: #ffc254; }
 .home-gold .shortcut svg {
@@ -94,7 +90,7 @@
 }
 .home-gold .notice {
   min-height: 32px;
-  margin: 0 0 6px;
+  margin: 5px 0 0;
   padding: 4px 7px;
   border-color: transparent;
   border-radius: 8px;
@@ -104,7 +100,7 @@
 
 .home-gold .selection-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px;
   margin-bottom: 10px;
   padding: 1px;

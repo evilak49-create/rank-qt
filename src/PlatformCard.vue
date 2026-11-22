@@ -367,8 +367,8 @@ function details(event) {
   border-color: #ffd492;
   box-shadow: inset 0 0 8px #ffaf544c, 0 0 0 1px #ffc47166, 0 0 10px #ff9d2a58;
 }
-.platform-entry-home .platform-artwork { height: clamp(36px, 11.5vw, 55px); margin-top: 21px; }
-.platform-entry-home .platform-artwork img { padding: 0 6px; }
+.platform-entry-home .platform-artwork { height: clamp(44px, 13vw, 60px); margin-top: 21px; }
+.platform-entry-home .platform-artwork img { padding: 0 8px; }
 .platform-entry-home .platform-name { min-height: 17px; padding: 0 2px; }
 .platform-entry-home .platform-offers { gap: 3px; }
 .platform-entry-home .platform-guarantee {
@@ -387,7 +387,26 @@ function details(event) {
   gap: 3px;
   padding-inline: 3px;
   font-size: clamp(10px, 2.9vw, 13px);
+  position: relative;
+  isolation: isolate;
 }
+.platform-entry-home .platform-entry-actions :is(.platform-visit, .platform-details),
+.platform-entry-home .platform-entry-actions :is(.platform-visit, .platform-details):hover {
+  border: 0;
+  background: transparent;
+}
+.platform-entry-home .platform-entry-actions :is(a, button)::before {
+  content: '';
+  position: absolute;
+  inset: 5px 0;
+  z-index: -1;
+  border: 1px solid;
+  border-radius: inherit;
+}
+.platform-entry-home .platform-entry-actions .platform-visit::before { border-color: #ffaf43; background: var(--primary); }
+.platform-entry-home .platform-entry-actions a.platform-visit:hover::before { background: var(--primary-hover); }
+.platform-entry-home .platform-entry-actions .platform-details::before { border-color: #b8b0a6; background: #1010138c; }
+.platform-entry-home .platform-entry-actions .platform-details:hover::before { border-color: #ffca7d; }
 .platform-action-icon {
   width: clamp(12px, 3.5vw, 17px);
   height: auto;

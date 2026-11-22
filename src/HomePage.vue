@@ -121,6 +121,12 @@ function copyTextForError() { return props.copy.error }
       </div>
     </section>
 
+    <button class="notice" @click="go('/announcements')">
+      <strong>{{ copy.announcement }}</strong>
+      <span>{{ blocks.notice.data?.title ?? (blocks.notice.state === 'error' ? copy.noticeError : blocks.notice.state === 'ready' ? copy.noticeEmpty : '') }}</span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </button>
+
     <div class="shortcuts" :aria-label="copy.shortcuts">
       <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="go(shortcuts[type])">
         <span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icons[type === 'points' ? 'shop' : type]"/></svg></span>
@@ -128,16 +134,9 @@ function copyTextForError() { return props.copy.error }
       </button>
     </div>
 
-    <button class="notice" @click="go('/announcements')">
-      <strong>{{ copy.announcement }}</strong>
-      <span>{{ blocks.notice.data?.title ?? (blocks.notice.state === 'error' ? copy.noticeError : blocks.notice.state === 'ready' ? copy.noticeEmpty : '') }}</span>
-      <span class="arrow" aria-hidden="true">→</span>
-    </button>
-
     <section class="featured" :aria-label="copy.selection">
       <div class="selection-tabs" :aria-label="copy.selection">
         <button :aria-pressed="selection === 'featured'" @click="go('/')">{{ copy.recommended }}</button>
-        <a href="#/platforms" @click.prevent="go('/platforms')">{{ copy.allPlatforms }}</a>
         <button :aria-pressed="selection === 'favorites'" @click="chooseFavorites">{{ copy.favorites }} <span aria-hidden="true">♡</span></button>
       </div>
       <div v-if="selectedBlock.state === 'ready' && selectedBlock.data.length" class="platform-grid">
