@@ -88,7 +88,7 @@
 .checkin-rules li::marker { color: var(--highlight); font-weight: 750; }
 .profile-section { display: grid; gap: 6px; padding-block: 11px 7px; }
 .profile-section h2 { font-size: 15px; }
-.profile-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.profile-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
 .profile-shortcuts button { display: grid; justify-items: center; align-content: center; gap: 5px; min-height: 70px; border-radius: 10px; font-size: 12px; }
 .profile-shortcuts button:hover, .profile-menu button:hover { background: var(--surface-highlight); }
 .profile-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--accent); background: var(--surface-highlight); }
