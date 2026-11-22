@@ -19,7 +19,7 @@ const liveChat = computed(() => settings.value?.mode === 'chat')
 const avatar = computed(() => imageUrl(settings.value?.avatar_url))
 const humanChannels = computed(() => messages.value.findLast(item => item.reply?.type === 'human')?.reply.channels
   ?? settings.value?.channels ?? [])
-const destinations = { '/withdrawals': '/withdrawal-history', '/wallet': '/cash-wallet' }
+const destinations = { '/orders': '/shop/redemptions', '/withdrawals': '/withdrawal-history', '/wallet': '/cash-wallet' }
 
 const labels = computed(() => props.language === 'pt-BR' ? {
   name: 'Atendimento', online: 'Assistente online', human: 'Canais disponíveis',

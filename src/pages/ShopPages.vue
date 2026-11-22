@@ -9,6 +9,7 @@ import { api, imageUrl } from '../api'
 import PlatformCard from '../PlatformCard.vue'
 import { go, back } from '../navigation'
 import { icons } from '../icons'
+import { formatBrl as brl, parseBrl } from '../money'
 import { useLocale } from '../locale.js'
 import { createRequestId } from '../requestId.js'
 
@@ -24,9 +25,6 @@ const statusLabels = computed(() => ({
   pending: t('待处理', 'Pendente'), shipped: t('已发货', 'Enviado'), cancelled: t('已取消', 'Cancelado'), processing: t('处理中', 'Em processamento'),
   paid: t('已到账', 'Creditado'), rejected: t('已驳回', 'Recusado'), failed: t('兑换失败', 'Falha no resgate'), unresolved: t('待核实', 'Aguardando verificação'),
 }))
-const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-const rateFormat = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 })
-const number = computed(() => new Intl.NumberFormat(locale.value))
 const calendar = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
 const mode = computed(() => {
   const { path, params } = props.route
@@ -49,9 +47,8 @@ const balance = ref(null)
 const subject = ref(null)
 const address = ref(null)
 const binding = ref(null)
-const rate = ref(null)
 const order = ref(null)
-const points = ref('')
+const amountInput = ref('')
 const quote = ref(null)
 const loading = ref(false)
 const refreshingOrder = ref(false)
@@ -65,15 +62,14 @@ let controller
 let quoteGeneration = 0
 let quoteTimer
 
-const validPoints = computed(() => /^\d+$/.test(points.value) && Number(points.value) >= 1 && Number(points.value) <= 2147483647)
-const overBalance = computed(() => balance.value !== null && Number(points.value) > balance.value)
-const confirmGoods = computed(() => address.value && subject.value?.stock > 0 && balance.value !== null && balance.value >= subject.value.points_price)
+const amountCents = computed(() => parseBrl(amountInput.value))
+const validAmount = computed(() => amountCents.value !== null && amountCents.value <= 2147483647)
+const overBalance = computed(() => balance.value !== null && amountCents.value > balance.value)
+const confirmGoods = computed(() => address.value && subject.value?.stock > 0 && balance.value !== null && subject.value.price_cents != null && balance.value >= subject.value.price_cents)
 const sessionPath = computed(() => encodeURIComponent(props.route.fullPath || props.route.path))
 const redemptionPath = (id, type) => '/shop/redemptions/' + id + '?type=' + type
 const status = (type, value) => value === 'pending' ? (type === 'goods' ? t('待发货', 'Aguardando envio') : t('待审核', 'Aguardando análise')) : statusLabels.value[value] || t('状态待更新', 'Situação a confirmar')
 const date = value => value && !Number.isNaN(Date.parse(value)) ? calendar.value.format(new Date(value)) : '—'
-const brl = cents => money.format(Number(cents) / 100)
-const rateText = cents => t('1 积分 = R$ ', '1 ponto = R$ ') + rateFormat.format(Number(cents) / 100)
 const addressLine = value => [value.street, value.number, value.complement, value.district, value.city, value.state, value.postal_code].filter(Boolean).join(' · ')
 const message = error => {
   if (locale.value !== 'pt-BR') return Object.values(error.errors || {}).flat()[0] || error.message || '请稍后重试。'
@@ -160,7 +156,7 @@ async function historyPage() {
       list.items.push({
         id: record.id, type: next.kind, created_at: record.created_at, status: record.status,
         name: goods ? record.product_name : record.platform_name,
-        points: goods ? record.points_price : record.points,
+        balance_paid_cents: record.balance_paid_cents,
       })
     }
     if (!signal.aborted) {
@@ -197,8 +193,8 @@ async function refreshOrder() {
 
 async function readBalance(signal) {
   try {
-    const { data } = await api('/wallet', { signal })
-    if (!signal.aborted) balance.value = data.points_balance
+    const { data } = await api('/cash-wallet', { signal, fresh: true })
+    if (!signal.aborted) balance.value = data.available_balance_cents
   } catch (error) {
     if (!signal.aborted) {
       if (error.status === 401 || error.status === 403) balance.value = null
@@ -215,14 +211,6 @@ async function findBinding(id, signal) {
   }
 }
 
-async function loadRate(signal) {
-  try {
-    const { data } = await api('/platform-funds/rate', { signal })
-    if (!signal.aborted) rate.value = data
-  } catch {
-    if (!signal.aborted) rate.value = null
-  }
-}
 
 async function load() {
   controller?.abort()
@@ -230,9 +218,9 @@ async function load() {
   clearTimeout(quoteTimer)
   quoteGeneration += 1
   loading.value = previewing.value = submitting.value = refreshingOrder.value = false
-  issue.value = notice.value = points.value = ''
-  subject.value = address.value = binding.value = quote.value = order.value = rate.value = null
-  balance.value = props.member?.points_balance ?? null
+  issue.value = notice.value = amountInput.value = ''
+  subject.value = address.value = binding.value = quote.value = order.value = null
+  balance.value = props.member?.available_balance_cents ?? null
   retry.value = props.member ? submissions.get(requestKey()) || null : null
   const id = props.route.params.id
 
@@ -246,7 +234,6 @@ async function load() {
     catalog.value = catalogs.get(key)
     if (!catalog.value.products.page) catalogPage('products')
     if (!catalog.value.platforms.page) catalogPage('platforms')
-    loadRate(signal)
     if (props.member) readBalance(signal)
     return
   }
@@ -271,7 +258,6 @@ async function load() {
       ? api('/shipping-address', { signal }).then(result => result.data)
       : findBinding(id, signal)
     if (props.member) readBalance(signal)
-    if (!goods) loadRate(signal)
     const [item, prerequisite] = await Promise.all([api(publicPath + id, { signal }), memberData])
     if (signal.aborted) return
     subject.value = item.data
@@ -284,7 +270,7 @@ async function load() {
   }
 }
 
-watch(() => [props.route.fullPath || props.route.path, props.member?.id], load, { immediate: true })
+watch([() => props.route.fullPath || props.route.path, () => props.member?.id], load, { immediate: true })
 onBeforeUnmount(() => {
   controller?.abort()
   clearTimeout(quoteTimer)
@@ -300,16 +286,18 @@ function previewFunds() {
   quote.value = null
   previewing.value = false
   const generation = ++quoteGeneration
-  if (mode.value !== 'funds' || !binding.value || retry.value || !validPoints.value || overBalance.value) return
+  if (mode.value !== 'funds' || !binding.value || retry.value || !validAmount.value || overBalance.value) return
   const signal = controller.signal
   issue.value = notice.value = ''
   previewing.value = true
   quoteTimer = setTimeout(async () => {
     try {
       const { data } = await api('/platform-funds/preview', {
-        body: { binding_id: binding.value.id, points: Number(points.value) }, signal,
+        body: { binding_id: binding.value.id, amount_cents: amountCents.value }, signal,
       })
-      if (generation === quoteGeneration && !signal.aborted) quote.value = data
+      if (generation !== quoteGeneration || signal.aborted) return
+      if (data.balance_paid_cents !== amountCents.value) throw new Error(t('余额结算暂不可用', 'Pagamento com saldo indisponível'))
+      quote.value = data
     } catch (error) {
       if (generation === quoteGeneration && !signal.aborted) issue.value = message(error)
     } finally {
@@ -318,7 +306,7 @@ function previewFunds() {
   }, 300)
 }
 
-watch([points, binding, overBalance], previewFunds)
+watch([amountInput, binding, overBalance], previewFunds)
 
 async function submit() {
   if (submitting.value || !props.member) return
@@ -328,8 +316,8 @@ async function submit() {
   const key = requestKey()
   const signal = controller.signal
   const payload = previous || (goods
-    ? { product_id: subject.value.id, address_version: address.value.version, request_id: createRequestId() }
-    : { binding_id: binding.value.id, points: quote.value.points, rate_version: quote.value.rate_version, request_id: createRequestId() })
+    ? { product_id: subject.value.id, address_version: address.value.version, price_cents: subject.value.price_cents, request_id: createRequestId() }
+    : { binding_id: binding.value.id, amount_cents: quote.value.balance_paid_cents, request_id: createRequestId() })
   submissions.set(key, payload)
   submitting.value = true
   issue.value = notice.value = ''
@@ -352,18 +340,10 @@ async function submit() {
     if (knownFailure) submissions.delete(key)
     if (signal.aborted) return
     retry.value = knownFailure ? null : payload
-    if (error.status === 409 && error.code === 'rate_changed' && error.data && !goods) {
-      points.value = String(payload.points)
-      await Promise.resolve()
-      clearTimeout(quoteTimer)
-      quoteGeneration += 1
-      previewing.value = false
-      quote.value = error.data
-      notice.value = t('兑换比例已更新，请核对新金额后再次确认。', 'A taxa foi atualizada. Confira o novo valor e confirme novamente.')
-    } else if (goods && error.status === 409 && !error.message.includes('请求号')) {
+    if (goods && error.status === 409 && !error.message.includes('请求号')) {
       const checkoutPath = props.route.path
       await load()
-      if (props.route.path === checkoutPath && subject.value) notice.value = t('收货地址已更新，请重新核对后确认。', 'O endereço de entrega foi atualizado. Confira e confirme novamente.')
+      if (props.route.path === checkoutPath && subject.value) notice.value = t('请重新核对售价、余额和收货地址后确认。', 'Confira novamente o preço, o saldo e o endereço antes de confirmar.')
     } else {
       issue.value = knownFailure ? message(error) : t('订单结果尚未确认。可查看兑换记录，或使用同一请求重试。', 'O resultado ainda não foi confirmado. Consulte o histórico ou repita a mesma solicitação.')
       if (knownFailure) readBalance(signal)
@@ -390,8 +370,8 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
     <template v-if="mode === 'catalog' && catalog">
       <div class="shop-balance surface">
         <div>
-          <p class="muted">{{ t('可用积分', 'Pontos disponíveis') }}</p>
-          <strong v-if="member">{{ balance === null ? '—' : number.format(balance) }}</strong>
+          <p class="muted">{{ t('可用余额', 'Saldo disponível') }}</p>
+          <strong v-if="member">{{ balance === null ? '—' : brl(balance) }}</strong>
           <button v-else class="shop-login" @click="login">{{ t('登录后查看', 'Entre para consultar') }}</button>
         </div>
         <button class="quiet" @click="goToHistory('all')">{{ t('兑换记录', 'Histórico de resgates') }} <span aria-hidden="true">›</span></button>
@@ -411,9 +391,9 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             </div>
             <div class="shop-product-content">
               <h3>{{ item.name }}</h3>
-              <p class="shop-highlight">{{ number.format(item.points_price) }} <small>{{ t('积分', 'pontos') }}</small></p>
+              <p class="shop-highlight">{{ item.price_cents == null ? t('暂未定价', 'Preço pendente') : brl(item.price_cents) }}</p>
               <p class="muted">{{ item.stock ? t('库存 ', 'Estoque: ') + item.stock : t('已售罄', 'Esgotado') }}</p>
-              <button class="primary" :disabled="!item.stock" :aria-label="t('兑换 ', 'Resgatar ') + item.name" @click="go('/shop/products/' + item.id)">{{ t('兑换', 'Resgatar') }}</button>
+              <button class="primary" :disabled="!item.stock || item.price_cents == null" :aria-label="t('兑换 ', 'Resgatar ') + item.name" @click="go('/shop/products/' + item.id)">{{ t('兑换', 'Resgatar') }}</button>
             </div>
           </article>
         </div>
@@ -430,7 +410,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
               <img v-if="imageUrl(item.logo_url) && !brokenImages.has('platform-' + item.id)" :src="imageUrl(item.logo_url)" alt="" loading="lazy" @error="failedImage('platform-' + item.id)" />
               <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.platforms" /></svg>
             </div>
-            <div class="shop-list-text"><h3>{{ item.name }}</h3><p class="muted">{{ rate ? rateText(rate.cents_per_point) : t('暂未取得比例 · 可查看兑换预览', 'Consulte a simulação para ver a taxa de conversão.') }}</p></div>
+            <div class="shop-list-text"><h3>{{ item.name }}</h3><p class="muted">{{ t('使用余额兑换', 'Resgate com saldo') }}</p></div>
             <template #controls>
               <button class="primary platform-entry-control" :aria-label="t('兑换 ', 'Resgatar crédito em ') + item.name" @click="go('/shop/funds/' + item.id)">{{ t('兑换', 'Resgatar') }}</button>
             </template>
@@ -451,7 +431,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
         <div v-if="history.items.length" class="row-list shop-records">
           <button v-for="item in history.items" :key="item.type + ':' + item.id" class="surface shop-record" @click="go(redemptionPath(item.id, item.type))">
             <span class="shop-list-text"><strong>{{ item.name }}</strong><small class="muted">{{ date(item.created_at) }}</small></span>
-            <span class="shop-record-amount"><strong>−{{ number.format(item.points) }} {{ t('积分', 'pontos') }}</strong><small class="shop-status" :data-status="item.status">{{ status(item.type, item.status) }}</small></span>
+            <span class="shop-record-amount"><strong>{{ item.balance_paid_cents == null ? t('历史兑换', 'Resgate anterior') : '−' + brl(item.balance_paid_cents) }}</strong><small class="shop-status" :data-status="item.status">{{ status(item.type, item.status) }}</small></span>
           </button>
         </div>
         <p v-if="!history.loading && !history.error && !history.items.length" class="surface muted">{{ t('暂无兑换记录。', 'Nenhum resgate registrado.') }}</p>
@@ -473,12 +453,12 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             </div>
             <div class="shop-list-text">
               <h2>{{ subject.name }}</h2>
-              <p v-if="mode === 'goods'" class="shop-highlight">{{ number.format(subject.points_price) }} {{ t('积分', 'pontos') }}</p>
-              <p v-else class="muted">{{ rate ? rateText(rate.cents_per_point) : t('暂未取得比例 · 可查看兑换预览', 'Consulte a simulação para ver a taxa de conversão.') }}</p>
+              <p v-if="mode === 'goods'" class="shop-highlight">{{ subject.price_cents == null ? t('暂未定价', 'Preço pendente') : brl(subject.price_cents) }}</p>
+              <p v-else class="muted">{{ t('使用余额兑换', 'Resgate com saldo') }}</p>
             </div>
           </div>
           <p v-if="mode === 'goods' && subject.description" class="muted shop-description">{{ subject.description }}</p>
-          <p v-if="member && balance !== null" class="muted">{{ t('可用积分', 'Pontos disponíveis') }} {{ number.format(balance) }}</p>
+          <p v-if="member && balance !== null" class="muted">{{ t('可用余额', 'Saldo disponível') }} {{ brl(balance) }}</p>
 
           <template v-if="!member">
             <p>{{ t('请登录后继续兑换。', 'Entre para continuar o resgate.') }}</p>
@@ -489,14 +469,15 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             <div class="shop-actions"><button class="quiet" @click="goToHistory(mode)">{{ t('兑换记录', 'Histórico de resgates') }}</button><button class="primary" :disabled="submitting" @click="submit">{{ t('重试原请求', 'Repetir a solicitação original') }}</button></div>
           </template>
           <template v-else-if="mode === 'goods'">
-            <p v-if="!subject.stock" class="shop-notice">{{ t('商品已售罄。', 'Produto esgotado.') }}</p>
+            <p v-if="subject.price_cents == null" class="shop-notice">{{ t('商品暂未定价。', 'Produto sem preço no momento.') }}</p>
+            <p v-else-if="!subject.stock" class="shop-notice">{{ t('商品已售罄。', 'Produto esgotado.') }}</p>
             <template v-else-if="!address">
               <p>{{ t('您还没有绑定收货地址。', 'Você ainda não cadastrou um endereço de entrega.') }}</p>
               <div class="shop-actions"><button class="quiet" @click="back('/shop')">{{ t('取消', 'Cancelar') }}</button><button class="primary" @click="go('/address?next=' + sessionPath)">{{ t('去绑定', 'Cadastrar') }}</button></div>
             </template>
             <template v-else>
               <div class="shop-facts"><strong>{{ t('收货地址', 'Endereço de entrega') }}</strong><p>{{ address.recipient }} {{ address.masked_phone }}</p><p class="muted">{{ addressLine(address) }}</p></div>
-              <p v-if="balance !== null && balance < subject.points_price" class="error">{{ t('积分余额不足。', 'Saldo de pontos insuficiente.') }}</p>
+              <p v-if="balance !== null && balance < subject.price_cents" class="error">{{ t('可用余额不足。', 'Saldo disponível insuficiente.') }}</p>
               <button class="primary" :disabled="!confirmGoods || submitting" @click="submit">{{ t('确认兑换', 'Confirmar resgate') }}</button>
             </template>
           </template>
@@ -506,14 +487,14 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
           </template>
           <template v-else>
             <div class="shop-facts"><strong>{{ t('平台账号', 'Conta na plataforma') }}</strong><p class="muted">{{ binding.masked_platform_account }}</p></div>
-            <label class="shop-points">{{ t('消耗积分', 'Pontos a usar') }} <input v-model="points" class="field" type="text" inputmode="numeric" maxlength="10" :placeholder="t('输入正整数积分', 'Digite um número inteiro de pontos')" :disabled="submitting" /></label>
+            <label class="shop-points">{{ t('使用余额金额（BRL）', 'Valor a pagar com saldo (BRL)') }} <input v-model="amountInput" class="field" type="text" inputmode="decimal" maxlength="12" :placeholder="t('输入雷亚尔金额', 'Digite o valor em reais')" :disabled="submitting" /></label>
             <div class="shop-facts shop-estimate">
               <span class="muted">{{ t('预计到账（BRL）', 'Crédito estimado (BRL)') }}</span>
-              <strong class="shop-highlight" aria-live="polite">{{ previewing ? '—' : quote ? brl(quote.amount_cents) : validPoints && rate && !overBalance ? brl(Number(points) * rate.cents_per_point) : '—' }}</strong>
+              <strong class="shop-highlight" aria-live="polite">{{ quote ? brl(quote.amount_cents) : '—' }}</strong>
             </div>
-            <p v-if="points && !validPoints" class="error">{{ t('请输入 1 至 2,147,483,647 之间的整数积分。', 'Digite um valor inteiro entre 1 e 2.147.483.647 pontos.') }}</p>
-            <p v-else-if="overBalance" class="error">{{ t('积分余额不足。', 'Saldo de pontos insuficiente.') }}</p>
-            <button v-if="issue && !quote && validPoints && !overBalance && !previewing" class="quiet" @click="previewFunds">{{ t('重新获取兑换预览', 'Simular novamente') }}</button>
+            <p v-if="amountInput && !validAmount" class="error">{{ t('请输入有效的金额，最多两位小数。', 'Digite um valor válido com até duas casas decimais.') }}</p>
+            <p v-else-if="overBalance" class="error">{{ t('可用余额不足。', 'Saldo disponível insuficiente.') }}</p>
+            <button v-if="issue && !quote && validAmount && !overBalance && !previewing" class="quiet" @click="previewFunds">{{ t('重新获取兑换预览', 'Simular novamente') }}</button>
             <button v-else class="primary" :disabled="!quote || overBalance || balance === null || submitting" @click="submit">{{ t('确认兑换', 'Confirmar resgate') }}</button>
           </template>
         </article>
@@ -524,7 +505,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
         <div v-if="!member" class="surface stack"><p>{{ t('请登录查看订单详情。', 'Entre para ver os detalhes do pedido.') }}</p><button class="primary" @click="login">{{ t('登录', 'Entrar') }}</button></div>
         <article v-else-if="order" class="surface stack shop-checkout">
           <div class="shop-summary">
-            <div class="shop-list-text"><h2>{{ orderType === 'goods' ? order.product_name : order.platform_name }}</h2><p class="shop-highlight">−{{ number.format(orderType === 'goods' ? order.points_price : order.points) }} {{ t('积分', 'pontos') }}</p></div>
+            <div class="shop-list-text"><h2>{{ orderType === 'goods' ? order.product_name : order.platform_name }}</h2><p class="shop-highlight">{{ order.balance_paid_cents == null ? t('历史兑换', 'Resgate anterior') : '−' + brl(order.balance_paid_cents) }}</p></div>
             <span class="shop-status" :data-status="order.status">{{ status(orderType, order.status) }}</span>
           </div>
           <dl class="shop-details">
@@ -541,7 +522,6 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             <template v-else>
               <dt>{{ t('平台账号', 'Conta na plataforma') }}</dt><dd>{{ order.masked_platform_account }}</dd>
               <dt>{{ t('兑换金额', 'Valor do resgate') }}</dt><dd class="shop-highlight">{{ brl(order.amount_cents) }} {{ order.currency }}</dd>
-              <dt>{{ t('兑换比例', 'Taxa de conversão') }}</dt><dd>{{ rateText(order.cents_per_point) }}</dd>
               <template v-if="order.paid_at"><dt>{{ t('到账时间', 'Data do crédito') }}</dt><dd>{{ date(order.paid_at) }}</dd></template>
               <template v-if="order.paused || order.needs_review"><dt>{{ t('处理进度', 'Andamento') }}</dt><dd>{{ order.needs_review ? t('等待人工核实', 'Aguardando verificação manual') : t('发放已暂停', 'Crédito suspenso') }}</dd></template>
               <template v-if="order.reviewed_at"><dt>{{ t('审核时间', 'Data da análise') }}</dt><dd>{{ date(order.reviewed_at) }}</dd></template>

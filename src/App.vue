@@ -16,6 +16,7 @@ import ContentPages from './pages/ContentPages.vue'
 import CashWalletPage from './pages/CashWalletPage.vue'
 import WithdrawalHistoryPage from './pages/WithdrawalHistoryPage.vue'
 import PlatformPages from './pages/PlatformPages.vue'
+import ShopPages from './pages/ShopPages.vue'
 import MemberPages from './pages/MemberPages.vue'
 
 const route = currentRoute
@@ -28,7 +29,7 @@ const language = ref('zh-CN')
 const { t } = provideLocale(language)
 let sessionVersion = 0
 const navbar = {
-  '/': 'home', '/platforms': 'platforms', '/cash-wallet': 'cashWallet', '/red-packets': 'redPackets', '/member': 'member',
+  '/': 'home', '/platforms': 'platforms', '/shop': 'shop', '/red-packets': 'redPackets', '/member': 'member',
 }
 const authTitles = { '/login': '会员登录', '/register': '注册账号', '/reset-password': '修改密码' }
 const pages = [
@@ -40,6 +41,11 @@ const pages = [
   [/^\/(?:cashback|points)$/, '现金返利', PlatformPages, true],
   [/^\/bindings$/, '已绑定平台', PlatformPages, true],
   [/^\/bindings\/\d+$/, '绑定详情', PlatformPages, true],
+  [/^\/shop$/, '商城', ShopPages],
+  [/^\/shop\/products\/\d+$/, '商品详情', ShopPages],
+  [/^\/shop\/funds\/\d+$/, '平台资金兑换', ShopPages, true],
+  [/^\/shop\/redemptions$/, '商城兑换记录', ShopPages, true],
+  [/^\/shop\/redemptions\/\d+$/, '兑换详情', ShopPages, true],
   [/^\/member$/, '个人中心', MemberPages, true],
   [/^\/cash-wallet(?:\/withdraw)?$/, '余额提现', CashWalletPage, true],
   [/^\/withdrawal-history$/, '提现订单', WithdrawalHistoryPage, true],
@@ -179,6 +185,8 @@ function fallback() {
   const path = route.value.path
   if (path.includes('/reviews/new') || path.endsWith('/protection') && route.value.params.id) return '/platforms/' + route.value.params.id
   if (path.startsWith('/platforms/')) return '/platforms'
+  if (path.startsWith('/shop/redemptions/')) return '/shop/redemptions'
+  if (path.startsWith('/shop/')) return '/shop'
   if (path.startsWith('/bindings/')) return '/bindings'
   if (path.startsWith('/protection/')) return '/protection'
   if (path.startsWith('/red-packets/')) return '/red-packets'
