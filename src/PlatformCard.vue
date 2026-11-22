@@ -382,8 +382,8 @@ function details(event) {
 .platform-entry-inline :is(a, button):focus-visible { outline-color: #ffdc89; outline-offset: -3px; }
 
 .platform-entry-home {
-  --card-inline-padding: clamp(3px, 1vw, 5px);
-  min-height: calc((100cqi - 2 * var(--platform-column-gap)) / 3 + 47px);
+  --card-inline-padding: clamp(5px, 1.8vw, 9px);
+  min-height: calc((100cqi - 10px) / 2 + 47px);
   grid-template-rows: auto minmax(min-content, 1fr) auto;
   gap: 3px;
   padding: 30px var(--card-inline-padding) 5px;
@@ -415,30 +415,24 @@ function details(event) {
 }
 .platform-entry-home .platform-artwork img { padding: 0; }
 .platform-entry-home .platform-name { min-height: 17px; padding: 0 2px; text-shadow: 0 1px 4px #090604, 0 1px 10px #090604; }
-.platform-entry-home .platform-offers { gap: 3px; align-content: end; font-size: clamp(9px, 2.4vw, 11px); }
-.platform-entry-home .platform-offers svg { width: 12px; height: 12px; }
-@container (max-width: 330px) {
-  .platform-entry-home .platform-offers svg { display: none; }
-}
+.platform-entry-home .platform-offers { gap: 3px; align-content: end; font-size: clamp(9px, 2.7vw, 11px); }
 .platform-entry-home .platform-guarantee {
   width: 100%;
-  padding: 3px 2px;
+  padding-block: 3px;
   border-color: transparent;
   border-radius: 999px;
   background: rgb(35 19 8 / 70%);
   box-shadow: none;
 }
-.platform-entry-home .platform-offers strong { font-size: clamp(10px, 2.7vw, 12px); overflow-wrap: anywhere; }
-.platform-entry-home .platform-rebate { padding: 2px 3px; border-radius: 999px; background: rgb(14 12 11 / 68%); }
-.platform-entry-home .platform-entry-actions { gap: 3px; }
+.platform-entry-home .platform-offers strong { font-size: clamp(11px, 3.3vw, 13px); overflow-wrap: anywhere; }
+.platform-entry-home .platform-rebate { padding: 2px 7px; border-radius: 999px; background: rgb(14 12 11 / 68%); }
 .platform-entry-home .platform-entry-actions :is(a, button) {
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 2px;
-  padding-inline: 1px;
-  font-size: clamp(9px, 2.4vw, 11px);
+  gap: 3px;
+  padding-inline: 3px;
+  font-size: clamp(10px, 2.9vw, 13px);
   position: relative;
   isolation: isolate;
 }
@@ -460,7 +454,7 @@ function details(event) {
 .platform-entry-home .platform-entry-actions .platform-details::before { border-color: #b8b0a6ba; background: rgb(16 16 19 / 68%); }
 .platform-entry-home .platform-entry-actions .platform-details:hover::before { border-color: #ffca7d; }
 .platform-action-icon {
-  width: clamp(12px, 3vw, 15px);
+  width: clamp(12px, 3.5vw, 17px);
   height: auto;
   flex: none;
   fill: none;
@@ -468,5 +462,8 @@ function details(event) {
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+@media (max-width: 360px) {
+  .platform-entry-home:lang(pt-BR) .platform-entry-actions :is(a, button) { flex-direction: column; gap: 2px; }
 }
 </style>

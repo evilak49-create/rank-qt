@@ -128,7 +128,7 @@
   box-shadow: 0 1px 8px var(--accent-glow);
   font-weight: 850;
 }
-.home-gold .platform-grid { --platform-column-gap: 6px; container-type: inline-size; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px var(--platform-column-gap); }
+.home-gold .platform-grid { container-type: inline-size; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px; }
 .home-gold .featured { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
 .home-gold .locale-close, .home-gold .locale-option { border-color: #654c33; background: #221b16; }
 .home-gold .locale-option[aria-pressed="true"] { border-color: #d2994c; background: var(--surface-highlight); }
