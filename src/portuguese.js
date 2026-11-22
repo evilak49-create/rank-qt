@@ -121,6 +121,8 @@ export const portuguese = {
   "已到账：": "Créditos recebidos: ",
   "已发货": "Enviado",
   "已取消": "Cancelado",
+  "已取消，款项已退回": "Cancelado, valor devolvido",
+  "已拒绝，款项已扣除": "Recusado, valor descontado",
   "已拆开": "Bônus aberto",
   "已拆开红包，初始奖励 ": "Você abriu o bônus e ganhou ",
   "已收藏": "Nos favoritos",

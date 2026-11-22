@@ -36,7 +36,7 @@ const canSubmit = computed(() => Boolean(attempt.value || (
 
 const statuses = {
   pending: '待审核', processing: '出款处理中', unresolved: '结果待确认',
-  paid: '已到账', failed: '出款失败，已退回', rejected: '已驳回，已退回',
+  paid: '已到账', failed: '出款失败，已退回', rejected: '已驳回，已退回', cancelled: '已取消，款项已退回',
 }
 
 function showError(failure) {
@@ -130,7 +130,7 @@ watchNotice(error, '余额提现提醒', 'error')
       </div>
       <p v-if="!history.data.length" class="muted">{{ t('暂无余额提现记录。') }}</p>
       <article v-for="order in history.data" :key="order.id" class="stack">
-        <strong>{{ formatBrl(order.amount_cents) }} · {{ t(statuses[order.status]) || order.status }}</strong>
+        <strong>{{ formatBrl(order.amount_cents) }} · {{ t(order.rejection_deducted ? '已拒绝，款项已扣除' : statuses[order.status]) || order.status }}</strong>
         <time class="muted" :datetime="order.created_at">{{ new Date(order.created_at).toLocaleString(locale) }}</time>
         <p v-if="order.review_reason">{{ order.review_reason }}</p>
       </article>
