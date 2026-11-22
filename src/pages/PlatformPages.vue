@@ -179,7 +179,8 @@ function bindingPlatform(binding) {
 }
 
 function bindPath(id, destination) {
-  const params = new URLSearchParams({ platform: id, return: destination })
+  const params = new URLSearchParams({ platform: id })
+  if (destination) params.set('return', destination)
   return '/binding?' + params
 }
 
@@ -692,16 +693,10 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
             <p class="hero-rating"><span class="score"><span aria-hidden="true">★</span> {{ platformScore }}</span><span class="muted">{{ platform.review_count }} {{ t('条评价') }}</span></p>
           </div>
         </div>
-        <dl v-if="maxRebate || rebateWager" class="platform-rebate-summary" :aria-label="t('返利信息', 'Informações de cashback')">
-          <div v-if="maxRebate" class="platform-rebate-rate">
-            <dt>{{ t('最高返利', 'Cashback máximo') }}</dt>
-            <dd>{{ maxRebate }}</dd>
-          </div>
-          <div v-if="rebateWager" class="platform-rebate-wager">
-            <dt>{{ t('最低打码要求', 'Apostas mínimas') }}</dt>
-            <dd>{{ rebateWager }}</dd>
-          </div>
-        </dl>
+        <div class="platform-hero-actions">
+          <button class="quiet" type="button" @click="go(bindPath(platform.id))">{{ t('绑定平台', 'Vincular conta') }}</button>
+          <button class="primary" type="button" @click="go('/cashback?platform=' + platform.id + '&amp;auto=1')">{{ t('一键返利', 'Consultar cashback') }}</button>
+        </div>
       </header>
       <section class="surface protection-banner">
         <span class="protection-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z"/><path d="m9 12 2 2 4-4"/></svg></span>
@@ -714,6 +709,16 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
+      <dl v-if="maxRebate || rebateWager" class="surface platform-rebate-summary" :aria-label="t('返利信息', 'Informações de cashback')">
+        <div v-if="maxRebate" class="platform-rebate-rate">
+          <dt>{{ t('最高返利', 'Cashback máximo') }}</dt>
+          <dd>{{ maxRebate }}</dd>
+        </div>
+        <div v-if="rebateWager" class="platform-rebate-wager">
+          <dt>{{ t('最低打码倍数', 'Multiplicador mínimo de apostas') }}</dt>
+          <dd>{{ rebateWager }}</dd>
+        </div>
+      </dl>
       <div class="surface platform-tabs"
         role="tablist" :aria-label="t('平台详情')">
         <button v-for="([value, label, translation], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
