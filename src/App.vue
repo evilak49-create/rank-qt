@@ -13,13 +13,10 @@ import { icons } from './icons'
 import { back, currentRoute, go, restoreScroll, resume, safePath } from './navigation'
 import AuthPages from './pages/AuthPages.vue'
 import ContentPages from './pages/ContentPages.vue'
-import PointQuotePage from './pages/PointQuotePage.vue'
 import CashWalletPage from './pages/CashWalletPage.vue'
 import WithdrawalHistoryPage from './pages/WithdrawalHistoryPage.vue'
 import PlatformPages from './pages/PlatformPages.vue'
-import ShopPages from './pages/ShopPages.vue'
 import MemberPages from './pages/MemberPages.vue'
-import CheckinPage from './pages/CheckinPage.vue'
 
 const route = currentRoute
 const member = ref(null)
@@ -31,7 +28,7 @@ const language = ref('zh-CN')
 const { t } = provideLocale(language)
 let sessionVersion = 0
 const navbar = {
-  '/': 'home', '/platforms': 'platforms', '/shop': 'shop', '/red-packets': 'redPackets', '/member': 'member',
+  '/': 'home', '/platforms': 'platforms', '/cash-wallet': 'cashWallet', '/red-packets': 'redPackets', '/member': 'member',
 }
 const authTitles = { '/login': '会员登录', '/register': '注册账号', '/reset-password': '修改密码' }
 const pages = [
@@ -40,21 +37,12 @@ const pages = [
   [/^\/platforms\/\d+\/reviews\/new$/, '写评价', PlatformPages, true],
   [/^\/platforms\/\d+\/protection$/, '保障条款', PlatformPages],
   [/^\/binding$/, '绑定平台', PlatformPages, true],
-  [/^\/points$/, '兑换积分与返利', PlatformPages, true],
-  [/^\/points\/quotes\/\d+$/, '存款换积分详情', PointQuotePage, true],
+  [/^\/(?:cashback|points)$/, '现金返利', PlatformPages, true],
   [/^\/bindings$/, '已绑定平台', PlatformPages, true],
   [/^\/bindings\/\d+$/, '绑定详情', PlatformPages, true],
-  [/^\/shop$/, '积分商城', ShopPages],
-  [/^\/shop\/products\/\d+$/, '商品详情', ShopPages],
-  [/^\/shop\/funds\/\d+$/, '平台资金兑换', ShopPages, true],
-  [/^\/shop\/redemptions$/, '商城兑换记录', ShopPages, true],
-  [/^\/shop\/redemptions\/\d+$/, '兑换详情', ShopPages, true],
   [/^\/member$/, '个人中心', MemberPages, true],
-  [/^\/check-in$/, '每日签到', CheckinPage, true],
-  [/^\/wallet$/, '积分钱包', MemberPages, true],
   [/^\/cash-wallet(?:\/withdraw)?$/, '余额提现', CashWalletPage, true],
   [/^\/withdrawal-history$/, '提现订单', WithdrawalHistoryPage, true],
-  [/^\/wallet\/\d+$/, '积分明细', MemberPages, true],
   [/^\/address$/, '收货地址', MemberPages, true],
   [/^\/pix$/, 'Pix 收款账户', MemberPages, true],
   [/^\/protection$/, '我的保障', MemberPages, true],
@@ -189,13 +177,9 @@ function passwordReset(path) {
 
 function fallback() {
   const path = route.value.path
-  if (path.startsWith('/shop/redemptions/')) return '/shop/redemptions'
-  if (path.startsWith('/shop/')) return '/shop'
   if (path.includes('/reviews/new') || path.endsWith('/protection') && route.value.params.id) return '/platforms/' + route.value.params.id
   if (path.startsWith('/platforms/')) return '/platforms'
   if (path.startsWith('/bindings/')) return '/bindings'
-  if (path.startsWith('/points/quotes/')) return '/wallet'
-  if (path.startsWith('/wallet/')) return '/wallet'
   if (path.startsWith('/protection/')) return '/protection'
   if (path.startsWith('/red-packets/')) return '/red-packets'
   if (path.startsWith('/help/')) return '/help'

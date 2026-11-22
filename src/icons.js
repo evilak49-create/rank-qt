@@ -1,6 +1,7 @@
 export const icons = {
   home: 'm3 10 9-7 9 7v10h-6v-6H9v6H3z',
   platforms: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
+  cashWallet: 'M3 6h18v12H3zM3 10h18m-5 4h2',
   shop: 'M3 8h18v4H3zM5 12v8h14v-8M12 8v12M12 8C5 8 5 3 8 3c2 0 4 5 4 5s2-5 4-5c3 0 3 5-4 5Z',
   support: 'M4 13v-1a8 8 0 0 1 16 0v1M4 13h3v6H4zM17 13h3v6h-3zM20 19c0 2-2 2-5 2',
   member: 'M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2',

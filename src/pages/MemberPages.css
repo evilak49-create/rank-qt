@@ -23,17 +23,15 @@
 }
 .profile-balance-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   padding-block: 13px 15px;
 }
 .profile-asset {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 5px;
   min-width: 0;
   padding-inline: 16px;
 }
-.profile-asset + .profile-asset { border-inline-start: 1px solid var(--line); }
 .profile-asset h2 { color: var(--muted); font-size: 12px; font-weight: 600; }
 .profile-asset > strong {
   color: var(--text);
@@ -43,9 +41,10 @@
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
-.profile-cash-balance > strong { color: var(--highlight); }
+.profile-cash-balance > strong { grid-row: 2; color: var(--highlight); }
 .profile-asset > button {
-  justify-self: start;
+  grid-area: 1 / 2 / 3;
+  align-self: center;
   min-width: min(96px, 100%);
   min-height: 44px;
   margin-top: 4px;
@@ -89,7 +88,7 @@
 .checkin-rules li::marker { color: var(--highlight); font-weight: 750; }
 .profile-section { display: grid; gap: 6px; padding-block: 11px 7px; }
 .profile-section h2 { font-size: 15px; }
-.profile-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.profile-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
 .profile-shortcuts button { display: grid; justify-items: center; align-content: center; gap: 5px; min-height: 70px; border-radius: 10px; font-size: 12px; }
 .profile-shortcuts button:hover, .profile-menu button:hover { background: var(--surface-highlight); }
 .profile-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--accent); background: var(--surface-highlight); }

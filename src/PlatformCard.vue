@@ -24,6 +24,7 @@ const props = defineProps({
   detailHref: String,
   row: Boolean,
   inlineActions: Boolean,
+  direct: Boolean,
   home: Boolean,
 })
 const { locale, t } = useLocale()
@@ -80,7 +81,7 @@ function close() {
 }
 
 function hover(event) {
-  if (!props.inlineActions && event.pointerType === 'mouse' && !opened.value) activeMenu.value = { id: menuId, pinned: false }
+  if (!props.inlineActions && !props.direct && !props.home && event.pointerType === 'mouse' && !opened.value) activeMenu.value = { id: menuId, pinned: false }
 }
 
 function leave() {
@@ -123,7 +124,7 @@ function details(event) {
 </script>
 
 <template>
-  <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row, 'platform-entry-poster': !$slots.default, 'platform-entry-inline': inlineActions, 'platform-entry-home': home }"
+  <div ref="card" class="platform-entry" :class="{ 'platform-entry-row': row, 'platform-entry-poster': !$slots.default, 'platform-entry-inline': inlineActions, 'platform-entry-home': home, 'platform-entry-direct': direct || home }"
        :data-top-ranked="inlineActions && podiumRank === 1 ? '' : undefined"
        @pointerenter="hover" @pointerleave="leave"
        @focusout="event => { if (!card?.contains(event.relatedTarget)) close() }"
@@ -153,7 +154,8 @@ function details(event) {
       </div>
     </div>
     <slot name="summary" />
-    <button v-if="!inlineActions" ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
+    <a v-if="direct || home" class="platform-entry-trigger" :href="'#' + path" :aria-label="t('平台详情') + ' · ' + name" @click="details"></a>
+    <button v-else-if="!inlineActions" ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
             :aria-expanded="opened" @click="toggle"></button>
     <div v-if="opened || inlineActions" class="platform-entry-actions">
       <template v-for="action in actionOrder" :key="action">
@@ -416,6 +418,7 @@ function details(event) {
 .platform-entry-home .platform-artwork img { padding: 0; }
 .platform-entry-home .platform-name { min-height: 17px; padding: 0 2px; text-shadow: 0 1px 4px #090604, 0 1px 10px #090604; }
 .platform-entry-home .platform-offers { gap: 3px; align-content: end; font-size: clamp(9px, 2.7vw, 11px); }
+.platform-entry-direct .platform-guarantee { position: relative; z-index: 2; }
 .platform-entry-home .platform-guarantee {
   width: 100%;
   padding-block: 3px;

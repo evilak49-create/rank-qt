@@ -19,7 +19,7 @@ const blocks = reactive({
   featured: { path: '/platforms/featured', data: [], state: 'loading' },
   favorites: { path: '/platform-favorites', data: [], state: 'loading' },
 })
-const shortcuts = { bind: '/binding', points: '/points', help: '/help', support: '/support' }
+const shortcuts = { bind: '/binding', cashback: '/cashback', help: '/help', support: '/support' }
 const languages = [
   { id: 'zh-CN', name: '简体中文' },
   { id: 'pt-BR', name: 'Português' },
@@ -135,7 +135,7 @@ function copyTextForError() { return props.copy.error }
 
     <div class="shortcuts" :aria-label="copy.shortcuts">
       <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="go(shortcuts[type])">
-        <span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icons[type === 'points' ? 'shop' : type]"/></svg></span>
+        <span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icons[type === 'cashback' ? 'shop' : type]"/></svg></span>
         <strong>{{ copy[type] }}</strong>
       </button>
     </div>
