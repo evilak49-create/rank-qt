@@ -122,7 +122,6 @@
 .review-meta time { font-size: 11px; }
 .review-stars { white-space: nowrap; }
 .preserved { white-space: pre-wrap; overflow-wrap: anywhere; }
-.placeholder { color: var(--muted); font-size: 12px; }
 .rebate-panel {
   --rebate-gold: #ffdc69;
   --rebate-border: #b47b2b;

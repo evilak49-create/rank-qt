@@ -11,6 +11,7 @@ import { icons } from '../icons'
 import { formatBrl, formatGuaranteeAmount } from '../money'
 import PlatformCard from '../PlatformCard.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
+import PlatformIntroduction from './PlatformIntroduction.vue'
 
 const { locale, t } = useLocale()
 
@@ -766,35 +767,10 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet"
           :aria-disabled="reviewsLoading" @click="loadPlatformReviews(reviewPage + 1)">{{ t('加载更多') }}</button>
       </section>
-      <section v-show="tab === 'description'" id="platform-panel-description" class="stack" role="tabpanel"
+      <section v-show="tab === 'description'" id="platform-panel-description" role="tabpanel"
         aria-labelledby="platform-tab-description" tabindex="0">
-        <section class="surface stack platform-content">
-          <h2>{{ t('品牌介绍', 'Sobre a marca') }}</h2>
-          <p class="preserved">{{ platform.description || t('暂无平台简介。') }}</p>
-        </section>
-        <section class="surface stack platform-content">
-          <h2>{{ t('平台信息', 'Informações da plataforma') }}</h2>
-          <dl class="platform-data">
-            <div><dt>{{ t('平台名称', 'Nome da plataforma') }}</dt><dd>{{ platform.name }}</dd></div>
-            <div><dt>{{ t('平台评分', 'Nota da plataforma') }}</dt><dd>{{ platformScore }} / 5</dd></div>
-            <div><dt>{{ t('平台客服', 'Suporte da plataforma') }}</dt><dd class="placeholder">{{ t('预留数据') }}</dd></div>
-          </dl>
-        </section>
-        <section class="surface stack platform-content">
-          <h2>{{ t('平台优势', 'Benefícios da plataforma') }}</h2>
-          <dl v-if="guaranteeAmount || Number(platform.max_rebate_percent) > 0" class="platform-data">
-            <div v-if="guaranteeAmount"><dt>{{ t('本站担保') }}</dt><dd>{{ guaranteeAmount }}</dd></div>
-            <div v-if="Number(platform.max_rebate_percent) > 0"><dt>{{ t('平台标注最高返利', 'Cashback máximo anunciado') }}</dt><dd>{{ formatRule(platform.max_rebate_percent, '%') }}</dd></div>
-          </dl>
-          <p class="placeholder">{{ t('更多平台优势为预留数据。', 'Outros benefícios ainda não foram disponibilizados.') }}</p>
-        </section>
-        <section class="surface stack platform-content">
-          <h2>{{ t('牌照与安全', 'Licenças e segurança') }}</h2>
-          <dl class="platform-data">
-            <div><dt>{{ t('监管牌照', 'Licença regulatória') }}</dt><dd class="placeholder">{{ t('预留数据') }}</dd></div>
-            <div><dt>{{ t('安全资质', 'Certificações de segurança') }}</dt><dd class="placeholder">{{ t('预留数据') }}</dd></div>
-          </dl>
-        </section>
+        <PlatformIntroduction :platform="platform" :guarantee-amount="guaranteeAmount"
+          :max-rebate="platform.max_rebate_percent == null ? '' : formatRule(platform.max_rebate_percent, '%')" />
       </section>
       <section v-show="tab === 'rebate'" id="platform-panel-rebate" class="rebate-panel" role="tabpanel"
         aria-labelledby="platform-tab-rebate" tabindex="0">
