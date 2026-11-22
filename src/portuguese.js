@@ -41,6 +41,7 @@ export const portuguese = {
   "兑换积分": "Resgatar pontos",
   "兑换积分与返利": "Resgatar pontos e cashback",
   "兑换积分提醒": "Aviso sobre o resgate",
+  "兑换": "Resgates",
   "兑换记录": "Histórico de resgates",
   "兑换详情": "Detalhes do resgate",
   "入账时间": "Data do crédito",

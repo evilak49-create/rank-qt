@@ -16,7 +16,7 @@ import PlatformIntroduction from './PlatformIntroduction.vue'
 
 const { locale, t } = useLocale()
 
-const props = defineProps({ route: { type: Object, required: true }, member: Object })
+const props = defineProps({ route: { type: Object, required: true }, member: Object, cardBindings: Map })
 const emit = defineEmits(['credited'])
 const screen = computed(() => {
   const path = props.route.path
@@ -429,8 +429,10 @@ async function initialize() {
         go('/bindings/' + preset.id, { replace: true })
         return
       }
-      if (preset) choose(bindingPlatform(preset))
-      else if (/^\d+$/.test(platformId ?? '')) {
+      if (preset) {
+        choose(bindingPlatform(preset))
+        if (mode === 'cashback' && props.route.query.get('auto') === '1') await queryCashback()
+      } else if (/^\d+$/.test(platformId ?? '')) {
         const result = await api('/platforms/' + platformId, { signal })
         if (!signal.aborted) choose(result.data)
       }
@@ -659,6 +661,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
       <div v-if="directory.length" class="platform-grid">
         <PlatformCard v-for="item in directory" :key="item.id" direct
                       :platform-id="item.id" :name="item.name" :logo-url="item.logo_url"
+                      :cashback-binding-id="cardBindings?.get(String(item.id))"
                       :rating="item.rating" :rank="item.featured_position"
                       :guarantee-amount="item.guarantee_amount_brl" :max-rebate-percent="item.max_rebate_percent"
                       :promotion-url="item.promotion_url" inline-actions />

@@ -10,7 +10,7 @@ import { go } from './navigation'
 import { useLocale } from './locale.js'
 import './home.css'
 
-const props = defineProps({ route: Object, member: Object, language: String, copy: Object })
+const props = defineProps({ route: Object, member: Object, cardBindings: Map, language: String, copy: Object })
 const emit = defineEmits(['language'])
 const { t } = useLocale()
 const blocks = reactive({
@@ -147,7 +147,8 @@ function copyTextForError() { return props.copy.error }
       </div>
       <div v-if="selectedBlock.state === 'ready' && selectedBlock.data.length" class="platform-grid">
         <PlatformCard v-for="platform in selection === 'featured' ? selectedBlock.data.slice(0, 10) : selectedBlock.data"
-                      :key="platform.id" :platform-id="platform.id" :name="platform.name" :logo-url="platform.logo_url"
+                      :key="platform.id" :platform-id="platform.id"
+                      :cashback-binding-id="cardBindings?.get(String(platform.id))" :name="platform.name" :logo-url="platform.logo_url"
                       :rating="platform.rating" :rank="platform.featured_position"
                       :guarantee-amount="platform.guarantee_amount_brl" :max-rebate-percent="platform.max_rebate_percent"
                       :promotion-url="platform.promotion_url" inline-actions home />

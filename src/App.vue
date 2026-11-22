@@ -21,6 +21,7 @@ import MemberPages from './pages/MemberPages.vue'
 
 const route = currentRoute
 const member = ref(null)
+const cardBindings = shallowRef(new Map())
 const sessionState = ref('loading')
 const sessionError = ref('')
 const authPhone = ref('')
@@ -41,15 +42,13 @@ const pages = [
   [/^\/(?:cashback|points)$/, '现金返利', PlatformPages, true],
   [/^\/bindings$/, '已绑定平台', PlatformPages, true],
   [/^\/bindings\/\d+$/, '绑定详情', PlatformPages, true],
-  [/^\/shop$/, '商城', ShopPages],
-  [/^\/shop\/products\/\d+$/, '商品详情', ShopPages],
+  [/^\/shop$/, '兑换', ShopPages],
   [/^\/shop\/funds\/\d+$/, '平台资金兑换', ShopPages, true],
-  [/^\/shop\/redemptions$/, '商城兑换记录', ShopPages, true],
+  [/^\/shop\/redemptions$/, '兑换记录', ShopPages, true],
   [/^\/shop\/redemptions\/\d+$/, '兑换详情', ShopPages, true],
   [/^\/member$/, '个人中心', MemberPages, true],
   [/^\/cash-wallet(?:\/withdraw)?$/, '余额提现', CashWalletPage, true],
   [/^\/withdrawal-history$/, '提现订单', WithdrawalHistoryPage, true],
-  [/^\/address$/, '收货地址', MemberPages, true],
   [/^\/pix$/, 'Pix 收款账户', MemberPages, true],
   [/^\/protection$/, '我的保障', MemberPages, true],
   [/^\/protection\/bindings\/\d+\/terms$/, '保障条款', MemberPages, true],
@@ -79,6 +78,24 @@ const viewRoute = computed(() => {
   const previous = lastView.value
   return !member.value && requiresMember(previous) ? homeRoute : previous
 })
+watch([() => ['/', '/platforms'].includes(viewRoute.value.path), () => member.value?.id], async ([showCards, memberId], _, onCleanup) => {
+  cardBindings.value = new Map()
+  if (!showCards || memberId == null) return
+  const controller = new AbortController()
+  const { signal } = controller
+  onCleanup(() => controller.abort())
+  try {
+    const bindings = new Map()
+    for (let page = 1; ; page += 1) {
+      const result = await api('/platform-bindings?page=' + page, { signal })
+      for (const item of result.data) bindings.set(String(item.platform_id), item.id)
+      if (page >= result.last_page) break
+    }
+    if (!signal.aborted) cardBindings.value = bindings
+  } catch {
+    // Public cards stay usable if the member's bindings cannot be read.
+  }
+}, { immediate: true })
 const viewConfiguration = computed(() => pages.find(([pattern]) => pattern.test(viewRoute.value.path)))
 const page = computed(() => viewConfiguration.value?.[2])
 const requiresSession = computed(() => requiresMember(route.value))
@@ -204,7 +221,7 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
 </script>
 
 <template>
-  <HomePage v-if="viewRoute.path === '/' && viewReady" :route="viewRoute" :language="language" :copy="copy" :member="member"
+  <HomePage v-if="viewRoute.path === '/' && viewReady" :route="viewRoute" :language="language" :copy="copy" :member="member" :card-bindings="cardBindings"
             @language="language = $event" />
   <template v-else>
     <header v-if="viewRoute.path !== '/support'" class="page-topbar">
@@ -229,6 +246,7 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
           <component :is="page" v-if="cachedView" :key="viewRoute.fullPath" :route="viewRoute" :language="language" />
         </KeepAlive>
         <component :is="page" v-if="page && !cachedView" :key="viewRoute.path" :route="viewRoute" :member="member" :language="language"
+                   v-bind="page === PlatformPages ? { cardBindings } : {}"
                    @logout="logout" @refresh-member="refreshMember" @credited="refreshMember" />
         <div v-else-if="!page && viewRoute.path !== '/support'" class="state">
           <p>{{ t('这个页面不存在。') }}</p><button class="text-button" @click="go('/')">{{ t('返回首页') }}</button>

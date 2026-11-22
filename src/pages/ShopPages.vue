@@ -18,7 +18,7 @@ const emit = defineEmits(['refresh-member'])
 const { t, locale } = useLocale()
 const filters = [
   { id: 'all', label: ['全部', 'Todos'] },
-  { id: 'goods', label: ['商品', 'Produtos'] },
+  { id: 'goods', label: ['历史商品订单', 'Pedidos antigos'] },
   { id: 'funds', label: ['平台资金', 'Crédito na plataforma'] },
 ]
 const statusLabels = computed(() => ({
@@ -30,7 +30,6 @@ const mode = computed(() => {
   const { path, params } = props.route
   if (path === '/shop') return 'catalog'
   if (path === '/shop/redemptions') return 'history'
-  if (params.id && path === '/shop/products/' + params.id) return 'goods'
   if (params.id && path === '/shop/funds/' + params.id) return 'funds'
   if (params.id && path === '/shop/redemptions/' + params.id) return 'detail'
   return 'missing'
@@ -45,7 +44,6 @@ const history = ref(null)
 const search = ref('')
 const balance = ref(null)
 const subject = ref(null)
-const address = ref(null)
 const binding = ref(null)
 const order = ref(null)
 const amountInput = ref('')
@@ -55,7 +53,6 @@ const refreshingOrder = ref(false)
 const previewing = ref(false)
 const submitting = ref(false)
 const issue = ref('')
-const notice = ref('')
 const retry = ref(null)
 const brokenImages = ref(new Set())
 let controller
@@ -65,7 +62,6 @@ let quoteTimer
 const amountCents = computed(() => parseBrl(amountInput.value))
 const validAmount = computed(() => amountCents.value !== null && amountCents.value <= 2147483647)
 const overBalance = computed(() => balance.value !== null && amountCents.value > balance.value)
-const confirmGoods = computed(() => address.value && subject.value?.stock > 0 && balance.value !== null && subject.value.price_cents != null && balance.value >= subject.value.price_cents)
 const sessionPath = computed(() => encodeURIComponent(props.route.fullPath || props.route.path))
 const redemptionPath = (id, type) => '/shop/redemptions/' + id + '?type=' + type
 const status = (type, value) => value === 'pending' ? (type === 'goods' ? t('待发货', 'Aguardando envio') : t('待审核', 'Aguardando análise')) : statusLabels.value[value] || t('状态待更新', 'Situação a confirmar')
@@ -103,9 +99,9 @@ function fetchList(list, path, signal) {
     .finally(() => { list.loading = false })
 }
 
-function catalogPage(type) {
+function catalogPage() {
   const term = encodeURIComponent((props.route.query.get('search') || '').slice(0, 120))
-  return fetchList(catalog.value[type], (type === 'products' ? '/shop/products' : '/platforms') + '?search=' + term, controller.signal)
+  return fetchList(catalog.value, '/platforms?search=' + term, controller.signal)
 }
 
 const orderEndpoints = { goods: '/shop/orders', funds: '/platform-funds/orders' }
@@ -218,8 +214,8 @@ async function load() {
   clearTimeout(quoteTimer)
   quoteGeneration += 1
   loading.value = previewing.value = submitting.value = refreshingOrder.value = false
-  issue.value = notice.value = amountInput.value = ''
-  subject.value = address.value = binding.value = quote.value = order.value = null
+  issue.value = amountInput.value = ''
+  subject.value = binding.value = quote.value = order.value = null
   balance.value = props.member?.available_balance_cents ?? null
   retry.value = props.member ? submissions.get(requestKey()) || null : null
   const id = props.route.params.id
@@ -229,11 +225,10 @@ async function load() {
     const key = search.value
     if (!catalogs.has(key)) {
       if (catalogs.size >= 12) catalogs.delete(catalogs.keys().next().value)
-      catalogs.set(key, { products: newList(), platforms: newList() })
+      catalogs.set(key, newList())
     }
     catalog.value = catalogs.get(key)
-    if (!catalog.value.products.page) catalogPage('products')
-    if (!catalog.value.platforms.page) catalogPage('platforms')
+    if (!catalog.value.page) catalogPage()
     if (props.member) readBalance(signal)
     return
   }
@@ -252,17 +247,13 @@ async function load() {
   if (mode.value === 'missing') return
   loading.value = true
   try {
-    const goods = mode.value === 'goods'
-    const publicPath = goods ? '/shop/products/' : '/platforms/'
-    const memberData = !props.member ? null : goods
-      ? api('/shipping-address', { signal }).then(result => result.data)
-      : findBinding(id, signal)
     if (props.member) readBalance(signal)
-    const [item, prerequisite] = await Promise.all([api(publicPath + id, { signal }), memberData])
+    const [item, prerequisite] = await Promise.all([
+      api('/platforms/' + id, { signal }), props.member ? findBinding(id, signal) : null,
+    ])
     if (signal.aborted) return
     subject.value = item.data
-    if (goods) address.value = prerequisite
-    else binding.value = prerequisite
+    binding.value = prerequisite
   } catch (error) {
     if (!signal.aborted) issue.value = message(error)
   } finally {
@@ -288,7 +279,7 @@ function previewFunds() {
   const generation = ++quoteGeneration
   if (mode.value !== 'funds' || !binding.value || retry.value || !validAmount.value || overBalance.value) return
   const signal = controller.signal
-  issue.value = notice.value = ''
+  issue.value = ''
   previewing.value = true
   quoteTimer = setTimeout(async () => {
     try {
@@ -310,44 +301,31 @@ watch([amountInput, binding, overBalance], previewFunds)
 
 async function submit() {
   if (submitting.value || !props.member) return
-  const goods = mode.value === 'goods'
   const previous = retry.value
-  if (!previous && (goods ? !confirmGoods.value : !quote.value || overBalance.value || balance.value === null)) return
+  if (!previous && (!quote.value || overBalance.value || balance.value === null)) return
   const key = requestKey()
   const signal = controller.signal
-  const payload = previous || (goods
-    ? { product_id: subject.value.id, address_version: address.value.version, price_cents: subject.value.price_cents, request_id: createRequestId() }
-    : { binding_id: binding.value.id, amount_cents: quote.value.balance_paid_cents, request_id: createRequestId() })
+  const payload = previous || {
+    binding_id: binding.value.id, amount_cents: quote.value.balance_paid_cents, request_id: createRequestId(),
+  }
   submissions.set(key, payload)
   submitting.value = true
-  issue.value = notice.value = ''
+  issue.value = ''
   try {
-    const { data } = await api(goods ? '/shop/orders' : '/platform-funds/orders', { body: payload })
+    const { data } = await api('/platform-funds/orders', { body: payload })
     submissions.delete(key)
-    if (goods) {
-      for (const entry of catalogs.values()) {
-        const item = entry.products.items.find(item => String(item.id) === String(payload.product_id))
-        if (item && item.stock > 0) item.stock -= 1
-      }
-    }
     if (!signal.aborted) {
       emit('refresh-member')
       showNotice(t('兑换已提交', 'Resgate solicitado'), t('可在兑换记录中查看订单进度。', 'Acompanhe o pedido no histórico de resgates.'), 'success')
-      go(redemptionPath(data.id, goods ? 'goods' : 'funds'), { replace: true })
+      go(redemptionPath(data.id, 'funds'), { replace: true })
     }
   } catch (error) {
     const knownFailure = [400, 403, 404, 409, 422].includes(error.status)
     if (knownFailure) submissions.delete(key)
     if (signal.aborted) return
     retry.value = knownFailure ? null : payload
-    if (goods && error.status === 409 && !error.message.includes('请求号')) {
-      const checkoutPath = props.route.path
-      await load()
-      if (props.route.path === checkoutPath && subject.value) notice.value = t('请重新核对售价、余额和收货地址后确认。', 'Confira novamente o preço, o saldo e o endereço antes de confirmar.')
-    } else {
-      issue.value = knownFailure ? message(error) : t('订单结果尚未确认。可查看兑换记录，或使用同一请求重试。', 'O resultado ainda não foi confirmado. Consulte o histórico ou repita a mesma solicitação.')
-      if (knownFailure) readBalance(signal)
-    }
+    issue.value = knownFailure ? message(error) : t('订单结果尚未确认。可查看兑换记录，或使用同一请求重试。', 'O resultado ainda não foi confirmado. Consulte o histórico ou repita a mesma solicitação.')
+    if (knownFailure) readBalance(signal)
   } finally {
     if (!signal.aborted) submitting.value = false
   }
@@ -358,10 +336,8 @@ function failedImage(key) {
 }
 
 import { showNotice, watchNotice } from '../feedback'
-watchNotice(issue, () => t('商城兑换提醒', 'Resgate na loja'), 'error')
-watchNotice(notice, () => t('兑换提醒', 'Aviso de resgate'))
-watchNotice(() => catalog.value?.products.error, () => t('商品加载失败', 'Não foi possível carregar os produtos'), 'error')
-watchNotice(() => catalog.value?.platforms.error, () => t('平台资金列表加载失败', 'Não foi possível carregar as plataformas'), 'error')
+watchNotice(issue, () => t('兑换提醒', 'Aviso de resgate'), 'error')
+watchNotice(() => catalog.value?.error, () => t('平台资金列表加载失败', 'Não foi possível carregar as plataformas'), 'error')
 watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Não foi possível carregar o histórico'), 'error')
 </script>
 
@@ -377,34 +353,14 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
         <button class="quiet" @click="goToHistory('all')">{{ t('兑换记录', 'Histórico de resgates') }} <span aria-hidden="true">›</span></button>
       </div>
       <form class="shop-search" role="search" @submit.prevent="searchCatalog">
-        <input v-model="search" class="field" type="search" maxlength="120" :placeholder="t('搜索商品或平台', 'Buscar produtos ou plataformas')" :aria-label="t('搜索商品或平台', 'Buscar produtos ou plataformas')" @search="searchCatalog" />
+        <input v-model="search" class="field" type="search" maxlength="120" :placeholder="t('搜索平台', 'Buscar plataformas')" :aria-label="t('搜索平台', 'Buscar plataformas')" @search="searchCatalog" />
         <button class="quiet" type="submit">{{ t('搜索', 'Buscar') }}</button>
       </form>
 
-      <section class="stack" aria-labelledby="shop-goods">
-        <h2 id="shop-goods">{{ t('商品兑换', 'Resgatar produtos') }}</h2>
-        <div v-if="catalog.products.items.length" class="shop-products">
-          <article v-for="item in catalog.products.items" :key="item.id" class="surface shop-product">
-            <div class="shop-art">
-              <img v-if="imageUrl(item.image_url) && !brokenImages.has('product-' + item.id)" :src="imageUrl(item.image_url)" alt="" loading="lazy" @error="failedImage('product-' + item.id)" />
-              <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.shop" /></svg>
-            </div>
-            <div class="shop-product-content">
-              <h3>{{ item.name }}</h3>
-              <p class="shop-highlight">{{ item.price_cents == null ? t('暂未定价', 'Preço pendente') : brl(item.price_cents) }}</p>
-              <p class="muted">{{ item.stock ? t('库存 ', 'Estoque: ') + item.stock : t('已售罄', 'Esgotado') }}</p>
-              <button class="primary" :disabled="!item.stock || item.price_cents == null" :aria-label="t('兑换 ', 'Resgatar ') + item.name" @click="go('/shop/products/' + item.id)">{{ t('兑换', 'Resgatar') }}</button>
-            </div>
-          </article>
-        </div>
-        <p v-if="!catalog.products.loading && !catalog.products.error && !catalog.products.items.length" class="surface muted">{{ t('暂无匹配商品。', 'Nenhum produto encontrado.') }}</p>
-        <button v-if="catalog.products.page < catalog.products.last && !catalog.products.loading" class="quiet" @click="catalogPage('products')">{{ catalog.products.error ? t('重试', 'Tentar novamente') : t('加载更多商品', 'Ver mais produtos') }}</button>
-      </section>
-
       <section class="stack" aria-labelledby="shop-funds">
         <h2 id="shop-funds">{{ t('平台资金兑换', 'Resgatar crédito na plataforma') }}</h2>
-        <div v-if="catalog.platforms.items.length" class="shop-funds-list">
-          <PlatformCard v-for="item in catalog.platforms.items" :key="item.id" class="surface shop-fund" row
+        <div v-if="catalog.items.length" class="shop-funds-list">
+          <PlatformCard v-for="item in catalog.items" :key="item.id" class="surface shop-fund" row
                         :platform-id="item.id" :name="item.name" :promotion-url="item.promotion_url">
             <div class="shop-logo">
               <img v-if="imageUrl(item.logo_url) && !brokenImages.has('platform-' + item.id)" :src="imageUrl(item.logo_url)" alt="" loading="lazy" @error="failedImage('platform-' + item.id)" />
@@ -416,8 +372,8 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             </template>
           </PlatformCard>
         </div>
-        <p v-if="!catalog.platforms.loading && !catalog.platforms.error && !catalog.platforms.items.length" class="surface muted">{{ t('暂无匹配平台。', 'Nenhuma plataforma encontrada.') }}</p>
-        <button v-if="catalog.platforms.page < catalog.platforms.last && !catalog.platforms.loading" class="quiet" @click="catalogPage('platforms')">{{ catalog.platforms.error ? t('重试', 'Tentar novamente') : t('加载更多平台', 'Ver mais plataformas') }}</button>
+        <p v-if="!catalog.loading && !catalog.error && !catalog.items.length" class="surface muted">{{ t('暂无匹配平台。', 'Nenhuma plataforma encontrada.') }}</p>
+        <button v-if="catalog.page < catalog.last && !catalog.loading" class="quiet" @click="catalogPage()">{{ catalog.error ? t('重试', 'Tentar novamente') : t('加载更多平台', 'Ver mais plataformas') }}</button>
       </section>
     </template>
 
@@ -440,21 +396,16 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
     </template>
 
     <template v-else-if="!loading">
-      <template v-if="mode === 'goods' || mode === 'funds'">
+      <template v-if="mode === 'funds'">
         <article v-if="subject" class="surface stack shop-checkout">
-          <div v-if="mode === 'goods'" class="shop-checkout-art shop-art">
-            <img v-if="imageUrl(subject.image_url) && !brokenImages.has('product-' + subject.id)" :src="imageUrl(subject.image_url)" alt="" @error="failedImage('product-' + subject.id)" />
-            <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.shop" /></svg>
-          </div>
           <div class="shop-summary">
-            <div v-if="mode === 'funds'" class="shop-logo">
+            <div class="shop-logo">
               <img v-if="imageUrl(subject.logo_url) && !brokenImages.has('platform-' + subject.id)" :src="imageUrl(subject.logo_url)" alt="" @error="failedImage('platform-' + subject.id)" />
               <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.platforms" /></svg>
             </div>
             <div class="shop-list-text">
               <h2>{{ subject.name }}</h2>
-              <p v-if="mode === 'goods'" class="shop-highlight">{{ subject.price_cents == null ? t('暂未定价', 'Preço pendente') : brl(subject.price_cents) }}</p>
-              <p v-else class="muted">{{ t('使用余额兑换', 'Resgate com saldo') }}</p>
+              <p class="muted">{{ t('使用余额兑换', 'Resgate com saldo') }}</p>
             </div>
           </div>
           <p v-if="mode === 'goods' && subject.description" class="muted shop-description">{{ subject.description }}</p>
@@ -467,19 +418,6 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
           <template v-else-if="retry">
             <p class="shop-notice">{{ t('有一笔兑换尚待确认结果。', 'Há um resgate com resultado pendente.') }}</p>
             <div class="shop-actions"><button class="quiet" @click="goToHistory(mode)">{{ t('兑换记录', 'Histórico de resgates') }}</button><button class="primary" :disabled="submitting" @click="submit">{{ t('重试原请求', 'Repetir a solicitação original') }}</button></div>
-          </template>
-          <template v-else-if="mode === 'goods'">
-            <p v-if="subject.price_cents == null" class="shop-notice">{{ t('商品暂未定价。', 'Produto sem preço no momento.') }}</p>
-            <p v-else-if="!subject.stock" class="shop-notice">{{ t('商品已售罄。', 'Produto esgotado.') }}</p>
-            <template v-else-if="!address">
-              <p>{{ t('您还没有绑定收货地址。', 'Você ainda não cadastrou um endereço de entrega.') }}</p>
-              <div class="shop-actions"><button class="quiet" @click="back('/shop')">{{ t('取消', 'Cancelar') }}</button><button class="primary" @click="go('/address?next=' + sessionPath)">{{ t('去绑定', 'Cadastrar') }}</button></div>
-            </template>
-            <template v-else>
-              <div class="shop-facts"><strong>{{ t('收货地址', 'Endereço de entrega') }}</strong><p>{{ address.recipient }} {{ address.masked_phone }}</p><p class="muted">{{ addressLine(address) }}</p></div>
-              <p v-if="balance !== null && balance < subject.price_cents" class="error">{{ t('可用余额不足。', 'Saldo disponível insuficiente.') }}</p>
-              <button class="primary" :disabled="!confirmGoods || submitting" @click="submit">{{ t('确认兑换', 'Confirmar resgate') }}</button>
-            </template>
           </template>
           <template v-else-if="!binding">
             <p>{{ t('您还没有绑定该平台账号。', 'Você ainda não vinculou uma conta nessa plataforma.') }}</p>
@@ -535,7 +473,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
           <button class="primary" @click="goToHistory('all')">{{ t('兑换记录', 'Histórico de resgates') }}</button>
         </div>
       </template>
-      <div v-else class="surface stack"><p>{{ t('未找到该商城页面。', 'Página da loja não encontrada.') }}</p><button class="quiet" @click="go('/shop')">{{ t('返回商城', 'Voltar à loja') }}</button></div>
+      <div v-else class="surface stack"><p>{{ t('未找到该兑换页面。', 'Página de resgate não encontrada.') }}</p><button class="quiet" @click="go('/shop')">{{ t('返回兑换', 'Voltar aos resgates') }}</button></div>
     </template>
   </section>
 </template>
@@ -554,22 +492,16 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 .shop-screen input.field { width: 100%; min-height: 44px; padding: 8px 11px; border: 1px solid var(--control-line); border-radius: 8px; background: var(--surface-recessed); color: inherit; font-size: 16px; }
 .shop-search button { flex-shrink: 0; }
 .shop-actions > * { flex: 1; }
-.shop-products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-.shop-product.surface { overflow: hidden; padding: 0; }
-.shop-art, .shop-logo { display: grid; place-items: center; background: var(--surface-highlight); color: var(--accent); overflow: hidden; }
-.shop-art { aspect-ratio: 4 / 3; }
-.shop-art img, .shop-logo img { width: 100%; height: 100%; object-fit: cover; min-height: 0; }
-.shop-art svg, .shop-logo svg { width: 32px; fill: none; stroke: currentColor; stroke-width: 1.4; }
-.shop-product-content { display: grid; gap: 5px; padding: 10px; }
-.shop-product-content button { margin-top: 3px; }
+.shop-logo { display: grid; place-items: center; background: var(--surface-highlight); color: var(--accent); overflow: hidden; }
 .shop-highlight { color: var(--highlight); font-weight: 800; }
 .shop-highlight small { color: inherit; }
-.shop-product-content .muted, .shop-list-text .muted { font-size: 12px; }
+.shop-list-text .muted { font-size: 12px; }
 .shop-funds-list, .shop-records { display: grid; gap: 7px; }
 .shop-fund, .shop-summary, .shop-record { display: flex; align-items: center; gap: 10px; }
 .shop-summary > :last-child:not(.shop-list-text), .shop-fund > :last-child { flex-shrink: 0; }
 .shop-logo { width: 43px; height: 43px; flex: 0 0 43px; border-radius: 9px; }
-.shop-logo svg { width: 22px; }
+.shop-logo img { width: 100%; height: 100%; object-fit: cover; min-height: 0; }
+.shop-logo svg { width: 22px; fill: none; stroke: currentColor; stroke-width: 1.4; }
 .shop-list-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .shop-record { width: 100%; justify-content: space-between; text-align: left; }
 .shop-record:hover { border-color: var(--accent); }
@@ -580,8 +512,6 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 .shop-status[data-status="paid"], .shop-status[data-status="shipped"] { color: var(--success); }
 .shop-status[data-status="failed"], .shop-status[data-status="rejected"], .shop-status[data-status="cancelled"] { color: var(--danger); }
 .shop-checkout { padding: 14px; overflow-wrap: anywhere; }
-.shop-checkout-art { aspect-ratio: 2 / 1; max-height: 230px; border-radius: 9px; }
-.shop-description { white-space: pre-line; }
 .shop-facts { display: grid; gap: 3px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; }
 .shop-points { display: grid; gap: 5px; }
 .shop-estimate { grid-template-columns: 1fr auto; align-items: center; }

@@ -21,6 +21,7 @@ const props = defineProps({
   guaranteeAmount: [Number, String],
   maxRebatePercent: [Number, String],
   promotionUrl: String,
+  cashbackBindingId: [Number, String],
   detailHref: String,
   row: Boolean,
   inlineActions: Boolean,
@@ -104,7 +105,7 @@ watch(opened, (active, _, onCleanup) => {
   onCleanup(() => document.removeEventListener('pointerdown', outside, true))
 })
 
-const shouldDiscoverUrl = computed(() => (opened.value || props.inlineActions) && props.promotionUrl === undefined)
+const shouldDiscoverUrl = computed(() => (opened.value || (props.inlineActions && props.cashbackBindingId == null)) && props.promotionUrl === undefined)
 watch([path, shouldDiscoverUrl], ([urlPath, active], previous, onCleanup) => {
   if (urlPath !== previous[0]) discoveredUrl.value = undefined
   if (!active || discoveredUrl.value !== undefined) return
@@ -158,7 +159,11 @@ function details(event) {
     <button v-else-if="!inlineActions" ref="trigger" class="platform-entry-trigger" type="button" :aria-label="name + ' · ' + t('网站操作', 'Opções do site')"
             :aria-expanded="opened" @click="toggle"></button>
     <div v-if="opened || inlineActions" class="platform-entry-actions">
-      <template v-for="action in actionOrder" :key="action">
+      <a v-if="inlineActions && cashbackBindingId != null" class="primary platform-cashback"
+         :href="'#/cashback?binding=' + cashbackBindingId + '&amp;auto=1'">
+        {{ t('一键返利', 'Consultar cashback') }}
+      </a>
+      <template v-else v-for="action in actionOrder" :key="action">
         <a v-if="action === 'details'" class="primary platform-details" :href="detailHref || '#' + path" @click="details">
           <svg v-if="home" class="platform-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.document"/></svg>
           {{ inlineActions ? t('品牌详情', 'Detalhes') : t('网站详情', 'Detalhes do site') }}
@@ -369,6 +374,8 @@ function details(event) {
   font-weight: 800;
   overflow-wrap: anywhere;
 }
+.platform-entry-inline .platform-entry-actions .platform-cashback { grid-column: 1 / -1; background: var(--primary); color: var(--on-primary); }
+.platform-entry-inline .platform-entry-actions .platform-cashback:hover { background: var(--primary-hover); }
 .platform-entry-inline .platform-entry-actions .platform-visit {
   border: 1px solid #ffaf43;
   background: var(--primary);
