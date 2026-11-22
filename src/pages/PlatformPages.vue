@@ -13,6 +13,7 @@ import PlatformCard from '../PlatformCard.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
 import { avatarForReview } from './memberAvatars.js'
 import PlatformIntroduction from './PlatformIntroduction.vue'
+import PlatformRechargeHistory from './PlatformRechargeHistory.vue'
 
 const { locale, t } = useLocale()
 
@@ -48,6 +49,11 @@ const detailTabs = [
   ['reviews', '网站评价', 'Avaliações do site'],
   ['information', '网站信息', 'Informações do site'],
   ['about', '关于网站', 'Sobre o site'],
+]
+const bindingTab = ref('summary')
+const bindingTabs = [
+  ['summary', '绑定信息', 'Conta vinculada'],
+  ['recharges', '充值记录', 'Histórico de depósitos'],
 ]
 const search = ref('')
 const listPage = ref(1)
@@ -141,14 +147,14 @@ function formatRule(value, suffix, fallback = '—') {
     : ruleNumbers.value.format(value) + suffix
 }
 
-function moveDetailTab(event, index) {
-  const last = detailTabs.length - 1
+function moveTab(event, index, tabs, prefix, select) {
+  const last = tabs.length - 1
   const indexes = { ArrowLeft: index ? index - 1 : last, ArrowRight: index === last ? 0 : index + 1, Home: 0, End: last }
   if (!Object.hasOwn(indexes, event.key)) return
   event.preventDefault()
-  const next = detailTabs[indexes[event.key]][0]
-  tab.value = next
-  document.getElementById('platform-tab-' + next)?.focus()
+  const next = tabs[indexes[event.key]][0]
+  select(next)
+  document.getElementById(prefix + next)?.focus()
 }
 
 function formatMoney(cents) {
@@ -365,6 +371,7 @@ async function initialize() {
   terms.value = null
   selected.value = null
   bindingDetail.value = null
+  bindingTab.value = 'summary'
   bindingTotals.value = null
   totalsError.value = ''
   error.value = ''
@@ -711,7 +718,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         role="tablist" :aria-label="t('平台详情')">
         <button v-for="([value, label, translation], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
           type="button" role="tab" :aria-selected="tab === value" :aria-controls="'platform-panel-' + value"
-          :tabindex="tab === value ? 0 : -1" @click="tab = value" @keydown="moveDetailTab($event, index)">{{ t(label, translation) }}</button>
+          :tabindex="tab === value ? 0 : -1" @click="tab = value" @keydown="moveTab($event, index, detailTabs, 'platform-tab-', next => tab = next)">{{ t(label, translation) }}</button>
       </div>
       <section v-show="tab === 'reviews'" id="platform-panel-reviews" class="stack" role="tabpanel"
         aria-labelledby="platform-tab-reviews" tabindex="0" :aria-busy="reviewsLoading">
@@ -818,16 +825,29 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
     <template v-else-if="screen === 'bindingDetail' && bindingDetail">
       <div class="surface stack platform-content">
         <div class="platform-heading"><h2>{{ bindingDetail.platform_name }}</h2><p class="muted">{{ bindingDetail.masked_platform_account }}</p></div>
-        <dl class="platform-data">
-          <div><dt>{{ t('总存款金额', 'Total depositado') }}</dt><dd>{{ formatMoney(bindingTotals?.total_deposit_cents) }}</dd></div>
-          <div><dt>{{ t('总打码量', 'Total de apostas válidas') }}</dt><dd>{{ formatMoney(bindingTotals?.total_valid_bet_cents) }}</dd></div>
-          <div><dt>{{ t('绑定时间') }}</dt><dd>{{ formatDate(bindingDetail.created_at) }}</dd></div>
-          <div><dt>{{ t('上次兑换时间') }}</dt><dd>{{ formatDate(bindingDetail.last_redeemed_at) }}</dd></div>
-          <div><dt>{{ t('保障状态') }}</dt><dd><button type="button" class="inline-action" @click="go('/protection?binding=' + bindingDetail.id)">{{ t(bindingStatuses[bindingDetail.protection_status]) || t('查看保障') }} ›</button></dd></div>
-        </dl>
       </div>
-      <button v-if="totalsError" class="quiet" type="button" @click="loadBindingTotals">{{ t('重试') }}</button>
-      <button type="button" class="primary" @click="go('/cashback?binding=' + bindingDetail.id)">{{ t('查询返利', 'Consultar cashback') }}</button>
+      <div class="surface platform-tabs binding-tabs" role="tablist" :aria-label="t('已绑定平台', 'Plataforma vinculada')">
+        <button v-for="([value, label, translation], index) in bindingTabs" :id="'binding-tab-' + value" :key="value"
+          type="button" role="tab" :aria-selected="bindingTab === value" :aria-controls="'binding-panel-' + value"
+          :tabindex="bindingTab === value ? 0 : -1" @click="bindingTab = value"
+          @keydown="moveTab($event, index, bindingTabs, 'binding-tab-', next => bindingTab = next)">{{ t(label, translation) }}</button>
+      </div>
+      <section v-show="bindingTab === 'summary'" id="binding-panel-summary" class="stack" role="tabpanel" aria-labelledby="binding-tab-summary" tabindex="0">
+        <div class="surface stack platform-content">
+          <dl class="platform-data">
+            <div><dt>{{ t('总存款金额', 'Total depositado') }}</dt><dd>{{ formatMoney(bindingTotals?.total_deposit_cents) }}</dd></div>
+            <div><dt>{{ t('总打码量', 'Total de apostas válidas') }}</dt><dd>{{ formatMoney(bindingTotals?.total_valid_bet_cents) }}</dd></div>
+            <div><dt>{{ t('绑定时间') }}</dt><dd>{{ formatDate(bindingDetail.created_at) }}</dd></div>
+            <div><dt>{{ t('上次兑换时间') }}</dt><dd>{{ formatDate(bindingDetail.last_redeemed_at) }}</dd></div>
+            <div><dt>{{ t('保障状态') }}</dt><dd><button type="button" class="inline-action" @click="go('/protection?binding=' + bindingDetail.id)">{{ t(bindingStatuses[bindingDetail.protection_status]) || t('查看保障') }} ›</button></dd></div>
+          </dl>
+        </div>
+        <button v-if="totalsError" class="quiet" type="button" @click="loadBindingTotals">{{ t('重试') }}</button>
+        <button type="button" class="primary" @click="go('/cashback?binding=' + bindingDetail.id)">{{ t('查询返利', 'Consultar cashback') }}</button>
+      </section>
+      <section v-show="bindingTab === 'recharges'" id="binding-panel-recharges" role="tabpanel" aria-labelledby="binding-tab-recharges" tabindex="0">
+        <PlatformRechargeHistory v-if="bindingTab === 'recharges'" :binding-id="bindingDetail.id" />
+      </section>
     </template>
 
     <template v-else-if="screen === 'bind' || screen === 'cashback'">

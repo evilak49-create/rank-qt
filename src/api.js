@@ -26,6 +26,7 @@ function canCache(path) {
   return !resource.startsWith('/auth/')
     && resource !== '/health'
     && !resource.startsWith('/point-quotes/')
+    && !/^\/platform-bindings\/\d+\/recharges$/.test(resource)
     && !/^\/protection\/claims\/\d+/.test(resource)
 }
 
