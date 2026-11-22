@@ -31,14 +31,15 @@ const fields = [
 ]
 const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ')
 const shieldIcon = 'M12 22s7-3 7-10V5l-7-3-7 3v7c0 7 7 10 7 10Z M9 12l2 2 4-4'
+const bindingsLink = ['/bindings', '已绑定平台', icons.bind]
 const withdrawalLink = ['/withdrawal-history', '提现订单', 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6m-6 4h6']
 const quickLinks = [
-  ['/binding', '绑定平台', icons.bind],
+  bindingsLink,
   withdrawalLink,
   ['/protection', '我的保障', shieldIcon],
 ]
 const accountLinks = [
-  ['/bindings', '已绑定平台', icons.bind],
+  bindingsLink,
   withdrawalLink,
   ['/address', '收货地址', 'M20 10c0 5-8 10-8 10S4 15 4 10a8 8 0 1 1 16 0ZM14.5 10a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z'],
   ['/pix', '收款账户', 'M4 5h16v14H4zM4 10h16m-12 5h3'],
@@ -118,7 +119,7 @@ watchNotice(message, '收货地址已保存', 'success')
       <nav class="profile-section surface" :aria-label="t('常用功能')">
         <h2>{{ t('常用功能') }}</h2>
         <div class="profile-shortcuts">
-          <button v-for="[link, label, icon] in quickLinks" :key="link" @click="go(link)">
+          <button v-for="[link, label, icon] in quickLinks" :key="link" :data-shortcut="link" @click="go(link)">
             <span class="profile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icon"/></svg></span>
             {{ t(label) }}
           </button>

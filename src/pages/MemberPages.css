@@ -92,6 +92,9 @@
 .profile-shortcuts button { display: grid; justify-items: center; align-content: center; gap: 5px; min-height: 70px; border-radius: 10px; font-size: 12px; }
 .profile-shortcuts button:hover, .profile-menu button:hover { background: var(--surface-highlight); }
 .profile-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: var(--accent); background: var(--surface-highlight); }
+.profile-shortcuts [data-shortcut="/bindings"] .profile-icon { color: #9bcdff; background: #263e62; }
+.profile-shortcuts [data-shortcut="/withdrawal-history"] .profile-icon { color: #ffd080; background: #50351d; }
+.profile-shortcuts [data-shortcut="/protection"] .profile-icon { color: #89edbf; background: #23483c; }
 .profile-shortcuts svg, .profile-menu svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .profile-menu { list-style: none; margin: 0; padding: 0; }
 .profile-menu li + li { border-top: 1px solid var(--line); }
