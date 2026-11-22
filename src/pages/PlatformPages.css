@@ -52,26 +52,6 @@
 }
 .platform-hero .large-logo { border-radius: 16px; box-shadow: 0 4px 14px var(--shadow); }
 .hero-rating { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 6px; }
-.platform-rules {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0;
-  padding: 10px 0;
-  text-align: center;
-  font-size: 11px;
-}
-.platform-rules > div { display: grid; grid-template-rows: 1fr auto; align-items: center; gap: 3px; padding-inline: 4px; min-width: 0; }
-.platform-rules > div + div { border-inline-start: 1px solid var(--line); }
-.platform-rules dt { color: var(--muted); font-weight: 700; overflow-wrap: anywhere; }
-.platform-rules dd {
-  margin: 0;
-  color: var(--accent);
-  font-size: 14px;
-  font-weight: 850;
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-.platform-rules > div:nth-child(n+3) dd { color: var(--highlight); }
 .platform-heading { min-width: 0; }
 .platform-heading h1 { font-size: 22px; line-height: 1.25; overflow-wrap: anywhere; }
 .minor { font-size: 12px; }

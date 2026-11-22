@@ -42,9 +42,6 @@ const reviewPage = ref(1)
 const reviewLastPage = ref(1)
 const favorite = ref(false)
 const favoriteLoading = ref(false)
-const pointRule = ref(null)
-const pointRuleError = ref(false)
-const pointRuleLoading = ref(false)
 const tab = ref('reviews')
 const detailTabs = [
   ['reviews', '用户评价'],
@@ -163,20 +160,6 @@ function rebateTierAmount(amount) {
 
 function rebateRate(basisPoints) {
   return rebateRates.value.format(basisPoints / 10_000)
-}
-
-async function loadPointRule(path = platformPath.value, signal = loadRequest.signal) {
-  if (pointRuleLoading.value) return
-  pointRuleLoading.value = true
-  pointRuleError.value = false
-  try {
-    const { data } = await api(path + '/point-rule', { signal, fresh: true })
-    if (!signal.aborted) pointRule.value = data
-  } catch {
-    if (!signal.aborted) pointRuleError.value = true
-  } finally {
-    if (!signal.aborted) pointRuleLoading.value = false
-  }
 }
 
 function moveDetailTab(event, index) {
@@ -400,9 +383,6 @@ async function initialize() {
   const path = platformPath.value
   const mode = screen.value
   platform.value = null
-  pointRule.value = null
-  pointRuleError.value = false
-  pointRuleLoading.value = false
   terms.value = null
   selected.value = null
   bindingDetail.value = null
@@ -489,11 +469,10 @@ async function initialize() {
       platform.value = result.data
       if (mode === 'review') await loadBindings(signal, { allPages: true })
       else {
-        pointRule.value = result.data.point_rule ?? null
         const posted = props.route.query.get('review')
         if (posted === 'pending') status.value = '评价已提交，审核通过后将公开展示。'
         if (posted === 'approved') status.value = '评价已发布。'
-        const tasks = [loadPlatformReviews(1, path, signal), loadPointRule(path, signal)]
+        const tasks = [loadPlatformReviews(1, path, signal)]
         if (props.member) {
           favoriteLoading.value = true
           tasks.push(api('/platform-favorites/' + platform.value.id, { signal }).then(result => {
@@ -721,13 +700,6 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
-      <dl class="platform-rules surface" :aria-label="t('积分与返利规则', 'Regras de pontos e cashback')" :aria-busy="pointRuleLoading">
-        <div><dt>{{ t('积分比例', 'Pontos por real') }}</dt><dd>{{ formatRule(pointRule?.points_per_brl, ' / R$ 1') }}</dd></div>
-        <div><dt>{{ t('投注要求', 'Apostas para pontos') }}</dt><dd>{{ formatRule(pointRule?.wager_multiplier, '×') }}</dd></div>
-        <div><dt>{{ t('返利比例', 'Percentual de cashback') }}</dt><dd>{{ formatRule(pointRule?.rebate_percent, '%') }}</dd></div>
-        <div><dt>{{ t('流水要求', 'Apostas para cashback') }}</dt><dd>{{ formatRule(pointRule?.rebate_wager_multiplier, '×') }}</dd></div>
-      </dl>
-      <button v-if="pointRuleError" class="quiet" type="button" @click="loadPointRule()">{{ t('规则更新失败，点击重试', 'Falha ao atualizar as regras. Tentar novamente') }}</button>
       <div class="surface platform-tabs" :class="{ 'rebate-tab-selected': tab === 'rebate' }"
         role="tablist" :aria-label="t('平台详情')">
         <button v-for="([value, label], index) in detailTabs" :id="'platform-tab-' + value" :key="value"
