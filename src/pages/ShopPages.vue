@@ -424,7 +424,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             <div class="shop-actions"><button class="quiet" @click="back('/shop')">{{ t('取消', 'Cancelar') }}</button><button class="primary" @click="go('/binding?platform=' + subject.id + '&return=' + sessionPath)">{{ t('去绑定', 'Cadastrar') }}</button></div>
           </template>
           <template v-else>
-            <div class="shop-facts"><strong>{{ t('平台账号', 'Conta na plataforma') }}</strong><p class="muted">{{ binding.masked_platform_account }}</p></div>
+            <div class="shop-facts"><strong>{{ t('平台账号', 'Conta na plataforma') }}</strong><p class="muted">{{ binding.platform_account_id }}</p></div>
             <label class="shop-points">{{ t('使用余额金额（BRL）', 'Valor a pagar com saldo (BRL)') }} <input v-model="amountInput" class="field" type="text" inputmode="decimal" maxlength="12" :placeholder="t('输入雷亚尔金额', 'Digite o valor em reais')" :disabled="submitting" /></label>
             <div class="shop-facts shop-estimate">
               <span class="muted">{{ t('预计到账（BRL）', 'Crédito estimado (BRL)') }}</span>
@@ -458,7 +458,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
               <template v-if="order.cancellation_reason"><dt>{{ t('取消原因', 'Motivo do cancelamento') }}</dt><dd>{{ order.cancellation_reason }}</dd></template>
             </template>
             <template v-else>
-              <dt>{{ t('平台账号', 'Conta na plataforma') }}</dt><dd>{{ order.masked_platform_account }}</dd>
+              <dt>{{ t('平台账号', 'Conta na plataforma') }}</dt><dd>{{ order.platform_account_id }}</dd>
               <dt>{{ t('兑换金额', 'Valor do resgate') }}</dt><dd class="shop-highlight">{{ brl(order.amount_cents) }} {{ order.currency }}</dd>
               <template v-if="order.paid_at"><dt>{{ t('到账时间', 'Data do crédito') }}</dt><dd>{{ date(order.paid_at) }}</dd></template>
               <template v-if="order.paused || order.needs_review"><dt>{{ t('处理进度', 'Andamento') }}</dt><dd>{{ order.needs_review ? t('等待人工核实', 'Aguardando verificação manual') : t('发放已暂停', 'Crédito suspenso') }}</dd></template>

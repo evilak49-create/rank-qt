@@ -31,7 +31,7 @@ try {
   }
 } catch {}
 const canSubmit = computed(() => Boolean(attempt.value || (
-  wallet.value?.masked_cpf && cents.value && cents.value <= wallet.value.available_balance_cents
+  wallet.value?.cpf && cents.value && cents.value <= wallet.value.available_balance_cents
 )))
 
 const statuses = {
@@ -76,10 +76,10 @@ async function submit() {
   let submitted = false
   try {
     if (!attempt.value) {
-      const displayedCpf = wallet.value.masked_cpf
+      const displayedCpf = wallet.value.cpf
       wallet.value = (await api('/cash-wallet', { fresh: true })).data
       if (currentRoute.value.key !== routeKey) return
-      if (wallet.value.masked_cpf !== displayedCpf) throw new Error('Pix 收款账户已更新，请核对后重新确认。')
+      if (wallet.value.cpf !== displayedCpf) throw new Error('Pix 收款账户已更新，请核对后重新确认。')
       if (requested > wallet.value.available_balance_cents) throw new Error('可用余额已更新，请重新输入提现金额。')
       attempt.value = { amount: requested, id: createRequestId() }
       try { sessionStorage.setItem(attemptKey, JSON.stringify(attempt.value)) } catch {}
@@ -111,9 +111,9 @@ watchNotice(error, '余额提现提醒', 'error')
       <dl class="summary-list">
         <div><dt>{{ t('可用余额') }}</dt><dd>{{ formatBrl(wallet.available_balance_cents) }}</dd></div>
         <div v-if="wallet.held_balance_cents > 0"><dt>{{ t('提现处理中') }}</dt><dd>{{ formatBrl(wallet.held_balance_cents) }}</dd></div>
-        <div v-if="wallet.masked_cpf"><dt>{{ t('Pix 收款账户') }}</dt><dd>{{ wallet.masked_cpf }}</dd></div>
+        <div v-if="wallet.cpf"><dt>{{ t('Pix 收款账户') }}</dt><dd>{{ wallet.cpf }}</dd></div>
       </dl>
-      <button v-if="!wallet.masked_cpf && !attempt" type="button" class="primary" @click="go('/pix?next=%2Fcash-wallet%2Fwithdraw')">{{ t('绑定 Pix 收款账户') }}</button>
+      <button v-if="!wallet.cpf && !attempt" type="button" class="primary" @click="go('/pix?next=%2Fcash-wallet%2Fwithdraw')">{{ t('绑定 Pix 收款账户') }}</button>
       <form v-else class="stack" @submit.prevent="submit">
         <label class="field">{{ t('提现金额（BRL）') }}
           <input v-model="amount" maxlength="18" inputmode="decimal" autocomplete="off" :disabled="busy || !!attempt" required>

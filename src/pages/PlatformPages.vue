@@ -816,7 +816,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
             <img v-if="imageUrl(item.logo_url)" :src="imageUrl(item.logo_url)" width="40" height="40" alt=""
                  @error="$event.target.hidden = true">
           </span>
-          <span class="binding-label"><strong>{{ item.platform_name }}</strong><small class="muted">{{ item.masked_platform_account }}</small></span>
+          <span class="binding-label"><strong>{{ item.platform_name }}</strong><small class="muted">{{ item.platform_account_id }}</small></span>
           <span class="binding-label minor">
             <strong :class="item.protection_status === 'active' ? 'binding-protected' : 'muted'">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</strong>
             <small aria-hidden="true">›</small>
@@ -829,7 +829,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
 
     <template v-else-if="screen === 'bindingDetail' && bindingDetail">
       <div class="surface stack platform-content">
-        <div class="platform-heading"><h2>{{ bindingDetail.platform_name }}</h2><p class="muted">{{ bindingDetail.masked_platform_account }}</p></div>
+        <div class="platform-heading"><h2>{{ bindingDetail.platform_name }}</h2><p class="muted">{{ bindingDetail.platform_account_id }}</p></div>
       </div>
       <div class="surface platform-tabs binding-tabs" role="tablist" :aria-label="t('已绑定平台', 'Plataforma vinculada')">
         <button v-for="([value, label, translation], index) in bindingTabs" :id="'binding-tab-' + value" :key="value"
@@ -842,7 +842,10 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           <dl class="platform-data">
             <div><dt>{{ t('总存款金额', 'Total depositado') }}</dt><dd>{{ formatMoney(bindingTotals?.total_deposit_cents) }}</dd></div>
             <div><dt>{{ t('总打码量', 'Total de apostas válidas') }}</dt><dd>{{ formatMoney(bindingTotals?.total_valid_bet_cents) }}</dd></div>
-            <div><dt>{{ t('绑定时间') }}</dt><dd>{{ formatDate(bindingDetail.created_at) }}</dd></div>
+            <div v-if="bindingDetail.query_phone && bindingDetail.query_phone !== bindingDetail.platform_account_id">
+            <dt>{{ t('绑定手机号', 'Celular vinculado') }}</dt><dd>{{ bindingDetail.query_phone }}</dd>
+          </div>
+          <div><dt>{{ t('绑定时间') }}</dt><dd>{{ formatDate(bindingDetail.created_at) }}</dd></div>
             <div><dt>{{ t('上次兑换时间') }}</dt><dd>{{ formatDate(bindingDetail.last_redeemed_at) }}</dd></div>
             <div><dt>{{ t('保障状态') }}</dt><dd><button type="button" class="inline-action" @click="go('/protection?binding=' + bindingDetail.id)">{{ t(bindingStatuses[bindingDetail.protection_status]) || t('查看保障') }} ›</button></dd></div>
           </dl>
@@ -894,7 +897,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
 
         <template v-if="activeBinding">
-          <div class="field"><span>{{ t('平台账号') }}</span><div class="masked-account">{{ activeBinding.masked_platform_account }} <span>{{ t('已绑定') }}</span></div></div>
+          <div class="field"><span>{{ t('平台账号') }}</span><div class="masked-account">{{ activeBinding.platform_account_id }} <span>{{ t('已绑定') }}</span></div></div>
           <button v-if="screen === 'cashback'" class="primary" type="button" :disabled="busy" @click="queryCashback">{{ t('查询') }}</button>
           <button v-else-if="target" class="primary" type="button" @click="finishBinding(activeBinding)">{{ t('继续') }}</button>
           <button v-else class="quiet" type="button" @click="go('/bindings/' + activeBinding.id)">{{ t('查看绑定详情') }}</button>

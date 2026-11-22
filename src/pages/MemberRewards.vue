@@ -116,7 +116,7 @@ async function load() {
       const [activity, pix] = await Promise.all([api(home), api('/pix-account')])
       packets.value = activity.data
       account.value = pix.data
-      if (ready.value && !account.value.masked_cpf) bindPix()
+      if (ready.value && !account.value.cpf) bindPix()
     } else {
       order.value = (await api('/pix-withdrawals/' + props.route.params.id)).data
     }
@@ -212,20 +212,20 @@ function cancelPixEdit() {
 }
 
 async function confirmWithdrawal() {
-  if (working.value || !ready.value || !account.value?.masked_cpf) return
+  if (working.value || !ready.value || !account.value?.cpf) return
   error.value = ''
   working.value = true
-  const snapshot = { id: round.value.id, amount: round.value.available_cents, cpf: account.value.masked_cpf }
+  const snapshot = { id: round.value.id, amount: round.value.available_cents, cpf: account.value.cpf }
   try {
     const [activity, pix] = await Promise.all([api(home, { fresh: true }), api('/pix-account', { fresh: true })])
     packets.value = activity.data
     account.value = pix.data
     if (!ready.value) throw new Error('当前红包余额不可提现，请返回查看处理记录。')
-    if (!account.value.masked_cpf) {
+    if (!account.value.cpf) {
       bindPix()
       return
     }
-    if (round.value.id !== snapshot.id || round.value.available_cents !== snapshot.amount || account.value.masked_cpf !== snapshot.cpf) {
+    if (round.value.id !== snapshot.id || round.value.available_cents !== snapshot.amount || account.value.cpf !== snapshot.cpf) {
       throw new Error('红包金额或收款账户已更新，请重新核对后确认。')
     }
     if (currentRoute.value.key !== props.route.key) return
@@ -337,20 +337,20 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
         </div>
       </form>
       <template v-else-if="account">
-        <p v-if="account.masked_cpf" class="surface">CPF · {{ account.masked_cpf }}</p>
+        <p v-if="account.cpf" class="surface">CPF · {{ account.cpf }}</p>
         <p v-else class="surface muted">{{ t('尚未绑定 Pix 收款账户。') }}</p>
-        <button class="primary" @click="editing = true; info = ''">{{ account.masked_cpf ? t('更换 CPF') : t('绑定 Pix') }}</button>
+        <button class="primary" @click="editing = true; info = ''">{{ account.cpf ? t('更换 CPF') : t('绑定 Pix') }}</button>
         <button v-if="next === withdraw" class="quiet" @click="resume(home)">{{ t('返回红包') }}</button>
       </template>
     </section>
 
     <section v-else-if="isWithdraw" class="surface stack">
       <h2>{{ t('确认提现') }}</h2>
-      <template v-if="ready && account?.masked_cpf">
+      <template v-if="ready && account?.cpf">
         <dl class="member-definition">
           <div><dt>{{ t('提现金额') }}</dt><dd>{{ money(round.available_cents) }}</dd></div>
           <div><dt>{{ t('收款方式') }}</dt><dd>Pix</dd></div>
-          <div><dt>CPF</dt><dd>{{ account.masked_cpf }}</dd></div>
+          <div><dt>CPF</dt><dd>{{ account.cpf }}</dd></div>
         </dl>
         <button class="primary" :disabled="working || loading" @click="confirmWithdrawal">{{ t('确认提现') }}</button>
       </template>
@@ -373,7 +373,7 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
       <dl class="member-definition">
         <div><dt>{{ t('订单号') }}</dt><dd>{{ order.order_number }}</dd></div>
         <div><dt>{{ t('申请金额') }}</dt><dd>{{ money(order.amount_cents) }}</dd></div>
-        <div><dt>Pix CPF</dt><dd>{{ order.masked_cpf }}</dd></div>
+        <div><dt>Pix CPF</dt><dd>{{ order.cpf }}</dd></div>
         <div><dt>{{ t('申请时间') }}</dt><dd>{{ date(order.created_at) }}</dd></div>
         <div><dt>{{ t('处理状态') }}</dt><dd>{{ t(statuses[order.status]) || order.status }}</dd></div>
         <div v-if="order.paid_at"><dt>{{ t('到账时间') }}</dt><dd>{{ date(order.paid_at) }}</dd></div>

@@ -149,7 +149,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
           :ref="element => { if (String(binding.id) === bindingId) selectedBinding = element }"
           :class="{ 'member-focus': String(binding.id) === bindingId }">
           <PlatformCard row :platform-id="binding.platform_id" :name="binding.platform_name" :promotion-url="binding.promotion_url">
-            <h3>{{ binding.platform_name }}</h3><p class="muted">{{ binding.masked_platform_account }}</p>
+            <h3>{{ binding.platform_name }}</h3><p class="muted">{{ binding.platform_account_id }}</p>
             <p class="member-status">{{ t('保障状态 ·') }} {{ t(statuses[binding.protection_status]) || t('待确认') }}</p>
           </PlatformCard>
           <div class="member-actions">
@@ -183,7 +183,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
 
     <section v-else-if="isNew" class="surface stack">
       <template v-if="item">
-        <p>{{ item.platform_name }} · {{ item.masked_platform_account }}</p>
+        <p>{{ item.platform_name }} · {{ item.platform_account_id }}</p>
         <form class="stack" @submit.prevent="submit">
           <label class="field">{{ t('出款金额（BRL）') }}<input v-model="form.amount" inputmode="decimal" maxlength="12" required :disabled="working"></label>
           <label class="field">{{ t('出款时间（本地时间）') }}<input v-model="form.withdrawn_at" type="datetime-local" required :disabled="working"></label>
@@ -201,7 +201,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
     <section v-else-if="item" class="surface stack">
       <dl class="member-definition">
         <div><dt>{{ t('平台') }}</dt><dd>{{ item.platform_name }}</dd></div>
-        <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.masked_platform_account }}</dd></div>
+        <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
         <div><dt>{{ t('提交时保障状态') }}</dt><dd>{{ t(statuses[item.protection_status]) || t('待确认') }}</dd></div>
         <div><dt>{{ t('出款金额') }}</dt><dd>{{ brl.format(item.amount_cents / 100) }}</dd></div>
         <div><dt>{{ t('出款时间') }}</dt><dd>{{ date(item.withdrawn_at) }}</dd></div>
