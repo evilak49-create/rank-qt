@@ -14,6 +14,8 @@ import { back, currentRoute, go, restoreScroll, resume, safePath } from './navig
 import AuthPages from './pages/AuthPages.vue'
 import ContentPages from './pages/ContentPages.vue'
 import CashWalletPage from './pages/CashWalletPage.vue'
+import FundRecordsPage from './pages/FundRecordsPage.vue'
+import RescueFundPage from './pages/RescueFundPage.vue'
 import WithdrawalHistoryPage from './pages/WithdrawalHistoryPage.vue'
 import PlatformPages from './pages/PlatformPages.vue'
 import ShopPages from './pages/ShopPages.vue'
@@ -40,6 +42,7 @@ const pages = [
   [/^\/platforms\/\d+\/protection$/, '保障条款', PlatformPages],
   [/^\/binding$/, '绑定平台', PlatformPages, true],
   [/^\/(?:cashback|points)$/, '现金返利', PlatformPages, true],
+  [/^\/rescue-fund$/, '救援金', RescueFundPage, true],
   [/^\/bindings$/, '已绑定平台', PlatformPages, true],
   [/^\/bindings\/\d+$/, '绑定详情', PlatformPages, true],
   [/^\/shop$/, '兑换', ShopPages],
@@ -48,6 +51,7 @@ const pages = [
   [/^\/shop\/redemptions\/\d+$/, '兑换详情', ShopPages, true],
   [/^\/member$/, '个人中心', MemberPages, true],
   [/^\/cash-wallet(?:\/withdraw)?$/, '余额提现', CashWalletPage, true],
+  [/^\/fund-records$/, '资金明细', FundRecordsPage, true],
   [/^\/withdrawal-history$/, '提现订单', WithdrawalHistoryPage, true],
   [/^\/pix$/, 'Pix 收款账户', MemberPages, true],
   [/^\/protection$/, '我的保障', MemberPages, true],
@@ -225,12 +229,13 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
             @language="language = $event" />
   <template v-else>
     <header v-if="viewRoute.path !== '/support'" class="page-topbar">
-      <div class="wrap page-header">
+      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund' }">
         <button class="page-back" :aria-label="t('返回')" @click="back(fallback())">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>
         </button>
         <h1>{{ viewRoute.path === '/' ? copy.favorites : viewTitle }}</h1>
-        <a class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
+        <div v-if="viewRoute.path === '/rescue-fund'" id="rescue-fund-actions" class="page-action"></div>
+        <a v-else class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
       </div>
     </header>
     <main class="wrap screen" :class="{ 'with-navigation': navActive, 'support-screen': viewRoute.path === '/support' }">

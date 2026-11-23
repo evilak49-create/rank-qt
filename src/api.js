@@ -26,7 +26,7 @@ function canCache(path) {
   return !resource.startsWith('/auth/')
     && resource !== '/health'
     && !resource.startsWith('/point-quotes/')
-    && !/^\/(?:platform-bindings|protection\/(?:bindings|claims)|platform-funds\/orders|pix-withdrawals|pix-account|cash-wallet)(?:\/|$)/.test(resource)
+    && !/^\/(?:platform-bindings|protection\/(?:bindings|claims)|platform-funds\/orders|pix-withdrawals|pix-account|cash-wallet|rescue-fund)(?:\/|$)/.test(resource)
 }
 
 export async function api(path, options = {}) {
