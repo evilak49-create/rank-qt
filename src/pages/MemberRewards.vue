@@ -337,21 +337,25 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
     </section>
 
     <section v-else-if="isInvites" class="surface stack">
-      <ul v-if="records?.data.length" class="row-list">
-        <li v-for="invite in records.data" :key="invite.id" class="member-invite-row">
-          <div class="member-invite-details">
-            <span class="muted">{{ t('手机号码') }}</span>
-            <strong>{{ invite.invitee_phone || '—' }}</strong>
-            <span class="muted">{{ t('注册时间', 'Data de cadastro') }}</span>
-            <time :datetime="invite.registered_at">{{ date(invite.registered_at) }}</time>
-          </div>
-          <div class="member-invite-reward">
-            <span class="muted">{{ t('邀请奖励', 'Recompensa do convite') }}</span>
-            <strong v-if="invite.settled_at && invite.reward_cents != null" class="member-positive">{{ money(invite.reward_cents) }}</strong>
-            <strong v-else>{{ t('待结算') }}</strong>
-          </div>
-        </li>
-      </ul>
+      <table v-if="records?.data.length" class="member-invite-table">
+        <thead>
+          <tr>
+            <th scope="col">{{ t('手机号码') }}</th>
+            <th scope="col">{{ t('注册时间', 'Data de cadastro') }}</th>
+            <th scope="col">{{ t('邀请奖励', 'Recompensa') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="invite in records.data" :key="invite.id" class="member-invite-row">
+            <td><strong>{{ invite.invitee_phone || '—' }}</strong></td>
+            <td><time :datetime="invite.registered_at">{{ date(invite.registered_at) }}</time></td>
+            <td>
+              <strong v-if="invite.settled_at && invite.reward_cents != null" class="member-positive">{{ money(invite.reward_cents) }}</strong>
+              <strong v-else>{{ t('待结算') }}</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
       <p v-else-if="records" class="muted">{{ t('暂无邀请记录。') }}</p>
       <MemberPagination :page="records" :busy="loading" @page="pageLink" />
     </section>
