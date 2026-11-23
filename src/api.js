@@ -25,6 +25,7 @@ function canCache(path) {
   const resource = path.split('?', 1)[0]
   return !resource.startsWith('/auth/')
     && resource !== '/health'
+    && resource !== '/red-packets/invites'
     && !resource.startsWith('/point-quotes/')
     && !/^\/(?:platform-bindings|protection\/(?:bindings|claims)|platform-funds\/orders|pix-withdrawals|pix-account|cash-wallet|rescue-fund)(?:\/|$)/.test(resource)
 }

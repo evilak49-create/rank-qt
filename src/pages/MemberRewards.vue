@@ -339,8 +339,17 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
     <section v-else-if="isInvites" class="surface stack">
       <ul v-if="records?.data.length" class="row-list">
         <li v-for="invite in records.data" :key="invite.id" class="member-invite-row">
-          <span><strong>{{ invite.settled_at ? t('已结算') : t('待结算') }}</strong><small>{{ date(invite.registered_at) }}</small></span>
-          <span class="member-positive">{{ invite.settled_at ? '+' + money(invite.reward_cents) : '—' }}</span>
+          <div class="member-invite-details">
+            <span class="muted">{{ t('手机号码') }}</span>
+            <strong>{{ invite.invitee_phone || '—' }}</strong>
+            <span class="muted">{{ t('注册时间', 'Data de cadastro') }}</span>
+            <time :datetime="invite.registered_at">{{ date(invite.registered_at) }}</time>
+          </div>
+          <div class="member-invite-reward">
+            <span class="muted">{{ t('邀请奖励', 'Recompensa do convite') }}</span>
+            <strong v-if="invite.settled_at && invite.reward_cents != null" class="member-positive">{{ money(invite.reward_cents) }}</strong>
+            <strong v-else>{{ t('待结算') }}</strong>
+          </div>
         </li>
       </ul>
       <p v-else-if="records" class="muted">{{ t('暂无邀请记录。') }}</p>
