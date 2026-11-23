@@ -2,7 +2,7 @@
 import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
-import { api } from '../api'
+import { api, imageUrl } from '../api'
 import PlatformCard from '../PlatformCard.vue'
 import { currentRoute, go, safePath } from '../navigation'
 import MemberPagination from './MemberPagination.vue'
@@ -60,7 +60,7 @@ async function load() {
   try {
     if (summary) {
       const [bindingPage, claimPage] = await Promise.all([
-        api('/protection/bindings?page=' + (Number(props.route.query.get('bindingsPage')) || 1)),
+        api('/platform-bindings?page=' + (Number(props.route.query.get('bindingsPage')) || 1)),
         api('/protection/claims?page=' + (Number(props.route.query.get('claimsPage')) || 1)),
       ])
       bindings.value = bindingPage
@@ -145,16 +145,23 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
     <template v-if="summary">
       <section class="stack">
         <h2>{{ t('平台保障') }}</h2>
-        <article v-for="binding in currentBindings" :key="binding.id" class="surface stack"
+        <article v-for="binding in currentBindings" :key="binding.id" class="surface protection-platform"
           :ref="element => { if (String(binding.id) === bindingId) selectedBinding = element }"
           :class="{ 'member-focus': String(binding.id) === bindingId }">
-          <PlatformCard row :platform-id="binding.platform_id" :name="binding.platform_name" :promotion-url="binding.promotion_url">
-            <h3>{{ binding.platform_name }}</h3><p class="muted">{{ binding.platform_account_id }}</p>
-            <p class="member-status">{{ t('保障状态 ·') }} {{ t(statuses[binding.protection_status]) || t('待确认') }}</p>
-          </PlatformCard>
-          <div class="member-actions">
-            <button class="quiet" @click="go('/protection/bindings/' + binding.id + '/terms')">{{ t('保障条款') }}</button>
-            <button class="primary" @click="go('/protection/claims/new?binding=' + binding.id)">{{ t('申请保障') }}</button>
+          <div class="protection-logo" aria-hidden="true">
+            <img v-if="imageUrl(binding.logo_url)" :key="binding.logo_url" :src="imageUrl(binding.logo_url)"
+              width="80" height="80" alt="" loading="lazy" @error="$event.target.hidden = true">
+            <span>{{ binding.platform_name.slice(0, 1) }}</span>
+          </div>
+          <div class="protection-platform-body">
+            <PlatformCard row :platform-id="binding.platform_id" :name="binding.platform_name" :promotion-url="binding.promotion_url">
+              <h3>{{ binding.platform_name }}</h3><p class="muted">{{ binding.platform_account_id }}</p>
+              <p class="member-status">{{ t('保障状态 ·') }} {{ t(statuses[binding.protection_status]) || t('待确认') }}</p>
+            </PlatformCard>
+            <div class="member-actions protection-platform-actions">
+              <button class="quiet" @click="go('/protection/bindings/' + binding.id + '/terms')">{{ t('保障条款') }}</button>
+              <button class="primary" @click="go('/protection/claims/new?binding=' + binding.id)">{{ t('申请保障') }}</button>
+            </div>
           </div>
         </article>
         <p v-if="bindings && !currentBindings.length" class="surface muted">{{ t('暂无已绑定平台。') }}</p>
@@ -225,3 +232,35 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
     </div>
   </div>
 </template>
+
+<style scoped>
+.protection-platform {
+  display: grid;
+  grid-template-columns: clamp(58px, 19vw, 80px) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(10px, 3vw, 16px);
+}
+.protection-logo {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface-recessed);
+  color: var(--highlight);
+  font-size: 24px;
+  font-weight: 800;
+}
+.protection-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.protection-logo img[hidden] { display: none; }
+.protection-logo img:not([hidden]) + span { display: none; }
+.protection-platform-body { display: grid; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
+.member-page .protection-platform-actions { align-items: stretch; }
+.protection-platform-actions > button { flex: 1 1 auto; min-width: 0; padding-inline: 10px; }
+</style>
