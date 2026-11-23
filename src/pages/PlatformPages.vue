@@ -587,6 +587,11 @@ function bindAccount() {
       if (current()) finishBinding(data)
     } catch (failure) {
       if (useImage && current()) await refreshBindingCaptcha()
+      const notFound = '未查到符合条件的推广账号'
+      if (failure.status === 422 &&
+          (failure.errors?.phone?.includes(notFound) || failure.message === notFound)) {
+        throw new Error('没有查询到对应的游戏账号，请检查')
+      }
       throw failure
     }
   })

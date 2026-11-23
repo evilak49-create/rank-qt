@@ -6,14 +6,12 @@ import { api } from '../api'
 import { showNotice, watchNotice } from '../feedback'
 import { formatBrl, parseBrl } from '../money'
 import { currentRoute, go } from '../navigation'
-import MemberPagination from './MemberPagination.vue'
 
-const { locale, t } = useLocale()
+const { t } = useLocale()
 
 const props = defineProps({ member: Object })
 const emit = defineEmits(['refresh-member'])
 const wallet = ref(null)
-const history = ref(null)
 const amount = ref('')
 const error = ref('')
 const loading = ref(true)
@@ -34,27 +32,15 @@ const canSubmit = computed(() => Boolean(attempt.value || (
   wallet.value?.cpf && cents.value && cents.value <= wallet.value.available_balance_cents
 )))
 
-const statuses = {
-  pending: '待审核', processing: '出款处理中', unresolved: '结果待确认',
-  paid: '已到账', failed: '出款失败，已退回', rejected: '已驳回，已退回', cancelled: '已取消，款项已退回',
-}
-
 function showError(failure) {
   error.value = Object.values(failure.errors ?? {}).flat()[0] || failure.message
 }
 
-async function load(page = 1) {
+async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [summary, orders] = await Promise.allSettled([
-      api('/cash-wallet', { fresh: true }),
-      api('/cash-wallet/withdrawals?page=' + page, { fresh: true }),
-    ])
-    if (summary.status === 'fulfilled') wallet.value = summary.value.data
-    if (orders.status === 'fulfilled') history.value = orders.value
-    if (summary.status === 'rejected') throw summary.reason
-    if (orders.status === 'rejected') throw orders.reason
+    wallet.value = (await api('/cash-wallet', { fresh: true })).data
   } catch (failure) {
     showError(failure)
   } finally {
@@ -88,7 +74,7 @@ async function submit() {
     await api('/cash-wallet/withdrawals', { body: { request_id: attempt.value.id, amount_cents: requested } })
     clearAttempt()
     amount.value = ''
-    showNotice('提现申请已提交', '请在下方查看审核进度。', 'success')
+    showNotice('提现申请已提交', '可在提现订单中查看处理进度。', 'success')
     emit('refresh-member')
     await load()
   } catch (failure) {
@@ -105,7 +91,7 @@ watchNotice(error, '余额提现提醒', 'error')
 
 <template>
   <div class="stack" :aria-busy="busy">
-    <button v-if="error && !pending" type="button" class="quiet" :disabled="loading" @click="load()">{{ t('刷新余额与记录') }}</button>
+    <button v-if="error && !pending" type="button" class="quiet" :disabled="loading" @click="load()">{{ t('刷新余额') }}</button>
 
     <section v-if="wallet" class="surface stack">
       <dl class="summary-list">
@@ -121,20 +107,6 @@ watchNotice(error, '余额提现提醒', 'error')
         <p v-if="!attempt && amount && (!cents || cents > wallet.available_balance_cents)" class="muted">{{ t('请输入不超过可用余额的金额，最多两位小数。') }}</p>
         <button class="primary" :disabled="busy || !canSubmit">{{ t('确认申请提现') }}</button>
       </form>
-    </section>
-
-    <section v-if="history" class="surface stack">
-      <div class="member-actions">
-        <h2>{{ t('余额提现记录') }}</h2>
-        <button class="quiet" type="button" @click="go('/withdrawal-history')">{{ t('全部提现订单') }}</button>
-      </div>
-      <p v-if="!history.data.length" class="muted">{{ t('暂无余额提现记录。') }}</p>
-      <article v-for="order in history.data" :key="order.id" class="stack">
-        <strong>{{ formatBrl(order.amount_cents) }} · {{ t(order.rejection_deducted ? '已拒绝，款项已扣除' : statuses[order.status]) || order.status }}</strong>
-        <time class="muted" :datetime="order.created_at">{{ new Date(order.created_at).toLocaleString(locale) }}</time>
-        <p v-if="order.review_reason">{{ order.review_reason }}</p>
-      </article>
-      <MemberPagination :page="history" :busy="busy" @page="load" />
     </section>
   </div>
 </template>

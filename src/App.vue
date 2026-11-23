@@ -106,6 +106,7 @@ const requiresSession = computed(() => requiresMember(route.value))
 const title = computed(() => t(authTitles[route.value.path] || pageTitle(viewRoute.value, viewConfiguration.value)))
 const viewTitle = computed(() => t(pageTitle(viewRoute.value, viewConfiguration.value)))
 const navActive = computed(() => navbar[viewRoute.value.path])
+const isCashWithdrawalPage = computed(() => ['/cash-wallet', '/cash-wallet/withdraw'].includes(viewRoute.value.path))
 const ready = computed(() => !requiresSession.value || (sessionState.value === 'ready' && Boolean(member.value)))
 const viewReady = computed(() => auth.value || ready.value)
 const cachedView = computed(() => page.value === ContentPages && !viewRoute.value.params.id)
@@ -229,12 +230,14 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
             @language="language = $event" />
   <template v-else>
     <header v-if="viewRoute.path !== '/support'" class="page-topbar">
-      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund' }">
+      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund', 'has-withdrawal-history': isCashWithdrawalPage }">
         <button class="page-back" :aria-label="t('返回')" @click="back(fallback())">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>
         </button>
         <h1>{{ viewRoute.path === '/' ? copy.favorites : viewTitle }}</h1>
         <div v-if="viewRoute.path === '/rescue-fund'" id="rescue-fund-actions" class="page-action"></div>
+        <a v-else-if="isCashWithdrawalPage" class="page-action withdrawal-history-link" href="#/withdrawal-history"
+           @click.prevent="go('/withdrawal-history')">{{ t('提现记录') }}</a>
         <a v-else class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
       </div>
     </header>

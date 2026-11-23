@@ -20,7 +20,6 @@ const accountLinks = [
   ['/help', '帮助中心', icons.help],
   ['/bindings', '已绑定平台', icons.bind],
   ['/fund-records', '资金记录', 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h4'],
-  withdrawalLink,
   ['/pix', '收款账户', 'M4 5h16v14H4zM4 10h16m-12 5h3'],
 ]
 </script>

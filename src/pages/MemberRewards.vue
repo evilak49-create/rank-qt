@@ -101,14 +101,8 @@ async function load() {
   const page = Number(props.route.query.get('page')) || 1
   try {
     if (isHome) {
-      const [activity, history] = await Promise.allSettled([api(home, { fresh: true }), api('/pix-withdrawals?page=' + page)])
-      if (activity.status === 'fulfilled') {
-        packets.value = activity.value.data
-        if (round.value) clearAttempt(openKey)
-      }
-      if (history.status === 'fulfilled') records.value = history.value
-      if (activity.status === 'rejected') throw activity.reason
-      if (history.status === 'rejected') throw history.reason
+      packets.value = (await api(home, { fresh: true })).data
+      if (round.value) clearAttempt(openKey)
     } else if (isInvites) {
       records.value = await api(home + '/invites?page=' + page)
     } else if (isPix) {
@@ -306,23 +300,6 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
           <summary>{{ t(pageCopy.rules_title) }}</summary>
           <div class="reward-rule-copy" v-html="t(pageCopy.rules_html)"></div>
         </details>
-      </section>
-
-      <section v-if="records" class="surface stack">
-        <div class="member-actions">
-          <h2>{{ t('红包提现记录') }}</h2>
-          <button class="quiet" type="button" @click="go('/withdrawal-history')">{{ t('全部提现订单') }}</button>
-        </div>
-        <ul v-if="records.data.length" class="row-list">
-          <li v-for="record in records.data" :key="record.id">
-            <button @click="go(home + '/withdrawals/' + record.id)">
-              <span><strong>{{ money(record.amount_cents) }}</strong><small>{{ date(record.created_at) }}</small></span>
-              <span>{{ withdrawalStatusLabel(record) }} ›</span>
-            </button>
-          </li>
-        </ul>
-        <p v-else class="muted">{{ t('暂无提现记录。') }}</p>
-        <MemberPagination :page="records" :busy="loading" @page="pageLink" />
       </section>
     </template>
 
