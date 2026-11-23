@@ -17,6 +17,7 @@ const quickLinks = [
   ['/protection', '我的保障', shieldIcon],
 ]
 const accountLinks = [
+  ['/help', '帮助中心', icons.help],
   ['/bindings', '已绑定平台', icons.bind],
   withdrawalLink,
   ['/pix', '收款账户', 'M4 5h16v14H4zM4 10h16m-12 5h3'],

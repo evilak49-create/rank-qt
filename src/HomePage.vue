@@ -19,7 +19,7 @@ const blocks = reactive({
   featured: { path: '/platforms/featured', data: [], state: 'loading' },
   favorites: { path: '/platform-favorites', data: [], state: 'loading' },
 })
-const shortcuts = { bind: '/binding', cashback: '/cashback', help: '/help', support: '/support' }
+const shortcuts = { bind: '/binding', cashback: '/cashback', rescue: null, support: '/support' }
 const languages = [
   { id: 'zh-CN', name: '简体中文' },
   { id: 'pt-BR', name: 'Português' },
@@ -67,6 +67,12 @@ async function loadBlock(block) {
   }
 }
 
+function openShortcut(type) {
+  const path = shortcuts[type]
+  if (path) go(path)
+  else showNotice(t('救援金', 'Auxílio'), t('救援金暂未开放。', 'O auxílio ainda não está disponível.'))
+}
+
 function chooseFavorites() {
   const path = '/?tab=favorites'
   go(props.member ? path : '/login?' + new URLSearchParams({ next: path }))
@@ -77,7 +83,7 @@ watch(() => [props.route.key, props.member?.id], () => {
   if (selection.value === 'favorites') loadBlock(blocks.favorites)
 }, { immediate: true })
 
-import { watchNotice } from './feedback'
+import { showNotice, watchNotice } from './feedback'
 watchNotice(() => selectedBlock.value.state === 'error' ? copyTextForError() : '', () => selection.value === 'favorites' ? '收藏加载失败' : '推荐平台加载失败', 'error')
 function copyTextForError() { return props.copy.error }
 </script>
@@ -134,8 +140,8 @@ function copyTextForError() { return props.copy.error }
     </button>
 
     <div class="shortcuts" :aria-label="copy.shortcuts">
-      <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="go(shortcuts[type])">
-        <span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icons[type === 'cashback' ? 'shop' : type]"/></svg></span>
+      <button v-for="type in Object.keys(shortcuts)" :key="type" class="shortcut" :data-shortcut="type" @click="openShortcut(type)">
+        <span class="tile-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path :d="icons[type === 'cashback' ? 'shop' : type === 'rescue' ? 'protection' : type]"/></svg></span>
         <strong>{{ copy[type] }}</strong>
       </button>
     </div>
