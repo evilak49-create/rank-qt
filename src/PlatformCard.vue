@@ -285,7 +285,7 @@ function details(event) {
   box-shadow: inset 0 0 16px #44ba832e;
 }
 .platform-entry-inline:is(:hover, :focus-within) { border-color: #c4a877; }
-.platform-entry-inline[data-top-ranked] {
+.platform-entry-inline[data-top-ranked]:not(.platform-entry-home) {
   border-color: #ffca75;
   box-shadow: inset 0 0 9px #ffb65955, 0 0 8px #ff9d2a66;
 }
@@ -390,7 +390,7 @@ function details(event) {
 .platform-entry-inline .platform-entry-actions .platform-details:hover { border-color: #ffca7d; }
 .platform-entry-inline :is(a, button):focus-visible { outline-color: #ffdc89; outline-offset: -3px; }
 
-.platform-entry-home {
+.platform-entry-inline.platform-entry-home {
   --card-inline-padding: clamp(5px, 1.8vw, 9px);
   min-height: calc((100cqi - 10px) / 2 + 47px);
   grid-template-rows: auto minmax(min-content, 1fr) auto;
@@ -398,10 +398,6 @@ function details(event) {
   padding: 30px var(--card-inline-padding) 5px;
   border-radius: 16px;
   border-color: #8d7557;
-}
-.platform-entry-home[data-top-ranked] {
-  border-color: #ffd492;
-  box-shadow: inset 0 0 8px #ffaf544c, 0 0 0 1px #ffc47166, 0 0 10px #ff9d2a58;
 }
 .platform-entry-home::before {
   content: "";

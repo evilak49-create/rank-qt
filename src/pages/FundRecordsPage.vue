@@ -19,8 +19,6 @@ const labels = {
   rescue_fund: ['救援金', 'Auxílio'],
   withdrawal: ['提现', 'Saque'],
   withdrawal_refund: ['提现返回', 'Estorno de saque'],
-  shop_payment: ['商城支出', 'Pagamento na loja'],
-  shop_refund: ['商城退款', 'Estorno da loja'],
   platform_payment: ['平台兑换支出', 'Pagamento para resgate na plataforma'],
   platform_refund: ['平台兑换退款', 'Estorno de resgate na plataforma'],
 }

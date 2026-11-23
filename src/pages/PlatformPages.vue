@@ -119,14 +119,25 @@ const captchaError = ref('')
 const bindingUsesImage = computed(() => screen.value === 'bind' && bindingVerification.value === 'image')
 const mayConfirm = computed(() => quote.value?.cash_only === true && quote.value.status === 'pending' && quote.value.eligibility === 'eligible'
   && Date.parse(quote.value.expires_at) > now.value)
+const estimatedCashback = computed(() => {
+  const result = quote.value
+  if (!result) return null
+  if (result.status === 'confirmed' || result.rebate_enabled === false) return result.rebate_cents
+
+  const percent = /^(\d+)(?:\.(\d{1,6}))?$/.exec(String(result.max_rebate_percent ?? ''))
+  const deposit = String(result.deposit_cents ?? '')
+  if (!percent || !/^-?\d+$/.test(deposit)) return null
+
+  // The API quotes percentages to six decimal places. Round down to a whole cent like settlement does.
+  const percentMicros = BigInt(percent[1] + (percent[2] ?? '').padEnd(6, '0'))
+  return BigInt(deposit) > 0n ? String(BigInt(deposit) * percentMicros / 100000000n) : 0
+})
 const showQuoteAction = computed(() => screen.value === 'cashback' && quote.value && activeBinding.value
   && quote.value.status !== 'confirmed')
 const choices = computed(() => {
   if (screen.value !== 'cashback') return directory.value
   const keyword = search.value.trim().toLowerCase()
-  const ids = new Set(directory.value.map(item => String(item.id)))
-  const extra = ownBindings.value.filter(item => !ids.has(String(item.platform_id)) && item.platform_name.toLowerCase().includes(keyword))
-  return [...extra.map(bindingPlatform), ...directory.value]
+  return ownBindings.value.map(bindingPlatform).filter(item => item.name.toLowerCase().includes(keyword))
 })
 const promotion = computed(() => {
   try {
@@ -253,7 +264,7 @@ function openPicker() {
   listLastPage.value = 1
   highlighted.value = -1
   picker.value = true
-  listPlatforms()
+  if (screen.value !== 'cashback') listPlatforms()
 }
 
 function closePicker() {
@@ -267,6 +278,10 @@ function closePicker() {
 function typePicker(event) {
   picker.value = true
   search.value = event.target.value
+  if (screen.value === 'cashback') {
+    highlighted.value = -1
+    return
+  }
   updateSearch()
 }
 
@@ -318,7 +333,7 @@ async function loadBindings(signal, { allPages = false, throughPage = 1 } = {}) 
   let currentPage = 1
   let result
   do {
-    result = await api('/platform-bindings?page=' + currentPage, { signal, fresh: screen.value === 'bind' })
+    result = await api('/platform-bindings?page=' + currentPage, { signal, fresh: screen.value === 'bind' || screen.value === 'cashback' })
     items.push(...result.data)
     currentPage++
   } while (currentPage <= result.last_page && (allPages || currentPage <= throughPage))
@@ -440,7 +455,7 @@ async function initialize() {
       if (preset) {
         choose(bindingPlatform(preset))
         if (mode === 'cashback' && props.route.query.get('auto') === '1') await queryCashback()
-      } else if (/^\d+$/.test(platformId ?? '')) {
+      } else if (mode === 'bind' && /^\d+$/.test(platformId ?? '')) {
         const result = await api('/platforms/' + platformId, { signal })
         if (!signal.aborted) choose(result.data)
       }
@@ -924,16 +939,16 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           <p class="muted">{{ t('绑定成功后不可更换，请核对平台和账号。') }}</p>
           <button class="primary" :disabled="busy || !bindingVerification || (bindingUsesImage && !bindingCaptcha)">{{ t('确认绑定') }}</button>
         </form>
-        <template v-else-if="selected && screen === 'cashback'">
-          <p class="muted">{{ t('请先绑定该平台账号，再查询返利。', 'Vincule sua conta para consultar o cashback.') }}</p>
-          <button class="primary" type="button" @click="go(bindPath(selected.id, '/cashback?platform=' + selected.id))">{{ t('去绑定') }}</button>
+        <template v-else-if="screen === 'cashback' && !ownBindings.length">
+          <p class="muted">{{ t('请先绑定平台，再查询返利。', 'Vincule uma plataforma para consultar o cashback.') }}</p>
+          <button class="primary" type="button" @click="go('/binding?return=' + encodeURIComponent('/cashback'))">{{ t('去绑定') }}</button>
         </template>
       </section>
       <section v-if="screen === 'cashback' && quote && activeBinding" class="surface stack platform-content quote-result">
         <div class="quote-highlight">
           <p>{{ quote.status === 'confirmed' ? t('已到账') : t('预计入账') }}</p>
           <dl class="quote-totals">
-            <div><dt>{{ t('返利') }}</dt><dd>{{ formatBrl(quote.rebate_cents) }}</dd></div>
+            <div><dt>{{ t('返利') }}</dt><dd>{{ formatMoney(estimatedCashback) }}</dd></div>
           </dl>
         </div>
         <dl class="platform-data">
@@ -941,9 +956,9 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           <div><dt>{{ t('当前投注额') }}</dt><dd>{{ formatMoney(quote.observed_valid_bet_cents) }}</dd></div>
           <div><dt>{{ t('本次待兑换存款') }}</dt><dd>{{ formatMoney(quote.deposit_cents) }}</dd></div>
           <div><dt>{{ t('本期有效投注额') }}</dt><dd>{{ formatMoney(quote.valid_bet_cents) }}</dd></div>
-          <div v-if="quote.rebate_enabled"><dt>{{ t('返利所需投注额（' + quote.rebate_wager_multiplier + ' 倍）', 'Apostas exigidas para cashback (' + quote.rebate_wager_multiplier + '×)') }}</dt><dd>{{ formatMoney(quote.rebate_required_bet_cents) }}</dd></div>
           <div v-if="quote.matched_rebate_wager_multiplier != null"><dt>{{ t('命中打码档位', 'Faixa de apostas atingida') }}</dt><dd>{{ formatRule(quote.matched_rebate_wager_multiplier, '×') }}</dd></div>
-          <div v-if="quote.rebate_enabled"><dt>{{ t('返利比例') }}</dt><dd>{{ formatRule(quote.rebate_percent, '%') }}</dd></div>
+          <div v-if="quote.rebate_enabled"><dt>{{ t('当前返利比例', 'Percentual atual de cashback') }}</dt><dd>{{ formatRule(quote.rebate_percent, '%') }}</dd></div>
+          <div v-if="quote.rebate_enabled"><dt>{{ t('当前实际可获得返利', 'Cashback disponível agora') }}</dt><dd>{{ formatMoney(quote.rebate_cents) }}</dd></div>
           <div><dt>{{ t('基线快照读取时间') }}</dt><dd>{{ formatDate(quote.baseline_observed_at) }}</dd></div>
           <div><dt>{{ t('本次快照读取时间') }}</dt><dd>{{ formatDate(quote.observed_at) }}</dd></div>
         </dl>

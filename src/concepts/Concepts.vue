@@ -21,7 +21,7 @@ const content = {
   platform: { title: '平台详情', path: '/platforms/' },
   help: { title: '返利指南', path: '/content/help' },
   article: { title: '指南详情', path: '/content/help/' },
-  shop: { title: '积分商城', path: '/shop/products' },
+  shop: { title: '兑换', path: '/shop' },
   support: { title: '客服支持', path: '/support?language=zh-CN' },
   announcement: { title: '站点公告', path: '/content/announcements/' },
 }

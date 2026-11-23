@@ -16,13 +16,8 @@ import { createRequestId } from '../requestId.js'
 const props = defineProps({ route: { type: Object, required: true }, member: Object, language: String })
 const emit = defineEmits(['refresh-member'])
 const { t, locale } = useLocale()
-const filters = [
-  { id: 'all', label: ['全部', 'Todos'] },
-  { id: 'goods', label: ['历史商品订单', 'Pedidos antigos'] },
-  { id: 'funds', label: ['平台资金', 'Crédito na plataforma'] },
-]
 const statusLabels = computed(() => ({
-  pending: t('待处理', 'Pendente'), shipped: t('已发货', 'Enviado'), cancelled: t('已取消', 'Cancelado'), processing: t('处理中', 'Em processamento'),
+  pending: t('待处理', 'Pendente'), cancelled: t('已取消', 'Cancelado'), processing: t('处理中', 'Em processamento'),
   paid: t('已到账', 'Creditado'), rejected: t('已驳回', 'Recusado'), failed: t('兑换失败', 'Falha no resgate'), unresolved: t('待核实', 'Aguardando verificação'),
 }))
 const calendar = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
@@ -34,11 +29,6 @@ const mode = computed(() => {
   if (params.id && path === '/shop/redemptions/' + params.id) return 'detail'
   return 'missing'
 })
-const filter = computed(() => {
-  const type = props.route.query.get('type')
-  return filters.some(item => item.id === type) ? type : 'all'
-})
-const orderType = computed(() => filter.value === 'funds' ? 'funds' : 'goods')
 const catalog = ref(null)
 const history = ref(null)
 const search = ref('')
@@ -63,15 +53,14 @@ const amountCents = computed(() => parseBrl(amountInput.value))
 const validAmount = computed(() => amountCents.value !== null && amountCents.value <= 2147483647)
 const overBalance = computed(() => balance.value !== null && amountCents.value > balance.value)
 const sessionPath = computed(() => encodeURIComponent(props.route.fullPath || props.route.path))
-const redemptionPath = (id, type) => '/shop/redemptions/' + id + '?type=' + type
-const status = (type, value) => value === 'pending' ? (type === 'goods' ? t('待发货', 'Aguardando envio') : t('待审核', 'Aguardando análise')) : statusLabels.value[value] || t('状态待更新', 'Situação a confirmar')
+const redemptionPath = id => '/shop/redemptions/' + id + '?type=funds'
+const status = value => value === 'pending' ? t('待审核', 'Aguardando análise') : statusLabels.value[value] || t('状态待更新', 'Situação a confirmar')
 const date = value => value && !Number.isNaN(Date.parse(value)) ? calendar.value.format(new Date(value)) : '—'
-const addressLine = value => [value.street, value.number, value.complement, value.district, value.city, value.state, value.postal_code].filter(Boolean).join(' · ')
 const message = error => {
   if (locale.value !== 'pt-BR') return Object.values(error.errors || {}).flat()[0] || error.message || '请稍后重试。'
   return ({
     403: 'Você não pode realizar esta operação.',
-    404: 'Este produto, plataforma ou pedido não está disponível.',
+    404: 'Esta plataforma ou este pedido não está disponível.',
     409: 'As informações mudaram. Confira os dados e tente novamente.',
     422: 'Não foi possível validar o resgate. Confira os dados e o saldo.',
     503: 'O serviço está indisponível no momento. Tente novamente mais tarde.',
@@ -79,16 +68,16 @@ const message = error => {
 }
 const requestKey = () => [props.member?.id, mode.value, props.route.params.id].join(':')
 const login = () => go('/login?next=' + sessionPath.value)
-const goToHistory = type => go('/shop/redemptions' + (type === 'all' ? '' : '?type=' + type))
+const goToHistory = () => go('/shop/redemptions')
 const newList = () => ({ items: [], page: 0, last: 1, loading: false, error: '' })
 const refreshLabel = computed(() => props.language === 'pt-BR' ? 'Atualizar' : '刷新')
 
-function fetchList(list, path, signal) {
+function fetchList(list, path, signal, fresh = false) {
   if (list.loading || list.page >= list.last) return
   const page = list.page + 1
   list.loading = true
   list.error = ''
-  return api(path + (path.includes('?') ? '&' : '?') + 'page=' + page, { signal })
+  return api(path + (path.includes('?') ? '&' : '?') + 'page=' + page, { signal, fresh })
     .then(result => {
       if (signal.aborted) return
       list.items.push(...result.data)
@@ -104,66 +93,10 @@ function catalogPage() {
   return fetchList(catalog.value, '/platforms?search=' + term, controller.signal)
 }
 
-const orderEndpoints = { goods: '/shop/orders', funds: '/platform-funds/orders' }
+const platformOrders = '/platform-funds/orders'
 
-async function historyPage() {
-  const list = history.value
-  if (list.loading || list.page >= list.last) return
-  const signal = controller.signal
-  const type = filter.value
-  list.loading = true
-  list.error = ''
-  try {
-    if (!list.legacy) {
-      try {
-        const result = await api('/shop/redemptions?type=' + type + '&page=' + (list.page + 1), { signal, fresh: true })
-        if (!signal.aborted) {
-          list.items.push(...result.data)
-          list.page = result.current_page
-          list.last = result.last_page
-        }
-        return
-      } catch (error) {
-        if (error.status !== 404 || list.page || signal.aborted) throw error
-        const types = type === 'all' ? ['goods', 'funds'] : [type]
-        list.legacy = types.map(kind => ({ kind, page: 0, last: 1, items: [] }))
-      }
-    }
-
-    // Exhaust buffered rows in submission order, fetching either stream before
-    // comparing its next record with the other stream.
-    for (let added = 0; added < 20 && !signal.aborted; added += 1) {
-      const results = await Promise.allSettled(list.legacy.map(async stream => {
-        if (stream.items.length || stream.page >= stream.last) return
-        const result = await api(orderEndpoints[stream.kind] + '?page=' + (stream.page + 1), { signal, fresh: true })
-        if (signal.aborted) return
-        stream.items = result.data
-        stream.page = result.current_page
-        stream.last = result.last_page
-      }))
-      if (signal.aborted) return
-      const failure = results.find(result => result.status === 'rejected')
-      if (failure) throw failure.reason
-      const next = list.legacy.filter(stream => stream.items.length)
-        .sort((a, b) => Date.parse(b.items[0].created_at) - Date.parse(a.items[0].created_at))[0]
-      if (!next) break
-      const record = next.items.shift()
-      const goods = next.kind === 'goods'
-      list.items.push({
-        id: record.id, type: next.kind, created_at: record.created_at, status: record.status,
-        name: goods ? record.product_name : record.platform_name,
-        balance_paid_cents: record.balance_paid_cents,
-      })
-    }
-    if (!signal.aborted) {
-      list.page += 1
-      list.last = list.legacy.some(stream => stream.items.length || stream.page < stream.last) ? list.page + 1 : list.page
-    }
-  } catch (error) {
-    if (!signal.aborted) list.error = message(error)
-  } finally {
-    list.loading = false
-  }
+function historyPage() {
+  return fetchList(history.value, platformOrders, controller.signal, true)
 }
 
 function refreshHistory() {
@@ -178,7 +111,7 @@ async function refreshOrder() {
   refreshingOrder.value = true
   issue.value = ''
   try {
-    const { data } = await api(orderEndpoints[orderType.value] + '/' + props.route.params.id, { signal, fresh: true })
+    const { data } = await api(platformOrders + '/' + props.route.params.id, { signal, fresh: true })
     if (!signal.aborted) order.value = data
   } catch (error) {
     if (!signal.aborted) issue.value = message(error)
@@ -240,6 +173,10 @@ async function load() {
   }
 
   if (mode.value === 'detail') {
+    if (props.route.query.get('type') === 'goods') {
+      go('/shop/redemptions', { replace: true })
+      return
+    }
     if (props.member) refreshOrder()
     return
   }
@@ -317,7 +254,7 @@ async function submit() {
     if (!signal.aborted) {
       emit('refresh-member')
       showNotice(t('兑换已提交', 'Resgate solicitado'), t('可在兑换记录中查看订单进度。', 'Acompanhe o pedido no histórico de resgates.'), 'success')
-      go(redemptionPath(data.id, 'funds'), { replace: true })
+      go(redemptionPath(data.id), { replace: true })
     }
   } catch (error) {
     const knownFailure = [400, 403, 404, 409, 422].includes(error.status)
@@ -350,7 +287,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
           <strong v-if="member">{{ balance === null ? '—' : brl(balance) }}</strong>
           <button v-else class="shop-login" @click="login">{{ t('登录后查看', 'Entre para consultar') }}</button>
         </div>
-        <button class="quiet" @click="goToHistory('all')">{{ t('兑换记录', 'Histórico de resgates') }} <span aria-hidden="true">›</span></button>
+        <button class="quiet" @click="goToHistory">{{ t('兑换记录', 'Histórico de resgates') }} <span aria-hidden="true">›</span></button>
       </div>
       <form class="shop-search" role="search" @submit.prevent="searchCatalog">
         <input v-model="search" class="field" type="search" maxlength="120" :placeholder="t('搜索平台', 'Buscar plataformas')" :aria-label="t('搜索平台', 'Buscar plataformas')" @search="searchCatalog" />
@@ -378,16 +315,13 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
     </template>
 
     <template v-else-if="mode === 'history'">
-      <div class="segmented shop-segmented" :aria-label="t('兑换记录类型', 'Tipo de resgate')">
-        <button v-for="item in filters" :key="item.id" :aria-pressed="filter === item.id" @click="goToHistory(item.id)">{{ t(...item.label) }}</button>
-      </div>
       <div v-if="!member" class="surface stack"><p>{{ t('请登录查看兑换记录。', 'Entre para consultar seu histórico de resgates.') }}</p><button class="primary" @click="login">{{ t('登录', 'Entrar') }}</button></div>
       <template v-else-if="history">
         <button class="quiet" :disabled="history.loading" @click="refreshHistory">{{ refreshLabel }}</button>
         <div v-if="history.items.length" class="row-list shop-records">
-          <button v-for="item in history.items" :key="item.type + ':' + item.id" class="surface shop-record" @click="go(redemptionPath(item.id, item.type))">
-            <span class="shop-list-text"><strong>{{ item.name }}</strong><small class="muted">{{ date(item.created_at) }}</small></span>
-            <span class="shop-record-amount"><strong>{{ item.balance_paid_cents == null ? t('历史兑换', 'Resgate anterior') : '−' + brl(item.balance_paid_cents) }}</strong><small class="shop-status" :data-status="item.status">{{ status(item.type, item.status) }}</small></span>
+          <button v-for="item in history.items" :key="item.id" class="surface shop-record" @click="go(redemptionPath(item.id))">
+            <span class="shop-list-text"><strong>{{ item.platform_name }}</strong><small class="muted">{{ date(item.created_at) }}</small></span>
+            <span class="shop-record-amount"><strong>{{ item.balance_paid_cents == null ? t('历史兑换', 'Resgate anterior') : '−' + brl(item.balance_paid_cents) }}</strong><small class="shop-status" :data-status="item.status">{{ status(item.status) }}</small></span>
           </button>
         </div>
         <p v-if="!history.loading && !history.error && !history.items.length" class="surface muted">{{ t('暂无兑换记录。', 'Nenhum resgate registrado.') }}</p>
@@ -408,7 +342,6 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
               <p class="muted">{{ t('使用余额兑换', 'Resgate com saldo') }}</p>
             </div>
           </div>
-          <p v-if="mode === 'goods' && subject.description" class="muted shop-description">{{ subject.description }}</p>
           <p v-if="member && balance !== null" class="muted">{{ t('可用余额', 'Saldo disponível') }} {{ brl(balance) }}</p>
 
           <template v-if="!member">
@@ -417,7 +350,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
           </template>
           <template v-else-if="retry">
             <p class="shop-notice">{{ t('有一笔兑换尚待确认结果。', 'Há um resgate com resultado pendente.') }}</p>
-            <div class="shop-actions"><button class="quiet" @click="goToHistory(mode)">{{ t('兑换记录', 'Histórico de resgates') }}</button><button class="primary" :disabled="submitting" @click="submit">{{ t('重试原请求', 'Repetir a solicitação original') }}</button></div>
+            <div class="shop-actions"><button class="quiet" @click="goToHistory">{{ t('兑换记录', 'Histórico de resgates') }}</button><button class="primary" :disabled="submitting" @click="submit">{{ t('重试原请求', 'Repetir a solicitação original') }}</button></div>
           </template>
           <template v-else-if="!binding">
             <p>{{ t('您还没有绑定该平台账号。', 'Você ainda não vinculou uma conta nessa plataforma.') }}</p>
@@ -443,34 +376,24 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
         <div v-if="!member" class="surface stack"><p>{{ t('请登录查看订单详情。', 'Entre para ver os detalhes do pedido.') }}</p><button class="primary" @click="login">{{ t('登录', 'Entrar') }}</button></div>
         <article v-else-if="order" class="surface stack shop-checkout">
           <div class="shop-summary">
-            <div class="shop-list-text"><h2>{{ orderType === 'goods' ? order.product_name : order.platform_name }}</h2><p class="shop-highlight">{{ order.balance_paid_cents == null ? t('历史兑换', 'Resgate anterior') : '−' + brl(order.balance_paid_cents) }}</p></div>
-            <span class="shop-status" :data-status="order.status">{{ status(orderType, order.status) }}</span>
+            <div class="shop-list-text"><h2>{{ order.platform_name }}</h2><p class="shop-highlight">{{ order.balance_paid_cents == null ? t('历史兑换', 'Resgate anterior') : '−' + brl(order.balance_paid_cents) }}</p></div>
+            <span class="shop-status" :data-status="order.status">{{ status(order.status) }}</span>
           </div>
           <dl class="shop-details">
             <dt>{{ t('订单编号', 'Número do pedido') }}</dt><dd>{{ order.order_number }}</dd>
             <dt>{{ t('提交时间', 'Data da solicitação') }}</dt><dd>{{ date(order.created_at) }}</dd>
-            <template v-if="orderType === 'goods'">
-              <template v-if="order.address"><dt>{{ t('收货人', 'Destinatário') }}</dt><dd>{{ order.address.recipient }}</dd><dt>{{ t('收货地址', 'Endereço de entrega') }}</dt><dd>{{ addressLine(order.address) }}</dd></template>
-              <template v-if="order.carrier"><dt>{{ t('承运公司', 'Transportadora') }}</dt><dd>{{ order.carrier }}</dd></template>
-              <template v-if="order.tracking_number"><dt>{{ t('物流单号', 'Código de rastreio') }}</dt><dd>{{ order.tracking_number }}</dd></template>
-              <template v-if="order.shipped_at"><dt>{{ t('发货时间', 'Data de envio') }}</dt><dd>{{ date(order.shipped_at) }}</dd></template>
-              <template v-if="order.cancelled_at"><dt>{{ t('取消时间', 'Data de cancelamento') }}</dt><dd>{{ date(order.cancelled_at) }}</dd></template>
-              <template v-if="order.cancellation_reason"><dt>{{ t('取消原因', 'Motivo do cancelamento') }}</dt><dd>{{ order.cancellation_reason }}</dd></template>
-            </template>
-            <template v-else>
-              <dt>{{ t('平台账号', 'Conta na plataforma') }}</dt><dd>{{ order.platform_account_id }}</dd>
-              <dt>{{ t('兑换金额', 'Valor do resgate') }}</dt><dd class="shop-highlight">{{ brl(order.amount_cents) }} {{ order.currency }}</dd>
-              <template v-if="order.paid_at"><dt>{{ t('到账时间', 'Data do crédito') }}</dt><dd>{{ date(order.paid_at) }}</dd></template>
-              <template v-if="order.paused || order.needs_review"><dt>{{ t('处理进度', 'Andamento') }}</dt><dd>{{ order.needs_review ? t('等待人工核实', 'Aguardando verificação manual') : t('发放已暂停', 'Crédito suspenso') }}</dd></template>
-              <template v-if="order.reviewed_at"><dt>{{ t('审核时间', 'Data da análise') }}</dt><dd>{{ date(order.reviewed_at) }}</dd></template>
-              <template v-if="order.review_reason"><dt>{{ t('审核说明', 'Nota da análise') }}</dt><dd>{{ order.review_reason }}</dd></template>
-            </template>
+            <dt>{{ t('平台账号', 'Conta na plataforma') }}</dt><dd>{{ order.platform_account_id }}</dd>
+            <dt>{{ t('兑换金额', 'Valor do resgate') }}</dt><dd class="shop-highlight">{{ brl(order.amount_cents) }} {{ order.currency }}</dd>
+            <template v-if="order.paid_at"><dt>{{ t('到账时间', 'Data do crédito') }}</dt><dd>{{ date(order.paid_at) }}</dd></template>
+            <template v-if="order.paused || order.needs_review"><dt>{{ t('处理进度', 'Andamento') }}</dt><dd>{{ order.needs_review ? t('等待人工核实', 'Aguardando verificação manual') : t('发放已暂停', 'Crédito suspenso') }}</dd></template>
+            <template v-if="order.reviewed_at"><dt>{{ t('审核时间', 'Data da análise') }}</dt><dd>{{ date(order.reviewed_at) }}</dd></template>
+            <template v-if="order.review_reason"><dt>{{ t('审核说明', 'Nota da análise') }}</dt><dd>{{ order.review_reason }}</dd></template>
           </dl>
         </article>
         <div v-if="member" class="shop-actions">
           <button class="quiet" @click="back('/shop/redemptions')">{{ t('返回', 'Voltar') }}</button>
           <button class="quiet" :disabled="refreshingOrder" @click="refreshOrder">{{ refreshLabel }}</button>
-          <button class="primary" @click="goToHistory('all')">{{ t('兑换记录', 'Histórico de resgates') }}</button>
+          <button class="primary" @click="goToHistory">{{ t('兑换记录', 'Histórico de resgates') }}</button>
         </div>
       </template>
       <div v-else class="surface stack"><p>{{ t('未找到该兑换页面。', 'Página de resgate não encontrada.') }}</p><button class="quiet" @click="go('/shop')">{{ t('返回兑换', 'Voltar aos resgates') }}</button></div>
@@ -509,7 +432,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 .shop-record-amount { flex-shrink: 0; text-align: right; }
 .shop-record-amount strong { font-size: 13px; }
 .shop-status { color: var(--accent); font-size: 12px; }
-.shop-status[data-status="paid"], .shop-status[data-status="shipped"] { color: var(--success); }
+.shop-status[data-status="paid"] { color: var(--success); }
 .shop-status[data-status="failed"], .shop-status[data-status="rejected"], .shop-status[data-status="cancelled"] { color: var(--danger); }
 .shop-checkout { padding: 14px; overflow-wrap: anywhere; }
 .shop-facts { display: grid; gap: 3px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; }
