@@ -10,6 +10,7 @@ const records = ref(null)
 const loading = ref(true)
 const loadFailed = ref(false)
 const source = ref('')
+const typePicker = ref(null)
 let request
 let requestedPage = 1
 
@@ -22,6 +23,19 @@ const labels = {
   shop_refund: ['商城退款', 'Estorno da loja'],
   platform_payment: ['平台兑换支出', 'Pagamento para resgate na plataforma'],
   platform_refund: ['平台兑换退款', 'Estorno de resgate na plataforma'],
+}
+
+const filterOptions = ['', ...Object.keys(labels)]
+
+function filterLabel(value) {
+  return value ? sourceLabel(value) : t('全部类型', 'Todos os tipos')
+}
+
+function selectSource(value) {
+  typePicker.value.close()
+  if (source.value === value) return
+  source.value = value
+  load()
 }
 
 function sourceLabel(value) {
@@ -65,20 +79,34 @@ onUnmounted(() => request?.abort())
 
 <template>
   <section class="stack fund-records" :aria-label="t('资金明细')" :aria-busy="loading">
-    <label class="surface field">
-      {{ t('资金类型', 'Tipo de movimentação') }}
-      <select v-model="source" @change="load()">
-        <option value="">{{ t('全部', 'Todas') }}</option>
-        <option v-for="(_, value) in labels" :key="value" :value="value">{{ sourceLabel(value) }}</option>
-      </select>
-    </label>
-    <p v-if="loading" class="state" role="status">{{ t('正在加载…', 'Carregando…') }}</p>
-    <div v-else-if="loadFailed" class="state">
+    <button class="fund-filter" type="button" aria-haspopup="dialog" @click="typePicker.showModal()">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7v5l-4 2v-7z" /></svg>
+      <span class="fund-filter-label">{{ t('资金类型', 'Tipo de movimentação') }}</span>
+      <strong>{{ filterLabel(source) }}</strong>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+    </button>
+    <dialog ref="typePicker" class="locale-sheet fund-type-sheet" aria-labelledby="fund-type-title" @click.self="typePicker.close()">
+      <div class="locale-panel">
+        <div class="locale-heading">
+          <h2 id="fund-type-title">{{ t('选择资金类型', 'Selecione o tipo de movimentação') }}</h2>
+          <button class="locale-close" type="button" :aria-label="t('关闭', 'Fechar')" @click="typePicker.close()">×</button>
+        </div>
+        <div class="fund-type-options">
+          <button v-for="value in filterOptions" :key="value" class="locale-option fund-type-option"
+            :class="{ 'fund-type-all': !value }" type="button" :aria-pressed="source === value"
+            @click="selectSource(value)">
+            <span>{{ filterLabel(value) }}</span>
+            <span v-if="source === value" class="locale-check" aria-hidden="true">✓</span>
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <div v-if="!loading && loadFailed" class="state">
       <p>{{ t('暂时无法读取资金明细，请重试。', 'Não foi possível consultar as movimentações. Tente novamente.') }}</p>
       <button class="text-button" type="button" @click="load(requestedPage)">{{ t('重试') }}</button>
     </div>
-    <p v-else-if="!records?.data.length" class="state">{{ t('暂无资金明细。', 'Nenhuma movimentação registrada.') }}</p>
-    <template v-else>
+    <p v-else-if="!loading && !records?.data.length" class="state">{{ t('暂无资金明细。', 'Nenhuma movimentação registrada.') }}</p>
+    <template v-else-if="!loading">
       <ul class="surface fund-entries">
         <li v-for="entry in records.data" :key="entry.id" class="fund-entry">
           <div class="fund-entry-row">
@@ -97,6 +125,27 @@ onUnmounted(() => request?.abort())
 </template>
 
 <style scoped>
+.fund-filter {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) fit-content(46%) 16px;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 13px;
+  background: var(--surface-gradient);
+  text-align: start;
+}
+.fund-filter svg { width: 100%; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.fund-filter-label { color: var(--muted); font-size: 13px; }
+.fund-filter strong { color: var(--highlight); font-size: 13px; line-height: 1.3; text-align: end; }
+.fund-filter-label, .fund-filter strong, .fund-type-option span { overflow-wrap: anywhere; }
+.fund-type-sheet { max-height: 85dvh; overscroll-behavior: contain; }
+.fund-type-sheet .locale-close { flex: none; }
+.fund-type-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.fund-type-option { grid-template-columns: minmax(0, 1fr) auto; min-height: 46px; font-size: 13px; line-height: 1.3; }
+.fund-type-all { grid-column: 1 / -1; }
 .fund-records .state, .fund-records .state p { margin: 0; }
 .fund-entries { list-style: none; margin: 0; }
 .fund-entry + .fund-entry { border-top: 1px solid var(--line); }
