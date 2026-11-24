@@ -4,6 +4,7 @@ import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { api, imageUrl } from '../api'
 import PlatformCard from '../PlatformCard.vue'
+import ProtectionContract from './ProtectionContract.vue'
 import { currentRoute, go, safePath } from '../navigation'
 import MemberPagination from './MemberPagination.vue'
 
@@ -185,11 +186,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
       <MemberPagination :page="cases" :busy="loading" @page="goPage('page', $event)" />
     </section>
 
-    <section v-else-if="isTerms && !loading && !error" class="surface stack">
-      <h2>{{ item?.title || t('保障条款') }}</h2>
-      <p v-if="item" class="member-paragraph">{{ item.body }}</p>
-      <p v-else class="muted">{{ t('该平台暂无公开保障条款。') }}</p>
-    </section>
+    <ProtectionContract v-else-if="isTerms && !loading && !error" :terms="item" />
 
     <section v-else-if="isNew" class="surface stack">
       <template v-if="item">

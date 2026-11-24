@@ -10,6 +10,7 @@ import { api, imageUrl } from '../api'
 import { icons } from '../icons'
 import { formatGuaranteeAmount } from '../money'
 import PlatformCard from '../PlatformCard.vue'
+import ProtectionContract from './ProtectionContract.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
 import { avatarForReview } from './memberAvatars.js'
 import PlatformIntroduction from './PlatformIntroduction.vue'
@@ -819,13 +820,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
       </footer>
     </template>
 
-    <template v-else-if="screen === 'terms'">
-      <article v-if="terms" class="surface stack platform-content">
-        <h2>{{ terms.title }}</h2>
-        <p class="preserved">{{ terms.body }}</p>
-      </article>
-      <p v-else class="surface muted message">{{ t('该平台暂无公开保障条款。') }}</p>
-    </template>
+    <ProtectionContract v-else-if="screen === 'terms'" :terms="terms" />
 
     <template v-else-if="screen === 'review' && platform">
       <div v-if="!reviewBinding" class="surface stack platform-content">
