@@ -187,7 +187,7 @@ async function listPlatforms(page = 1) {
   const isBinding = screen.value === 'bind'
   const path = isBinding ? '/platforms/bindable' : '/platforms'
   try {
-    const result = await api(path + '?' + new URLSearchParams({ search: keyword, page }), { signal: controller.signal, fresh: isBinding })
+    const result = await api(path + '?' + new URLSearchParams({ search: keyword, page }), { signal: controller.signal, fresh: isBinding, background: isBinding })
     if (controller.signal.aborted) return
     directory.value = page === 1 ? result.data : [...directory.value, ...result.data]
     listPage.value = result.current_page
@@ -226,6 +226,14 @@ function openPicker() {
   highlighted.value = -1
   picker.value = true
   listPlatforms()
+}
+
+function loadMorePicker(event) {
+  const panel = event.currentTarget
+  if (!listing.value && !listingError.value && listPage.value < listLastPage.value
+      && panel.scrollHeight - panel.clientHeight - panel.scrollTop <= 48) {
+    listPlatforms(listPage.value + 1)
+  }
 }
 
 function closePicker() {
@@ -278,8 +286,7 @@ function togglePicker() {
 function choose(item) {
   selected.value = item
   closePicker()
-  phone.value = props.member?.phone ?? ''
-  code.value = ''
+  if (!bindingUsesImage.value) code.value = ''
   error.value = ''
   status.value = ''
 }
@@ -482,6 +489,7 @@ function toggleFavorite() {
 }
 
 function sendCode() {
+  if (!selected.value || activeBinding.value || !requiresCode.value) return
   return run(async current => {
     await api('/platforms/' + selected.value.id + '/binding/code', { body: { phone: phone.value.trim() } })
     if (current()) status.value = '验证码已发送。'
@@ -498,8 +506,7 @@ function finishBinding() {
 
 async function refreshBindingCaptcha(signal) {
   const route = props.route
-  const picked = selected.value?.id
-  const current = () => !disposed && props.route === route && selected.value?.id === picked && !signal?.aborted
+  const current = () => !disposed && props.route === route && !signal?.aborted
   bindingCaptcha.value = null
   code.value = ''
   captchaError.value = ''
@@ -514,18 +521,18 @@ async function refreshBindingCaptcha(signal) {
   }
 }
 
-watch([bindingUsesImage, () => selected.value?.id, activeBinding, () => props.route], ([useImage, id, existing], previous, onCleanup) => {
+watch([bindingUsesImage, () => props.route], ([useImage], _previous, onCleanup) => {
   bindingCaptcha.value = null
   captchaLoading.value = false
   captchaError.value = ''
-  if (!useImage || !id || existing) return
+  if (!useImage) return
   const request = new AbortController()
   onCleanup(() => request.abort())
   refreshBindingCaptcha(request.signal)
 })
 
 function bindAccount() {
-  if (!bindingVerification.value || (bindingUsesImage.value && !bindingCaptcha.value)) return
+  if (!selected.value || activeBinding.value || !bindingVerification.value || (bindingUsesImage.value && !bindingCaptcha.value)) return
   return run(async current => {
     const body = { phone: phone.value.trim() }
     const useImage = bindingUsesImage.value
@@ -834,7 +841,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
               <svg viewBox="0 0 24 24" aria-hidden="true" :class="{ expanded: picker }"><path d="m6 9 6 6 6-6"/></svg>
             </button>
           </div>
-          <div v-show="picker" class="picker-panel">
+          <div v-show="picker" class="picker-panel" @scroll.passive="loadMorePicker">
             <div id="platform-options" class="picker-results" role="listbox" :aria-label="t('匹配平台')">
               <button v-for="(item, index) in choices" :id="'platform-option-' + index" :key="item.id" class="binding-row"
                       :class="{ highlighted: index === highlighted }" type="button" role="option" tabindex="-1"
@@ -844,7 +851,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
                   <img v-if="imageUrl(item.logo_url)" :src="imageUrl(item.logo_url)" width="40" height="40" alt=""
                        @error="$event.target.hidden = true" @load="$event.target.hidden = false">
                 </span>
-                <strong>{{ item.name }}</strong>
+                <strong class="picker-name">{{ item.name }}</strong>
                 <span v-if="String(selected?.id) === String(item.id)" class="picker-check" aria-hidden="true">✓</span>
               </button>
             </div>
@@ -861,15 +868,17 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           <button v-if="target" class="primary" type="button" @click="finishBinding">{{ t('继续') }}</button>
           <button v-else class="quiet" type="button" @click="go('/bindings/' + activeBinding.id)">{{ t('查看绑定详情') }}</button>
         </template>
-        <form v-else-if="selected && screen === 'bind'" class="stack" @submit.prevent="bindAccount">
-          <label class="field">{{ t('平台账号（巴西手机号）') }}
+        <form v-else class="stack" @submit.prevent="bindAccount">
+          <label class="field">{{ t('平台账号') }}
             <input v-model.trim="phone" type="tel" maxlength="32" autocomplete="tel" required :disabled="busy" @input="code = ''; status = ''">
           </label>
-          <div v-if="requiresCode && bindingVerification === 'sms'" class="code-row">
+          <div v-if="bindingVerification === 'sms'" class="code-row">
             <label class="field">{{ t('短信验证码') }}
-              <input v-model.trim="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required :disabled="busy">
+              <input v-model.trim="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
+                     :required="requiresCode" :disabled="busy || !requiresCode"
+                     :placeholder="requiresCode ? undefined : t('已验证，无需验证码', 'Celular já verificado')">
             </label>
-            <button type="button" class="quiet" :disabled="busy || !phone" @click="sendCode">{{ t('获取验证码') }}</button>
+            <button type="button" class="quiet" :disabled="busy || !selected || !phone || !requiresCode" @click="sendCode">{{ t('获取验证码') }}</button>
           </div>
           <div v-if="bindingUsesImage" class="code-row">
             <label class="field">{{ t('图片验证码') }}
@@ -881,7 +890,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
             </button>
           </div>
           <p class="muted">{{ t('绑定成功后不可更换，请核对平台和账号。') }}</p>
-          <button class="primary" :disabled="busy || !bindingVerification || (bindingUsesImage && !bindingCaptcha)">{{ t('确认绑定') }}</button>
+          <button class="primary" :disabled="busy || !selected || !phone || !bindingVerification || (bindingUsesImage && !bindingCaptcha)">{{ t('确认绑定') }}</button>
         </form>
       </div>
     </dialog>

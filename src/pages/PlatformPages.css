@@ -167,9 +167,21 @@
 .picker-toggle svg { width: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .picker-toggle .expanded { rotate: 180deg; }
 .masked-account span { color: var(--highlight); font-size: 12px; font-weight: 700; }
-.picker-panel { border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface-recessed); }
-.picker-results { max-height: min(36vh, 265px); overflow-y: auto; border-radius: inherit; }
-.picker-results .binding-row { width: 100%; border: 0; border-radius: 0; padding: 6px 9px; }
+.platform-picker-field { position: relative; z-index: 1; }
+.picker-panel {
+  --picker-row-height: 48px;
+  position: absolute;
+  inset: calc(100% + 4px) 0 auto;
+  max-height: calc(4.5 * var(--picker-row-height) + 2px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface-recessed);
+  box-shadow: 0 6px 18px var(--shadow);
+}
+.picker-results .binding-row { width: 100%; height: var(--picker-row-height); border: 0; border-radius: 0; padding: 3px 9px; }
+.picker-results .picker-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-results .binding-row + .binding-row { border-top: 1px solid var(--platform-border); }
 .picker-results .small-logo > * { grid-area: 1 / 1; }
 .picker-results .binding-row.highlighted, .picker-results [aria-selected="true"] { background: var(--surface-highlight); }
