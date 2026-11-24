@@ -496,7 +496,7 @@ async function initialize() {
         await loadBindingTotals()
       }
     } else if (mode === 'terms') {
-      const result = await api(path + '/protection-terms', { signal })
+      const result = await api(path + '/protection-terms', { signal, fresh: true })
       if (!signal.aborted) terms.value = result.data
     } else {
       const result = await api(path, { signal })

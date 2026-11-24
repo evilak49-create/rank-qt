@@ -185,10 +185,11 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
       <MemberPagination :page="cases" :busy="loading" @page="goPage('page', $event)" />
     </section>
 
-    <section v-else-if="isTerms" class="surface stack">
+    <section v-else-if="isTerms && !loading && !error" class="surface stack">
       <h2>{{ item?.title || t('保障条款') }}</h2>
       <p v-if="item" class="member-paragraph">{{ item.body }}</p>
-      <button v-if="item" class="primary" @click="go('/protection/claims/new?binding=' + route.params.id)">{{ t('申请保障') }}</button>
+      <p v-else class="muted">{{ t('该平台暂无公开保障条款。') }}</p>
+      <button class="primary" type="button" @click="go('/protection/claims/new?binding=' + route.params.id)">{{ t('申请保障') }}</button>
     </section>
 
     <section v-else-if="isNew" class="surface stack">
