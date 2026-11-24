@@ -1,3 +1,4 @@
+import '../pageZoom.js'
 import { createApp } from 'vue'
 import Concepts from './Concepts.vue'
 import '@fontsource-variable/montserrat'

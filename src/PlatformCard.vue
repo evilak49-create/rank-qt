@@ -392,10 +392,8 @@ function details(event) {
 
 .platform-entry-inline.platform-entry-home {
   --card-inline-padding: clamp(5px, 1.8vw, 9px);
-  min-height: calc((100cqi - 10px) / 2 + 47px);
-  grid-template-rows: auto minmax(min-content, 1fr) auto;
   gap: 3px;
-  padding: 30px var(--card-inline-padding) 5px;
+  padding: 0 var(--card-inline-padding) 5px;
   border-radius: 16px;
   border-color: #8d7557;
 }
@@ -407,18 +405,6 @@ function details(event) {
   background: linear-gradient(180deg, #10090520, #10090512 26%, #1009059e 67%, #100905ba);
   pointer-events: none;
 }
-.platform-entry-home .platform-artwork {
-  position: absolute;
-  grid-area: 1 / 1 / 3 / 2;
-  inset: auto calc(-1 * var(--card-inline-padding)) 0;
-  z-index: -2;
-  width: auto;
-  height: auto;
-  margin: 0;
-  aspect-ratio: 1;
-  background: transparent;
-}
-.platform-entry-home .platform-artwork img { padding: 0; }
 .platform-entry-home .platform-name { min-height: 17px; padding: 0 2px; text-shadow: 0 1px 4px #090604, 0 1px 10px #090604; }
 .platform-entry-home .platform-offers { gap: 3px; align-content: end; font-size: clamp(9px, 2.7vw, 11px); }
 .platform-entry-direct .platform-guarantee { position: relative; z-index: 2; }
