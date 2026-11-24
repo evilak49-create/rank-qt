@@ -104,7 +104,7 @@ const captchaLoading = ref(false)
 const captchaError = ref('')
 const bindingUsesImage = computed(() => screen.value === 'bind' && bindingVerification.value === 'image')
 const choices = directory
-const supportsAutoBinding = computed(() => Number(platform.value?.guarantee_amount_brl) > 0 && promotion.value.startsWith('https://'))
+const supportsAutoBinding = computed(() => promotion.value.startsWith('https://'))
 const promotion = computed(() => {
   try {
     const url = new URL(platform.value?.promotion_url)
