@@ -855,7 +855,8 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
               <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
             </dl>
             <span class="bound-platform-status" :class="{ 'binding-protected': item.protection_status === 'active' }">
-              <span aria-hidden="true"></span>{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}
+              <span class="bound-platform-status-dot" aria-hidden="true"></span>
+              <span class="bound-platform-status-label">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</span>
             </span>
           </header>
           <footer class="bound-platform-footer">

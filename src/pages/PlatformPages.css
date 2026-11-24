@@ -253,10 +253,12 @@
   grid-column: 3;
   grid-row: 1;
   justify-self: end;
-  display: flex;
+  display: inline-grid;
+  grid-template-columns: 5px max-content;
+  inline-size: max-content;
   align-items: center;
   gap: 4px;
-  padding: 3px 6px;
+  padding: 3px 8px;
   border-radius: 999px;
   background: var(--surface-highlight);
   color: var(--muted);
@@ -265,7 +267,7 @@
   white-space: nowrap;
   overflow-wrap: normal;
 }
-.bound-platform-status > span { flex: 0 0 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.bound-platform-status-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .bound-platform-status.binding-protected { background: var(--success-surface); color: var(--success); }
 .bound-platform-data { min-width: 0; margin: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 .bound-platform-data dt { color: var(--text-subtle); }
