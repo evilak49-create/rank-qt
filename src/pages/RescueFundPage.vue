@@ -11,6 +11,7 @@ const emit = defineEmits(['refresh-member'])
 const { locale, t } = useLocale()
 const rules = ref(null)
 const platforms = ref([])
+const unavailable = ref([])
 const settings = ref(null)
 const loading = ref(true)
 const loadFailed = ref(false)
@@ -51,6 +52,7 @@ async function load() {
     const result = await api('/rescue-fund', { signal, fresh: true, timeoutMs: 55_000 })
     if (signal.aborted) return
     platforms.value = result.data
+    unavailable.value = result.unavailable ?? []
     settings.value = result.settings
   } catch {
     if (!signal.aborted) loadFailed.value = true
@@ -78,6 +80,10 @@ async function claim(bindingId) {
     if (!active) return
     saveAttempt(null)
     creditedAmount.value = data.amount_cents
+    const claimedPlatform = platforms.value.find(platform => Number(platform.binding_id) === bindingId)
+    if (claimedPlatform) {
+      unavailable.value.push({ binding_id: claimedPlatform.binding_id, platform_name: claimedPlatform.platform_name })
+    }
     platforms.value = platforms.value.filter(platform => Number(platform.binding_id) !== bindingId)
     emit('refresh-member')
   } catch (failure) {
@@ -117,14 +123,14 @@ onUnmounted(() => {
       <p class="muted">{{ t('有一笔领取结果待确认。') }}</p>
       <button class="quiet" type="button" :disabled="submitting" @click="claim(attempt.bindingId)">{{ t(submitting ? '正在领取…' : '重试领取') }}</button>
     </section>
-    <section class="stack" aria-labelledby="eligible-platforms-title" :aria-busy="loading">
-      <h2 id="eligible-platforms-title">{{ t('可领取的平台') }}</h2>
+    <section class="stack" aria-labelledby="rescue-platforms-title" :aria-busy="loading">
+      <h2 id="rescue-platforms-title">{{ t('已绑定的平台', 'Plataformas vinculadas') }}</h2>
       <p v-if="loading" class="state" role="status">{{ t('正在加载…', 'Carregando…') }}</p>
       <div v-else-if="loadFailed" class="state">
         <p>{{ t('暂时无法读取救援金，请重试。') }}</p>
         <button class="text-button" type="button" @click="load">{{ t('重试') }}</button>
       </div>
-      <p v-else-if="!platforms.length" class="state">{{ t('暂无可领取救援金的平台。') }}</p>
+      <p v-else-if="!platforms.length && !unavailable.length" class="state">{{ t('暂无已绑定的平台。', 'Nenhuma plataforma vinculada.') }}</p>
       <template v-else>
         <article v-for="platform in platforms" :key="platform.binding_id" class="surface stack rescue-card">
           <h3>{{ platform.platform_name }}</h3>
@@ -141,7 +147,13 @@ onUnmounted(() => {
             {{ t(attempt?.bindingId === Number(platform.binding_id) ? submitting ? '正在领取…' : '重试领取' : '领取救援金') }}
           </button>
         </article>
-        <p class="muted">{{ t('领取后即时进入现金钱包，可提现。') }}</p>
+        <article v-for="platform in unavailable" :key="platform.binding_id" class="surface rescue-unavailable">
+          <h3>{{ platform.platform_name }}</h3>
+          <span class="muted">{{ platform.query_unavailable
+            ? t('暂时无法核验', 'Verificação indisponível')
+            : t('暂不可领取', 'Auxílio indisponível') }}</span>
+        </article>
+        <p v-if="platforms.length" class="muted">{{ t('领取后即时进入现金钱包，可提现。') }}</p>
       </template>
     </section>
   </div>
@@ -171,6 +183,9 @@ onUnmounted(() => {
 .rescue-fund-page > .stack { gap: 10px; }
 .rescue-fund-page .error { padding-inline: 2px; }
 .rescue-result a { color: var(--highlight); text-decoration: underline; }
+.rescue-unavailable { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.rescue-unavailable h3 { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.rescue-unavailable span { flex-shrink: 0; font-size: 13px; }
 .rescue-card .summary-list { font-size: 13px; }
 .rescue-card .summary-list dd { color: var(--text); text-align: end; }
 .rescue-card .rescue-amount { align-items: center; border-bottom: 0; padding: 9px 0 0; }
