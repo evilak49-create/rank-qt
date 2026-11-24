@@ -101,7 +101,7 @@
 .review-meta time { font-size: 11px; }
 .review-stars { white-space: nowrap; }
 .preserved { white-space: pre-wrap; overflow-wrap: anywhere; }
-.with-platform-actions { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+.with-platform-actions { padding-bottom: var(--platform-actions-height, calc(64px + env(safe-area-inset-bottom))); }
 .platform-actions {
   position: fixed;
   z-index: 3;
@@ -119,6 +119,30 @@
 
 .platform-actions .quiet[aria-pressed="true"] { color: var(--highlight); }
 .detail-actions { box-shadow: 0 -4px 18px var(--shadow); }
+.registration-notice {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  align-items: start;
+  gap: 5px;
+  padding: 4px 2px 4px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface-highlight);
+  color: var(--muted);
+  font-size: 12px;
+}
+.registration-notice-text { padding-top: 4px; overflow-wrap: anywhere; }
+.registration-notice .inline-action { min-height: 30px; padding-inline: 0; font-weight: 700; text-align: start; }
+.registration-notice-close {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+}
+.registration-notice-close:hover { background: var(--surface); }
 .detail-actions .quiet { gap: 5px; }
 .detail-actions .quiet span { font-size: 19px; line-height: 1; }
 .rating-picker { border: 0; padding: 0; margin: 0; }

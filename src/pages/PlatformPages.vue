@@ -105,6 +105,28 @@ const captchaLoading = ref(false)
 const captchaError = ref('')
 const bindingUsesImage = computed(() => screen.value === 'bind' && bindingVerification.value === 'image')
 const choices = directory
+const registrationNoticeDismissed = ref(false)
+const detailActions = ref(null)
+const detailActionsHeight = ref(0)
+
+watch(detailActions, (footer, _previous, onCleanup) => {
+  if (!footer) {
+    detailActionsHeight.value = 0
+    return
+  }
+  const measure = () => { detailActionsHeight.value = Math.ceil(footer.getBoundingClientRect().height) }
+  measure()
+  const observer = new ResizeObserver(measure)
+  observer.observe(footer)
+  onCleanup(() => observer.disconnect())
+}, { flush: 'post' })
+
+async function dismissRegistrationNotice() {
+  registrationNoticeDismissed.value = true
+  await nextTick()
+  detailActions.value?.querySelector('.primary')?.focus({ preventScroll: true })
+}
+
 const supportsAutoBinding = computed(() => promotion.value.startsWith('https://'))
 const promotion = computed(() => {
   try {
@@ -641,7 +663,9 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
 </script>
 
 <template>
-  <section class="stack platform-pages" :class="{ 'with-platform-actions': screen === 'detail' && platform }" :aria-busy="loading || busy">
+  <section class="stack platform-pages" :class="{ 'with-platform-actions': screen === 'detail' && platform }"
+           :style="detailActionsHeight ? { '--platform-actions-height': detailActionsHeight + 'px' } : undefined"
+           :aria-busy="loading || busy">
     <template v-if="protectedScreens.includes(screen) && !member">
       <div class="surface stack guest-panel">
         <h2>{{ t('请先登录') }}</h2>
@@ -759,13 +783,17 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           <p v-else class="muted">{{ t('暂无平台简介。', 'Descrição indisponível') }}</p>
         </article>
       </section>
-      <p v-if="supportsAutoBinding && member" class="muted">
-        {{ t('请用返利网的手机号注册。注册成功后将尝试自动绑定。', 'Use o mesmo telefone da sua conta de cashback. A vinculação será tentada após o cadastro.') }}
-        <button type="button" class="inline-action" @click="go(bindPath(platform.id))">
-          {{ t('手动绑定', 'Vincular manualmente') }}
-        </button>
-      </p>
-      <footer class="platform-actions detail-actions">
+      <footer ref="detailActions" class="platform-actions detail-actions">
+        <aside v-if="supportsAutoBinding && member && !registrationNoticeDismissed"
+               class="registration-notice" :aria-label="t('绑定平台提醒')">
+          <div class="registration-notice-text">
+            <p>{{ t('请用返利网的手机号注册。注册成功后将尝试自动绑定。', 'Use o mesmo telefone da sua conta de cashback. A vinculação será tentada após o cadastro.') }}</p>
+            <button type="button" class="inline-action" @click="go(bindPath(platform.id))">
+              {{ t('手动绑定', 'Vincular manualmente') }}
+            </button>
+          </div>
+          <button class="registration-notice-close" type="button" :aria-label="t('关闭')" @click="dismissRegistrationNotice">×</button>
+        </aside>
         <button class="quiet" type="button" :aria-pressed="favorite" :disabled="busy || favoriteLoading" @click="toggleFavorite">
           <span aria-hidden="true">{{ favorite ? '★' : '☆' }}</span> {{ favorite ? t('已收藏') : t('收藏') }}
         </button>
