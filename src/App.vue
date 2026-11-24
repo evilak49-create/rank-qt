@@ -46,7 +46,7 @@ const pages = [
   [/^\/cashback\/records$/, '返利记录', CashbackPage, true],
   [/^\/cashback\/\d+$/, '返利明细', CashbackPage, true],
   [/^\/rescue-fund$/, '救援金', RescueFundPage, true],
-  [/^\/bindings$/, '已绑定平台', PlatformPages, true],
+  [/^\/bindings$/, '绑定平台', PlatformPages, true],
   [/^\/bindings\/\d+$/, '绑定详情', PlatformPages, true],
   [/^\/shop$/, '兑换', ShopPages],
   [/^\/shop\/funds\/\d+$/, '平台资金兑换', ShopPages, true],
@@ -221,7 +221,7 @@ function fallback() {
   if (path.startsWith('/shop/redemptions/')) return '/shop/redemptions'
   if (path.startsWith('/shop/')) return '/shop'
   if (path.startsWith('/cashback/')) return '/cashback'
-  if (path.startsWith('/bindings/')) return '/bindings'
+  if (path.startsWith('/bindings/')) return '/binding'
   if (/^\/protection\/claims\/\d+$/.test(path)) return '/protection/claims'
   if (path.startsWith('/protection/')) return '/protection'
   if (path.startsWith('/red-packets/')) return '/red-packets'

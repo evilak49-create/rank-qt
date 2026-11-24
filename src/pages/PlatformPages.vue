@@ -22,9 +22,11 @@ const screen = computed(() => {
   const path = props.route.path
   if (path.endsWith('/reviews/new')) return 'review'
   if (path.endsWith('/protection')) return 'terms'
-  if (path === '/bindings') return 'bindings'
+  if (path === '/binding' || path === '/bindings') {
+    const { query } = props.route
+    return query.get('new') === '1' || query.has('platform') || query.has('return') ? 'bind' : 'bindings'
+  }
   if (path.startsWith('/bindings/')) return 'bindingDetail'
-  if (path === '/binding') return 'bind'
   return path === '/platforms' ? 'directory' : 'detail'
 })
 const protectedScreens = ['review', 'bindings', 'bindingDetail', 'bind']
@@ -59,6 +61,7 @@ const listLastPage = ref(1)
 const listing = ref(false)
 const listingError = ref('')
 const picker = ref(false)
+const bindingDialog = ref(null)
 const pickerBox = ref(null)
 const pickerInput = ref(null)
 const highlighted = ref(-1)
@@ -286,7 +289,7 @@ async function loadBindings(signal, { allPages = false, throughPage = 1 } = {}) 
   let currentPage = 1
   let result
   do {
-    result = await api('/platform-bindings?page=' + currentPage, { signal, fresh: screen.value === 'bind' })
+    result = await api('/platform-bindings?page=' + currentPage, { signal, fresh: screen.value === 'bind' || screen.value === 'bindings' })
     items.push(...result.data)
     currentPage++
   } while (currentPage <= result.last_page && (allPages || currentPage <= throughPage))
@@ -387,19 +390,22 @@ async function initialize() {
   try {
     if (mode === 'bind') {
       bindingVerification.value = null
-      const verification = await api('/auth/verification', { signal })
+      const [verification] = await Promise.all([
+        api('/auth/verification', { signal }),
+        loadBindings(signal, { allPages: true }),
+      ])
       if (signal.aborted) return
       bindingVerification.value = verification.data.mode
-      await loadBindings(signal, { allPages: true })
-      if (signal.aborted) return
       phone.value = props.member.phone ?? ''
       const platformId = props.route.query.get('platform')
       const preset = ownBindings.value.find(item => String(item.platform_id) === platformId)
-      if (preset) {
+      if (preset && !target.value) {
         go('/bindings/' + preset.id, { replace: true })
         return
       }
-      if (/^\d+$/.test(platformId ?? '')) {
+      if (preset) {
+        choose({ id: preset.platform_id, name: preset.platform_name, logo_url: preset.logo_url })
+      } else if (/^\d+$/.test(platformId ?? '')) {
         const result = await api('/platforms/' + platformId, { signal })
         if (!signal.aborted) choose(result.data)
       }
@@ -482,9 +488,12 @@ function sendCode() {
   })
 }
 
-function finishBinding(binding) {
-  if (target.value) resume(target.value)
-  else go('/bindings/' + binding.id, { replace: true })
+function closeBinding() {
+  if (!busy.value) resume(target.value || props.route.path)
+}
+
+function finishBinding() {
+  resume(target.value || props.route.path)
 }
 
 async function refreshBindingCaptcha(signal) {
@@ -527,8 +536,8 @@ function bindAccount() {
       body.code = code.value.trim()
     }
     try {
-      const { data } = await api('/platforms/' + selected.value.id + '/binding', { body })
-      if (current()) finishBinding(data)
+      await api('/platforms/' + selected.value.id + '/binding', { body })
+      if (current()) finishBinding()
     } catch (failure) {
       if (useImage && current()) await refreshBindingCaptcha()
       const notFound = '未查到符合条件的推广账号'
@@ -553,6 +562,9 @@ async function loadBindingTotals() {
 }
 
 watch([() => props.route.key, () => props.member?.id], initialize, { immediate: true })
+watch(bindingDialog, dialog => {
+  if (dialog && !dialog.open) dialog.showModal()
+}, { flush: 'post' })
 onMounted(() => document.addEventListener('pointerdown', outsidePicker))
 onUnmounted(() => {
   document.removeEventListener('pointerdown', outsidePicker)
@@ -731,24 +743,32 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
       </form>
     </template>
 
-    <template v-else-if="screen === 'bindings'">
-      <button class="primary" type="button" @click="go('/binding')">{{ t('绑定新平台') }}</button>
-      <div v-if="ownBindings.length" class="surface">
-        <a v-for="item in ownBindings" :key="item.id" class="binding-row" :href="'#/bindings/' + item.id">
-          <span class="platform-logo small-logo" aria-hidden="true">
+    <template v-else-if="screen === 'bindings' || screen === 'bind'">
+      <button class="primary binding-add" type="button" aria-haspopup="dialog" @click="go(route.path + '?new=1')">
+        <span aria-hidden="true">＋</span>{{ t('绑定新平台') }}
+      </button>
+      <div v-if="ownBindings.length" class="stack">
+        <article v-for="item in ownBindings" :key="item.id" class="surface bound-platform">
+          <span class="platform-logo bound-platform-logo" aria-hidden="true">
             <span>{{ item.platform_name.slice(0, 2) }}</span>
-            <img v-if="imageUrl(item.logo_url)" :src="imageUrl(item.logo_url)" width="40" height="40" alt=""
-                 @error="$event.target.hidden = true">
+            <img v-if="imageUrl(item.logo_url)" :key="item.logo_url" :src="imageUrl(item.logo_url)" width="48" height="48" alt=""
+                 loading="lazy" @error="$event.target.hidden = true">
           </span>
-          <span class="binding-label"><strong>{{ item.platform_name }}</strong><small class="muted">{{ item.platform_account_id }}</small></span>
-          <span class="binding-label minor">
-            <strong :class="item.protection_status === 'active' ? 'binding-protected' : 'muted'">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</strong>
-            <small aria-hidden="true">›</small>
-          </span>
-        </a>
+          <div class="bound-platform-main">
+            <header class="bound-platform-heading">
+              <h2>{{ item.platform_name }}</h2>
+              <span class="bound-platform-status" :class="{ 'binding-protected': item.protection_status === 'active' }">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</span>
+            </header>
+            <dl class="bound-platform-data">
+              <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
+              <div><dt>{{ t('绑定时间') }}</dt><dd><time :datetime="item.created_at">{{ formatDate(item.created_at) }}</time></dd></div>
+            </dl>
+            <a class="text-button bound-platform-details" :href="'#/bindings/' + item.id" @click.prevent="go('/bindings/' + item.id)">{{ t('查看明细', 'Ver detalhes') }} ›</a>
+          </div>
+        </article>
       </div>
       <p v-else class="surface muted message">{{ t('暂无已绑定平台。') }}</p>
-      <button v-if="bindingPage < bindingLastPage" type="button" class="quiet" :disabled="busy" @click="moreBindings">{{ t('加载更多') }}</button>
+      <button v-if="screen === 'bindings' && bindingPage < bindingLastPage" type="button" class="quiet" :disabled="busy" @click="moreBindings">{{ t('加载更多') }}</button>
     </template>
 
     <template v-else-if="screen === 'bindingDetail' && bindingDetail">
@@ -782,8 +802,16 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
       </section>
     </template>
 
-    <template v-else-if="screen === 'bind'">
-      <section class="surface stack platform-content">
+  </section>
+
+  <Teleport v-if="screen === 'bind' && member && !loading && !loadError" to="body">
+    <dialog ref="bindingDialog" class="locale-sheet bind-platform-sheet platform-pages" aria-labelledby="bind-platform-title"
+            @cancel.prevent="closeBinding" @click.self="closeBinding">
+      <div class="locale-panel">
+        <div class="locale-heading">
+          <h2 id="bind-platform-title">{{ t('绑定新平台') }}</h2>
+          <button type="button" class="locale-close" :aria-label="t('关闭')" :disabled="busy" autofocus @click="closeBinding">×</button>
+        </div>
         <div ref="pickerBox" class="field platform-picker-field"
              @focusout="$event.relatedTarget && !pickerBox.contains($event.relatedTarget) && closePicker()">
           <label for="platform-choice">{{ t('选择平台') }}</label>
@@ -822,7 +850,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
 
         <template v-if="activeBinding">
           <div class="field"><span>{{ t('平台账号') }}</span><div class="masked-account">{{ activeBinding.platform_account_id }} <span>{{ t('已绑定') }}</span></div></div>
-          <button v-if="target" class="primary" type="button" @click="finishBinding(activeBinding)">{{ t('继续') }}</button>
+          <button v-if="target" class="primary" type="button" @click="finishBinding">{{ t('继续') }}</button>
           <button v-else class="quiet" type="button" @click="go('/bindings/' + activeBinding.id)">{{ t('查看绑定详情') }}</button>
         </template>
         <form v-else-if="selected && screen === 'bind'" class="stack" @submit.prevent="bindAccount">
@@ -847,10 +875,9 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           <p class="muted">{{ t('绑定成功后不可更换，请核对平台和账号。') }}</p>
           <button class="primary" :disabled="busy || !bindingVerification || (bindingUsesImage && !bindingCaptcha)">{{ t('确认绑定') }}</button>
         </form>
-      </section>
-    </template>
-
-  </section>
+      </div>
+    </dialog>
+  </Teleport>
 </template>
 
 <style scoped src="./PlatformPages.css"></style>

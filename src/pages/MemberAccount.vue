@@ -19,7 +19,6 @@ const accountLinks = [
   ['/withdrawal-history', '提现订单', 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6m-6 4h6'],
   ['/protection', '我的保障', icons.protection],
   ['/help', '帮助中心', icons.help],
-  ['/bindings', '已绑定平台', icons.bind],
   ['/fund-records', '资金记录', 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h4'],
   ['/pix', '收款账户', 'M4 5h16v14H4zM4 10h16m-12 5h3'],
 ]
