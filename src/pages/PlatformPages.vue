@@ -737,7 +737,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           <p v-else class="muted">{{ t('暂无平台简介。', 'Descrição indisponível') }}</p>
         </article>
       </section>
-      <p v-if="supportsAutoBinding && member?.phone_verified_at" class="muted">
+      <p v-if="supportsAutoBinding && member" class="muted">
         {{ t('请用返利网的手机号注册。注册成功后将尝试自动绑定。', 'Use o mesmo telefone da sua conta de cashback. A vinculação será tentada após o cadastro.') }}
         <button type="button" class="inline-action" @click="go(bindPath(platform.id))">
           {{ t('手动绑定', 'Vincular manualmente') }}
