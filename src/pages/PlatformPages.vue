@@ -63,6 +63,7 @@ const listingError = ref('')
 const picker = ref(false)
 const bindingDialog = ref(null)
 const pickerBox = ref(null)
+const pickerAvailableHeight = ref(null)
 const pickerInput = ref(null)
 const highlighted = ref(-1)
 const ownBindings = ref([])
@@ -253,6 +254,15 @@ function openPicker() {
   highlighted.value = -1
   picker.value = true
   listPlatforms()
+}
+
+function fitPickerToViewport() {
+  if (!picker.value || !pickerBox.value || !bindingDialog.value) return
+  const viewport = window.visualViewport
+  const bottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight
+  const sheetBottom = bindingDialog.value.getBoundingClientRect().bottom
+  const panelTop = pickerBox.value.getBoundingClientRect().bottom + 4
+  pickerAvailableHeight.value = Math.max(50, Math.floor(Math.min(bottom, sheetBottom) - panelTop) - 4) + 'px'
 }
 
 function loadMorePicker(event) {
@@ -599,9 +609,21 @@ watch([() => props.route.key, () => props.member?.id], initialize, { immediate: 
 watch(bindingDialog, dialog => {
   if (dialog && !dialog.open) dialog.showModal()
 }, { flush: 'post' })
-onMounted(() => document.addEventListener('pointerdown', outsidePicker))
+watch(picker, open => {
+  if (open) window.requestAnimationFrame(fitPickerToViewport)
+  else pickerAvailableHeight.value = null
+}, { flush: 'post' })
+onMounted(() => {
+  document.addEventListener('pointerdown', outsidePicker)
+  window.addEventListener('resize', fitPickerToViewport)
+  window.visualViewport?.addEventListener('resize', fitPickerToViewport)
+  window.visualViewport?.addEventListener('scroll', fitPickerToViewport)
+})
 onUnmounted(() => {
   document.removeEventListener('pointerdown', outsidePicker)
+  window.removeEventListener('resize', fitPickerToViewport)
+  window.visualViewport?.removeEventListener('resize', fitPickerToViewport)
+  window.visualViewport?.removeEventListener('scroll', fitPickerToViewport)
   disposed = true
   loadRequest?.abort()
   directoryRequest?.abort()
@@ -798,12 +820,10 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
                    loading="lazy" @error="$event.target.hidden = true">
               <span>{{ item.platform_name.slice(0, 2) }}</span>
             </span>
-            <div class="bound-platform-identity">
-              <h2>{{ item.platform_name }}</h2>
-              <dl class="bound-platform-data bound-platform-account">
-                <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
-              </dl>
-            </div>
+            <h2>{{ item.platform_name }}</h2>
+            <dl class="bound-platform-data bound-platform-account">
+              <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
+            </dl>
             <span class="bound-platform-status" :class="{ 'binding-protected': item.protection_status === 'active' }">
               <span aria-hidden="true"></span>{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}
             </span>
@@ -857,7 +877,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
 
   <Teleport v-if="screen === 'bind' && member && !loading && !loadError" to="body">
     <dialog ref="bindingDialog" class="locale-sheet bind-platform-sheet platform-pages" aria-labelledby="bind-platform-title"
-            @cancel.prevent="closeBinding" @click.self="closeBinding">
+            @cancel.prevent="closeBinding" @click.self="closeBinding" @scroll.passive="fitPickerToViewport" @animationend.self="fitPickerToViewport">
       <div class="locale-panel">
         <div class="locale-heading">
           <h2 id="bind-platform-title">{{ t('绑定新平台') }}</h2>
@@ -877,7 +897,8 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
               <svg viewBox="0 0 24 24" aria-hidden="true" :class="{ expanded: picker }"><path d="m6 9 6 6 6-6"/></svg>
             </button>
           </div>
-          <div v-show="picker" class="picker-panel" @scroll.passive="loadMorePicker">
+          <div v-show="picker" class="picker-panel"
+               :style="{ '--picker-available-height': pickerAvailableHeight }" @scroll.passive="loadMorePicker">
             <div id="platform-options" class="picker-results" role="listbox" :aria-label="t('匹配平台')">
               <button v-for="(item, index) in choices" :id="'platform-option-' + index" :key="item.id" class="binding-row"
                       :class="{ highlighted: index === highlighted }" type="button" role="option" tabindex="-1"

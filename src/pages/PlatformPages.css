@@ -172,7 +172,7 @@
   --picker-row-height: 48px;
   position: absolute;
   inset: calc(100% + 4px) 0 auto;
-  max-height: calc(4.5 * var(--picker-row-height) + 2px);
+  max-height: min(calc(4.5 * var(--picker-row-height) + 2px), var(--picker-available-height, 100vh));
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--line-strong);
@@ -210,7 +210,7 @@
 }
 .bound-platform-heading {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-columns: 48px minmax(0, 1fr) max-content;
   align-items: center;
   gap: 4px 9px;
 }
@@ -224,7 +224,6 @@
   background: #13151a;
 }
 .bound-platform-logo img:not([hidden]) + span { display: none; }
-.bound-platform-identity { display: contents; }
 .bound-platform-heading h2 { grid-column: 2; grid-row: 1; margin: 0; font-size: 16px; line-height: 1.25; }
 .bound-platform-status {
   grid-column: 3;
@@ -239,6 +238,8 @@
   color: var(--muted);
   font-size: 10px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 .bound-platform-status > span { flex: 0 0 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .bound-platform-status.binding-protected { background: var(--success-surface); color: var(--success); }
@@ -273,6 +274,10 @@
   white-space: nowrap;
 }
 .bound-platform-details:hover { border-color: var(--accent); }
-.bind-platform-sheet { max-height: min(85dvh, calc(100dvh - env(safe-area-inset-top))); overscroll-behavior: contain; }
+.bind-platform-sheet {
+  max-height: 85vh;
+  max-height: min(85dvh, calc(100dvh - env(safe-area-inset-top)));
+  overscroll-behavior: contain;
+}
 .bind-platform-sheet .locale-heading { margin-bottom: 4px; }
 .bind-platform-sheet .locale-close { flex: none; }
