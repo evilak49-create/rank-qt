@@ -167,7 +167,7 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
     </template>
 
     <template v-else-if="bindingId && detail">
-      <section class="surface stack">
+      <section class="surface stack cashback-detail">
         <h2>{{ detail.platform_name }}</h2>
         <p class="muted">{{ t('数据更新时间', 'Dados atualizados em') }} <time :datetime="detail.observed_at">{{ formattedDate(detail.observed_at) }}</time></p>
         <dl class="summary-list">
@@ -185,7 +185,7 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
     </template>
 
     <template v-else-if="!bindingId && !isHistory && results">
-      <p v-if="results.data.length" class="muted cashback-schedule">{{ t('每天巴西利亚时间 12:00 自动派发至可用余额。', 'Crédito automático no saldo às 12h, no horário de Brasília.') }}</p>
+      <p v-if="results.data.length" class="cashback-schedule">{{ t('每天巴西利亚时间 12:00 自动派发至可用余额。', 'Crédito automático no saldo às 12h, no horário de Brasília.') }}</p>
       <article v-for="item in results.data" :key="item.binding_id" class="surface cashback-card">
         <header class="cashback-platform">
           <span class="cashback-logo" aria-hidden="true">
@@ -218,24 +218,92 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
 </template>
 
 <style scoped>
-.cashback-page { overflow-wrap: anywhere; }
+.cashback-page {
+  --cashback-card-bg: #202329;
+  --cashback-card-border: #484d57;
+  --cashback-divider: #3b404a;
+  --cashback-secondary-text: #c3c6ce;
+  gap: 16px;
+  overflow-wrap: anywhere;
+}
 .cashback-page h2 { margin: 0; font-size: 16px; }
-.cashback-schedule, .cashback-platform p, .cashback-record time, .cashback-card-footer { font-size: 12px; }
+.cashback-schedule {
+  padding: 8px 11px;
+  border-inline-start: 2px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: #30241a;
+  color: #f1d7b3;
+  font-size: 12px;
+}
+.cashback-card, .cashback-detail, .cashback-record {
+  border-color: var(--cashback-card-border);
+  border-radius: 14px;
+  background: var(--cashback-card-bg);
+  box-shadow: 0 5px 14px #03020255;
+}
 .cashback-card { display: grid; gap: 12px; }
 .cashback-platform { display: flex; align-items: center; gap: 10px; }
-.cashback-logo { display: grid; place-items: center; flex: 0 0 42px; aspect-ratio: 1; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-recessed); color: var(--highlight); }
+.cashback-platform > div { min-width: 0; }
+.cashback-platform p, .cashback-record time, .cashback-card-footer { font-size: 12px; }
+.cashback-platform p, .cashback-record time { color: var(--cashback-secondary-text); }
+.cashback-logo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--cashback-divider);
+  border-radius: 10px;
+  background: #14171c;
+  color: var(--highlight);
+}
 .cashback-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.cashback-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
-.cashback-metrics > div { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-recessed); }
-.cashback-metrics > .cashback-primary-metric { grid-column: 1 / -1; background: var(--surface-highlight); }
-.cashback-metrics :is(dt, small) { color: var(--text-subtle); font-size: 12px; }
-.cashback-metrics dd { margin: 0; font-weight: 750; }
-.cashback-primary-metric dd { font-size: 23px; }
+.cashback-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: 10px;
+  margin: 0;
+}
+.cashback-metrics > div { padding: 0 10px; }
+.cashback-metrics > div:nth-child(3) { border-inline-start: 1px solid var(--cashback-divider); }
+.cashback-metrics > .cashback-primary-metric {
+  grid-column: 1 / -1;
+  padding: 10px 12px;
+  border: 1px solid #705130;
+  border-radius: 10px;
+  background: linear-gradient(105deg, #45321e, #2a241f);
+}
+.cashback-metrics :is(dt, small) { color: var(--cashback-secondary-text); font-size: 12px; }
+.cashback-primary-metric dt { color: #f1d7b3; }
+.cashback-metrics dd { margin: 2px 0 0; font-weight: 750; }
+.cashback-primary-metric dd { font-size: 25px; line-height: 1.2; }
 .cashback-credit, .cashback-countdown { color: var(--highlight); font-variant-numeric: tabular-nums; }
 .cashback-countdown { display: inline-block; }
-.cashback-card-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; }
-.cashback-card-footer a { display: inline-flex; min-height: 44px; align-items: center; }
-.cashback-records { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.cashback-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--cashback-divider);
+}
+.cashback-card-footer > div { display: grid; gap: 1px; }
+.cashback-countdown { font-size: 14px; }
+.cashback-card-footer a {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: auto;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid #745c40;
+  border-radius: 8px;
+  background: #30271f;
+  text-align: start;
+}
+.cashback-card-footer a:hover { border-color: var(--accent); }
+.cashback-detail .summary-list > div { border-color: var(--cashback-divider); }
+.cashback-records { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
 .cashback-record { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; }
 .cashback-record > p { grid-column: 1 / -1; font-size: 13px; }
 </style>
