@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { useLocale } from '../locale'
 import seal from '../assets/protection-contract-seal.png'
 
@@ -14,7 +15,7 @@ const { t } = useLocale()
     </header>
     <div v-if="terms?.body_html" class="contract-content" v-html="terms.body_html"></div>
     <p v-else-if="terms" class="contract-content contract-plain">{{ terms.body }}</p>
-    <p v-else class="contract-empty">{{ t('该平台暂无公开保障条款。') }}</p>
+    <EmptyState v-else compact class="contract-empty" :message="t('该平台暂无公开保障条款。')" />
   </article>
 </template>
 

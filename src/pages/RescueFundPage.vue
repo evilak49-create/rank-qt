@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api, imageUrl } from '../api'
 import { useLocale } from '../locale.js'
@@ -139,7 +140,7 @@ onUnmounted(() => {
         <p>{{ t('暂时无法读取救援金，请重试。') }}</p>
         <button class="text-button" type="button" @click="load">{{ t('重试') }}</button>
       </div>
-      <p v-else-if="!cards.length" class="state">{{ t('暂无平台。', 'Nenhuma plataforma disponível.') }}</p>
+      <EmptyState v-else-if="!cards.length" :message="t('暂无救援金平台。', 'Nenhuma plataforma com auxílio disponível.')" />
       <template v-else>
         <article v-for="platform in cards" :key="platform.binding_id" class="surface stack rescue-card">
           <header class="rescue-card-heading">

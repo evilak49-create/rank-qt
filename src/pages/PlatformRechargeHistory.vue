@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { api } from '../api.js'
 import { useLocale } from '../locale.js'
@@ -61,7 +62,7 @@ onUnmounted(() => controller?.abort())
           <strong>{{ formatBrl(entry.amount_cents) }}</strong>
         </li>
       </ul>
-      <p v-else-if="!loading && !failed" class="muted" role="status">{{ t('这段时间暂无充值记录。', 'Nenhum depósito neste período.') }}</p>
+      <EmptyState v-else-if="!loading && !failed" :message="t('这段时间暂无充值记录。', 'Nenhum depósito neste período.')" />
       <MemberPagination :page="result" :busy="loading" @page="load" />
     </template>
   </div>

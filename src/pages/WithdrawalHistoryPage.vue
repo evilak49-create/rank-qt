@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { useLocale } from '../locale.js'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../api'
@@ -97,7 +98,7 @@ watchNotice(error, '提现订单加载失败', 'error')
     </div>
     <button v-if="error" class="quiet" type="button" @click="load(requestedPage)">{{ t('重新获取订单') }}</button>
     <template v-else-if="records">
-      <p v-if="!records.data.length" class="surface muted withdrawal-empty">{{ t('暂无提现订单。') }}</p>
+      <EmptyState v-if="!records.data.length" class="withdrawal-empty" :message="t('暂无提现订单。')" />
       <ul v-else class="withdrawal-history">
         <li v-for="order in records.data" :key="order.id" class="surface stack withdrawal-order">
           <header class="withdrawal-summary">

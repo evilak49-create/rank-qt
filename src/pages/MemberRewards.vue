@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -107,6 +108,7 @@ async function load() {
       records.value = await api(home + '/invites?page=' + page)
     } else if (isPix) {
       account.value = (await api('/pix-account')).data
+      if (next === '/cash-wallet/withdraw' && !account.value.cpf) editing.value = true
     } else if (isWithdraw) {
       const [activity, pix] = await Promise.all([api(home), api('/pix-account')])
       packets.value = activity.data
@@ -197,6 +199,10 @@ async function savePix() {
 }
 
 function cancelPixEdit() {
+  if (next === '/cash-wallet/withdraw' && !account.value?.cpf) {
+    resume('/member')
+    return
+  }
   if (next === withdraw) {
     resume(home)
     return
@@ -315,9 +321,13 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
         </div>
       </form>
       <template v-else-if="account">
-        <p v-if="account.cpf" class="surface">CPF · {{ account.cpf }}</p>
-        <p v-else class="surface muted">{{ t('尚未绑定 Pix 收款账户。') }}</p>
-        <button class="primary" @click="editing = true; info = ''">{{ account.cpf ? t('更换 CPF') : t('绑定 Pix') }}</button>
+        <template v-if="account.cpf">
+          <p class="surface">CPF · {{ account.cpf }}</p>
+          <button class="primary" @click="editing = true; info = ''">{{ t('更换 CPF') }}</button>
+        </template>
+        <EmptyState v-else :message="t('尚未绑定 Pix 收款账户。')">
+          <button class="primary" @click="editing = true; info = ''">{{ t('绑定 Pix') }}</button>
+        </EmptyState>
         <button v-if="next === withdraw" class="quiet" @click="resume(home)">{{ t('返回红包') }}</button>
       </template>
     </section>
@@ -332,7 +342,7 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
         </dl>
         <button class="primary" :disabled="working || loading" @click="confirmWithdrawal">{{ t('确认提现') }}</button>
       </template>
-      <p v-else-if="packets && !loading" class="muted">{{ t('当前没有可提现的红包余额。') }}</p>
+      <EmptyState v-else-if="packets && !loading" :message="t('当前没有可提现的红包余额。')" />
       <button class="quiet" :disabled="working" @click="resume(home)">{{ t('返回红包') }}</button>
     </section>
 
@@ -356,7 +366,7 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
           </tr>
         </tbody>
       </table>
-      <p v-else-if="records" class="muted">{{ t('暂无邀请记录。') }}</p>
+      <EmptyState v-else-if="records" :message="t('暂无邀请记录。')" />
       <MemberPagination :page="records" :busy="loading" @page="pageLink" />
     </section>
 

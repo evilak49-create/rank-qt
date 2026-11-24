@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
 import { watchNotice } from '../feedback'
@@ -162,7 +163,7 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
           <p class="muted">{{ historyStatus(item.result) }}</p>
         </li>
       </ul>
-      <p v-else class="surface muted">{{ t('暂无返利记录。', 'Nenhum cashback registrado.') }}</p>
+      <EmptyState v-else :message="t('暂无返利记录。', 'Nenhum cashback registrado.')" />
       <MemberPagination :page="results" :busy="loading" @page="load" />
     </template>
 
@@ -208,10 +209,9 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
           <a class="text-button" :href="'#/cashback/' + item.binding_id" @click.prevent="go('/cashback/' + item.binding_id)">{{ t('查看明细', 'Ver detalhes') }} ›</a>
         </footer>
       </article>
-      <div v-if="!results.data.length" class="surface stack">
-        <p class="muted">{{ t('绑定平台后，可在这里查看自动派发的现金返利。', 'Vincule uma plataforma para acompanhar o cashback automático.') }}</p>
+      <EmptyState v-if="!results.data.length" :message="t('绑定平台后，可在这里查看自动派发的现金返利。', 'Vincule uma plataforma para acompanhar o cashback automático.')">
         <button class="primary" type="button" @click="go('/binding?return=%2Fcashback')">{{ t('绑定平台') }}</button>
-      </div>
+      </EmptyState>
       <MemberPagination :page="results" :busy="loading" @page="load" />
     </template>
   </section>

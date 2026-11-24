@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../api'
 import { useLocale } from '../locale.js'
@@ -105,7 +106,7 @@ onUnmounted(() => request?.abort())
       <p>{{ t('暂时无法读取资金明细，请重试。', 'Não foi possível consultar as movimentações. Tente novamente.') }}</p>
       <button class="text-button" type="button" @click="load(requestedPage)">{{ t('重试') }}</button>
     </div>
-    <p v-else-if="!loading && !records?.data.length" class="state">{{ t('暂无资金明细。', 'Nenhuma movimentação registrada.') }}</p>
+    <EmptyState v-else-if="!loading && !records?.data.length" :message="t('暂无资金明细。', 'Nenhuma movimentação registrada.')" />
     <template v-else-if="!loading">
       <ul class="surface fund-entries">
         <li v-for="entry in records.data" :key="entry.id" class="fund-entry">

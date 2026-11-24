@@ -3,6 +3,7 @@ const directoryCache = new Map()
 </script>
 
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -707,7 +708,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
       <div v-if="!listing && listingError" class="surface stack message">
         <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">{{ t('重试') }}</button>
       </div>
-      <p v-else-if="!listing && !directory.length" class="surface muted message">{{ t('未找到匹配的平台。') }}</p>
+      <EmptyState v-else-if="!listing && !directory.length" :message="t('未找到匹配的平台。')" />
       <button v-else-if="!listing && listPage < listLastPage" type="button" class="quiet" @click="listPlatforms(listPage + 1)">{{ t('加载更多') }}</button>
     </template>
 
@@ -780,9 +781,9 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
         <div v-if="reviewListError" class="surface stack message">
           <button class="quiet" type="button" @click="loadPlatformReviews(reviews.length ? reviewPage + 1 : 1)">{{ t('重试') }}</button>
         </div>
-        <div v-else-if="!reviewsLoading && !reviews.length" class="surface message">
-          <p class="muted">{{ t('暂无评价。') }}</p><button class="quiet" type="button" @click="writeReview">{{ t('写下第一条评价') }}</button>
-        </div>
+        <EmptyState v-else-if="!reviewsLoading && !reviews.length" :message="t('暂无评价。')">
+          <button class="quiet" type="button" @click="writeReview">{{ t('写下第一条评价') }}</button>
+        </EmptyState>
         <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet"
           :aria-disabled="reviewsLoading" @click="loadPlatformReviews(reviewPage + 1)">{{ t('加载更多') }}</button>
       </section>
@@ -795,7 +796,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
         <article class="surface stack platform-content" aria-labelledby="platform-about-heading">
           <h2 id="platform-about-heading">{{ t('平台详细介绍', 'Sobre a plataforma') }}</h2>
           <p v-if="platformDescription" class="preserved">{{ platformDescription }}</p>
-          <p v-else class="muted">{{ t('暂无平台简介。', 'Descrição indisponível') }}</p>
+          <EmptyState v-else compact :message="t('暂无平台简介。', 'Descrição indisponível')" />
         </article>
       </section>
       <footer ref="detailActions" class="platform-actions detail-actions">
@@ -876,7 +877,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           </footer>
         </article>
       </div>
-      <p v-else class="surface muted message">{{ t('暂无已绑定平台。') }}</p>
+      <EmptyState v-else :message="t('暂无已绑定平台。')" />
       <button v-if="screen === 'bindings' && bindingPage < bindingLastPage" type="button" class="quiet" :disabled="busy" @click="moreBindings">{{ t('加载更多') }}</button>
     </template>
 
@@ -953,7 +954,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
             <div v-if="!listing && listingError" class="stack picker-message">
               <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">{{ t('重试') }}</button>
             </div>
-            <p v-else-if="!listing && !choices.length" class="muted picker-message" role="status">{{ screen === 'bind' ? t('未找到可绑定的平台。') : t('未找到匹配的平台。') }}</p>
+            <EmptyState v-else-if="!listing && !choices.length" compact :message="screen === 'bind' ? t('未找到可绑定的平台。') : t('未找到匹配的平台。')" />
             <button v-else-if="!listing && listPage < listLastPage" type="button" class="picker-more" @click="listPlatforms(listPage + 1)">{{ t('加载更多') }}</button>
           </div>
         </div>

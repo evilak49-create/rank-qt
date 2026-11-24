@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
@@ -168,7 +169,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
             </div>
           </div>
         </article>
-        <p v-if="bindings && !currentBindings.length" class="surface muted">{{ t('暂无已绑定平台。') }}</p>
+        <EmptyState v-if="bindings && !currentBindings.length" :message="t('暂无已绑定平台。')" />
         <MemberPagination :page="bindings" :busy="loading" @page="goPage('bindingsPage', $event)" />
       </section>
     </template>
@@ -182,7 +183,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
           </button>
         </li>
       </ul>
-      <p v-else-if="cases" class="muted">{{ t('暂无申诉记录。') }}</p>
+      <EmptyState v-else-if="cases" :message="t('暂无申诉记录。')" />
       <MemberPagination :page="cases" :busy="loading" @page="goPage('page', $event)" />
     </section>
 

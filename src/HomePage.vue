@@ -1,5 +1,6 @@
 
 <script setup>
+import EmptyState from './EmptyState.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { api, imageUrl } from './api'
 import heroArt from './assets/home-banner-gold.jpg'
@@ -153,10 +154,11 @@ function copyTextForError() { return props.copy.error }
                       :guarantee-amount="platform.guarantee_amount_brl" :max-rebate-percent="platform.max_rebate_percent"
                       :promotion-url="platform.promotion_url" inline-actions home />
       </div>
-      <div v-else-if="selectedBlock.state !== 'loading'" class="state" role="status">
-        <span>{{ selectedBlock.state === 'error' ? copy.error : selection === 'favorites' ? copy.noFavorites : copy.empty }}</span>
-        <button v-if="selectedBlock.state === 'error'" class="text-button" @click="loadBlock(selectedBlock)">{{ copy.retry }}</button>
+      <div v-else-if="selectedBlock.state === 'error'" class="state" role="status">
+        <span>{{ copy.error }}</span>
+        <button class="text-button" @click="loadBlock(selectedBlock)">{{ copy.retry }}</button>
       </div>
+      <EmptyState v-else-if="selectedBlock.state === 'ready'" :message="selection === 'favorites' ? copy.noFavorites : copy.empty" />
     </section>
   </main>
 

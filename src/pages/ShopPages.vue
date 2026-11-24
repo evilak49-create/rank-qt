@@ -4,6 +4,7 @@ const submissions = new Map()
 </script>
 
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
 import PlatformCard from '../PlatformCard.vue'
@@ -309,7 +310,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             </template>
           </PlatformCard>
         </div>
-        <p v-if="!catalog.loading && !catalog.error && !catalog.items.length" class="surface muted">{{ t('暂无匹配平台。', 'Nenhuma plataforma encontrada.') }}</p>
+        <EmptyState v-if="!catalog.loading && !catalog.error && !catalog.items.length" :message="t('暂无匹配平台。', 'Nenhuma plataforma encontrada.')" />
         <button v-if="catalog.page < catalog.last && !catalog.loading" class="quiet" @click="catalogPage()">{{ catalog.error ? t('重试', 'Tentar novamente') : t('加载更多平台', 'Ver mais plataformas') }}</button>
       </section>
     </template>
@@ -324,7 +325,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             <span class="shop-record-amount"><strong>{{ item.balance_paid_cents == null ? t('历史兑换', 'Resgate anterior') : '−' + brl(item.balance_paid_cents) }}</strong><small class="shop-status" :data-status="item.status">{{ status(item.status) }}</small></span>
           </button>
         </div>
-        <p v-if="!history.loading && !history.error && !history.items.length" class="surface muted">{{ t('暂无兑换记录。', 'Nenhum resgate registrado.') }}</p>
+        <EmptyState v-if="!history.loading && !history.error && !history.items.length" :message="t('暂无兑换记录。', 'Nenhum resgate registrado.')" />
         <button v-if="history.page < history.last && !history.loading" class="quiet" @click="historyPage">{{ history.error ? t('重试', 'Tentar novamente') : t('加载更多', 'Ver mais') }}</button>
       </template>
     </template>

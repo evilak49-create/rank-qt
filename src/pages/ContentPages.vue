@@ -1,4 +1,5 @@
 <script setup>
+import EmptyState from '../EmptyState.vue'
 import { useLocale } from '../locale.js'
 import { ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
@@ -60,7 +61,7 @@ watchNotice(error, () => props.route.path.startsWith('/help') ? '帮助中心加
           </button>
         </li>
       </ul>
-      <p v-else class="state">{{ t('暂无内容。') }}</p>
+      <EmptyState v-else :message="route.path.startsWith('/help') ? t('暂无帮助文章。', 'Nenhum artigo de ajuda disponível.') : t('暂无站点公告。', 'Nenhum aviso publicado.')" />
       <div v-if="pagination?.last_page > 1" class="pagination">
         <button class="quiet" :disabled="pagination.current_page <= 1" @click="go(route.path + '?page=' + (pagination.current_page - 1))">{{ t('上一页') }}</button>
         <span>{{ pagination.current_page }} / {{ pagination.last_page }}</span>

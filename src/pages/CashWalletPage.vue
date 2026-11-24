@@ -37,12 +37,19 @@ function showError(failure) {
 }
 
 async function load() {
+  const routeKey = currentRoute.value.key
   loading.value = true
   error.value = ''
   try {
-    wallet.value = (await api('/cash-wallet', { fresh: true })).data
+    const { data } = await api('/cash-wallet', { fresh: true })
+    if (currentRoute.value.key !== routeKey) return
+    if (!data.cpf && !attempt.value) {
+      go('/pix?' + new URLSearchParams({ next: '/cash-wallet/withdraw' }), { replace: true })
+      return
+    }
+    wallet.value = data
   } catch (failure) {
-    showError(failure)
+    if (currentRoute.value.key === routeKey) showError(failure)
   } finally {
     loading.value = false
   }
@@ -99,8 +106,7 @@ watchNotice(error, '余额提现提醒', 'error')
         <div v-if="wallet.held_balance_cents > 0"><dt>{{ t('提现处理中') }}</dt><dd>{{ formatBrl(wallet.held_balance_cents) }}</dd></div>
         <div v-if="wallet.cpf"><dt>{{ t('Pix 收款账户') }}</dt><dd>{{ wallet.cpf }}</dd></div>
       </dl>
-      <button v-if="!wallet.cpf && !attempt" type="button" class="primary" @click="go('/pix?next=%2Fcash-wallet%2Fwithdraw')">{{ t('绑定 Pix 收款账户') }}</button>
-      <form v-else class="stack" @submit.prevent="submit">
+      <form class="stack" @submit.prevent="submit">
         <label class="field">{{ t('提现金额（BRL）') }}
           <input v-model="amount" maxlength="18" inputmode="decimal" autocomplete="off" :disabled="busy || !!attempt" required>
         </label>
