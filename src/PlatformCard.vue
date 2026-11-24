@@ -408,14 +408,7 @@ function details(event) {
 .platform-entry-home .platform-name { min-height: 17px; padding: 0 2px; text-shadow: 0 1px 4px #090604, 0 1px 10px #090604; }
 .platform-entry-home .platform-offers { gap: 3px; align-content: end; font-size: clamp(9px, 2.7vw, 11px); }
 .platform-entry-direct .platform-guarantee { position: relative; z-index: 2; }
-.platform-entry-home .platform-guarantee {
-  width: 100%;
-  padding-block: 3px;
-  border-color: transparent;
-  border-radius: 999px;
-  background: rgb(35 19 8 / 70%);
-  box-shadow: none;
-}
+.platform-entry-home .platform-guarantee { width: 100%; }
 .platform-entry-home .platform-offers strong { font-size: clamp(11px, 3.3vw, 13px); overflow-wrap: anywhere; }
 .platform-entry-home .platform-rebate { padding: 2px 7px; border-radius: 999px; background: rgb(14 12 11 / 68%); }
 .platform-entry-home .platform-entry-actions :is(a, button) {
