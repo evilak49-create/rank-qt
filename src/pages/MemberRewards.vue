@@ -30,6 +30,8 @@ const order = ref(null)
 const account = ref(null)
 const editing = ref(false)
 const cpf = ref('')
+const recipientName = ref('')
+const pixComplete = computed(() => Boolean(account.value?.cpf && account.value?.recipient_name))
 const inviteInput = ref(null)
 const linkVisible = ref(false)
 const reveal = ref(null)
@@ -108,12 +110,12 @@ async function load() {
       records.value = await api(home + '/invites?page=' + page)
     } else if (isPix) {
       account.value = (await api('/pix-account')).data
-      if (next === '/cash-wallet/withdraw' && !account.value.cpf) editing.value = true
+      if ((next === '/cash-wallet/withdraw' || next === withdraw) && !pixComplete.value) editPix()
     } else if (isWithdraw) {
       const [activity, pix] = await Promise.all([api(home), api('/pix-account')])
       packets.value = activity.data
       account.value = pix.data
-      if (ready.value && !account.value.cpf) bindPix()
+      if (ready.value && !pixComplete.value) bindPix()
     } else {
       order.value = (await api('/pix-withdrawals/' + props.route.params.id)).data
     }
@@ -178,16 +180,28 @@ async function shareInvite() {
   requestAnimationFrame(() => inviteInput.value?.focus())
 }
 
+function editPix() {
+  cpf.value = account.value?.cpf ?? ''
+  recipientName.value = account.value?.recipient_name ?? ''
+  info.value = ''
+  editing.value = true
+}
+
 async function savePix() {
   if (working.value) return
   error.value = ''
   info.value = ''
   working.value = true
   try {
+    const name = recipientName.value.trim()
+    if (!name || name.length > 120 || !/\p{L}/u.test(name) || /[\u0000-\u001f\u007f]/.test(name)) {
+      throw new Error('请输入有效的真实姓名。')
+    }
     const value = cpf.value.trim()
     if (!/^(?:\d{11}|\d{3}\.\d{3}\.\d{3}-\d{2})$/.test(value)) throw new Error('请输入有效的 11 位 CPF。')
-    account.value = (await api('/pix-account', { method: 'PUT', body: { cpf: value } })).data
+    account.value = (await api('/pix-account', { method: 'PUT', body: { cpf: value, recipient_name: name } })).data
     cpf.value = ''
+    recipientName.value = ''
     editing.value = false
     if (next && currentRoute.value.key === props.route.key) resume(next)
     else info.value = 'Pix 收款账户已保存。'
@@ -199,7 +213,7 @@ async function savePix() {
 }
 
 function cancelPixEdit() {
-  if (next === '/cash-wallet/withdraw' && !account.value?.cpf) {
+  if (next === '/cash-wallet/withdraw' && !pixComplete.value) {
     resume('/member')
     return
   }
@@ -209,24 +223,25 @@ function cancelPixEdit() {
   }
   editing.value = false
   cpf.value = ''
+  recipientName.value = ''
   error.value = ''
 }
 
 async function confirmWithdrawal() {
-  if (working.value || !ready.value || !account.value?.cpf) return
+  if (working.value || !ready.value || !pixComplete.value) return
   error.value = ''
   working.value = true
-  const snapshot = { id: round.value.id, amount: round.value.available_cents, cpf: account.value.cpf }
+  const snapshot = { id: round.value.id, amount: round.value.available_cents, cpf: account.value.cpf, name: account.value.recipient_name }
   try {
     const [activity, pix] = await Promise.all([api(home, { fresh: true }), api('/pix-account', { fresh: true })])
     packets.value = activity.data
     account.value = pix.data
     if (!ready.value) throw new Error('当前红包余额不可提现，请返回查看处理记录。')
-    if (!account.value.cpf) {
+    if (!pixComplete.value) {
       bindPix()
       return
     }
-    if (round.value.id !== snapshot.id || round.value.available_cents !== snapshot.amount || account.value.cpf !== snapshot.cpf) {
+    if (round.value.id !== snapshot.id || round.value.available_cents !== snapshot.amount || account.value.cpf !== snapshot.cpf || account.value.recipient_name !== snapshot.name) {
       throw new Error('红包金额或收款账户已更新，请重新核对后确认。')
     }
     if (currentRoute.value.key !== props.route.key) return
@@ -311,22 +326,29 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
 
     <section v-else-if="isPix" class="stack">
       <form v-if="editing" class="surface stack" @submit.prevent="savePix">
-        <label class="field">CPF
+        <label class="field">{{ t('真实姓名', 'Nome completo') }}
+          <input v-model.trim="recipientName" type="text" autocomplete="name" maxlength="120" required :disabled="working"
+                 :placeholder="t('请输入真实姓名', 'Informe seu nome completo')">
+        </label>
+        <label class="field">CPF ID
           <input v-model="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14" required :disabled="working">
         </label>
-        <p class="muted">{{ t('请填写已注册为 Pix 收款键的 CPF。') }}</p>
+        <p class="muted">{{ t('请填写 CPF 持有人的真实姓名和已注册为 Pix 收款键的 CPF。', 'Informe o nome do titular e o CPF cadastrado como chave Pix.') }}</p>
         <div class="member-actions centered-actions">
           <button class="primary" :disabled="working">{{ t('保存') }}</button>
           <button class="quiet" type="button" :disabled="working" @click="cancelPixEdit">{{ t('取消') }}</button>
         </div>
       </form>
       <template v-else-if="account">
-        <template v-if="account.cpf">
-          <p class="surface">CPF · {{ account.cpf }}</p>
-          <button class="primary" @click="editing = true; info = ''">{{ t('更换 CPF') }}</button>
+        <template v-if="pixComplete">
+          <dl class="surface summary-list">
+            <div><dt>{{ t('真实姓名', 'Nome completo') }}</dt><dd>{{ account.recipient_name }}</dd></div>
+            <div><dt>CPF ID</dt><dd>{{ account.cpf }}</dd></div>
+          </dl>
+          <button class="primary" @click="editPix">{{ t('修改 Pix 收款资料', 'Editar dados Pix') }}</button>
         </template>
-        <EmptyState v-else :message="t('尚未绑定 Pix 收款账户。')">
-          <button class="primary" @click="editing = true; info = ''">{{ t('绑定 Pix') }}</button>
+        <EmptyState v-else :message="account.cpf ? t('请补填 CPF 持有人的真实姓名。', 'Informe o nome completo do titular do CPF.') : t('尚未绑定 Pix 收款账户。')">
+          <button class="primary" @click="editPix">{{ account.cpf ? t('补全 Pix 收款资料', 'Completar dados Pix') : t('绑定 Pix') }}</button>
         </EmptyState>
         <button v-if="next === withdraw" class="quiet" @click="resume(home)">{{ t('返回红包') }}</button>
       </template>
@@ -334,11 +356,12 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
 
     <section v-else-if="isWithdraw" class="surface stack">
       <h2>{{ t('确认提现') }}</h2>
-      <template v-if="ready && account?.cpf">
+      <template v-if="ready && pixComplete">
         <dl class="member-definition">
           <div><dt>{{ t('提现金额') }}</dt><dd>{{ money(round.available_cents) }}</dd></div>
           <div><dt>{{ t('收款方式') }}</dt><dd>Pix</dd></div>
-          <div><dt>CPF</dt><dd>{{ account.cpf }}</dd></div>
+          <div><dt>{{ t('真实姓名', 'Nome completo') }}</dt><dd>{{ account.recipient_name }}</dd></div>
+          <div><dt>CPF ID</dt><dd>{{ account.cpf }}</dd></div>
         </dl>
         <button class="primary" :disabled="working || loading" @click="confirmWithdrawal">{{ t('确认提现') }}</button>
       </template>
@@ -374,7 +397,8 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
       <dl class="member-definition">
         <div><dt>{{ t('订单号') }}</dt><dd>{{ order.order_number }}</dd></div>
         <div><dt>{{ t('申请金额') }}</dt><dd>{{ money(order.amount_cents) }}</dd></div>
-        <div><dt>Pix CPF</dt><dd>{{ order.cpf }}</dd></div>
+        <div v-if="order.recipient_name"><dt>{{ t('真实姓名', 'Nome completo') }}</dt><dd>{{ order.recipient_name }}</dd></div>
+        <div><dt>CPF ID</dt><dd>{{ order.cpf }}</dd></div>
         <div><dt>{{ t('申请时间') }}</dt><dd>{{ date(order.created_at) }}</dd></div>
         <div><dt>{{ t('处理状态') }}</dt><dd>{{ withdrawalStatusLabel(order) }}</dd></div>
         <div v-if="order.paid_at"><dt>{{ t('到账时间') }}</dt><dd>{{ date(order.paid_at) }}</dd></div>

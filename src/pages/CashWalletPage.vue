@@ -29,7 +29,7 @@ try {
   }
 } catch {}
 const canSubmit = computed(() => Boolean(attempt.value || (
-  wallet.value?.cpf && cents.value && cents.value <= wallet.value.available_balance_cents
+  wallet.value?.cpf && wallet.value?.recipient_name && cents.value && cents.value <= wallet.value.available_balance_cents
 )))
 
 function showError(failure) {
@@ -43,7 +43,7 @@ async function load() {
   try {
     const { data } = await api('/cash-wallet', { fresh: true })
     if (currentRoute.value.key !== routeKey) return
-    if (!data.cpf && !attempt.value) {
+    if ((!data.cpf || !data.recipient_name) && !attempt.value) {
       go('/pix?' + new URLSearchParams({ next: '/cash-wallet/withdraw' }), { replace: true })
       return
     }
@@ -69,10 +69,10 @@ async function submit() {
   let submitted = false
   try {
     if (!attempt.value) {
-      const displayedCpf = wallet.value.cpf
+      const { cpf, recipient_name: recipientName } = wallet.value
       wallet.value = (await api('/cash-wallet', { fresh: true })).data
       if (currentRoute.value.key !== routeKey) return
-      if (wallet.value.cpf !== displayedCpf) throw new Error('Pix 收款账户已更新，请核对后重新确认。')
+      if (wallet.value.cpf !== cpf || wallet.value.recipient_name !== recipientName) throw new Error('Pix 收款账户已更新，请核对后重新确认。')
       if (requested > wallet.value.available_balance_cents) throw new Error('可用余额已更新，请重新输入提现金额。')
       attempt.value = { amount: requested, id: createRequestId() }
       try { sessionStorage.setItem(attemptKey, JSON.stringify(attempt.value)) } catch {}
@@ -104,7 +104,8 @@ watchNotice(error, '余额提现提醒', 'error')
       <dl class="summary-list">
         <div><dt>{{ t('可用余额') }}</dt><dd>{{ formatBrl(wallet.available_balance_cents) }}</dd></div>
         <div v-if="wallet.held_balance_cents > 0"><dt>{{ t('提现处理中') }}</dt><dd>{{ formatBrl(wallet.held_balance_cents) }}</dd></div>
-        <div v-if="wallet.cpf"><dt>{{ t('Pix 收款账户') }}</dt><dd>{{ wallet.cpf }}</dd></div>
+        <div v-if="wallet.recipient_name"><dt>{{ t('真实姓名', 'Nome completo') }}</dt><dd>{{ wallet.recipient_name }}</dd></div>
+        <div v-if="wallet.cpf"><dt>CPF ID</dt><dd>{{ wallet.cpf }}</dd></div>
       </dl>
       <form class="stack" @submit.prevent="submit">
         <label class="field">{{ t('提现金额（BRL）') }}

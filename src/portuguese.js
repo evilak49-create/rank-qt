@@ -1,4 +1,7 @@
 export const portuguese = {
+  "请输入有效的真实姓名。": "Informe um nome completo válido.",
+  "请输入 CPF 持有人的真实姓名。": "Informe o nome completo do titular do CPF.",
+  "请先填写 Pix 收款账户的真实姓名和 CPF ID。": "Preencha o nome completo e o CPF ID da conta Pix.",
   "救援金": "Auxílio",
   "资金记录": "Movimentações financeiras",
   "资金明细": "Detalhes das movimentações",
