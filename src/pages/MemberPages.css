@@ -27,7 +27,7 @@
 }
 .profile-asset {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, max-content);
   gap: 5px;
   min-width: 0;
   padding-inline: 16px;
@@ -43,9 +43,9 @@
 }
 .profile-cash-balance > strong { grid-row: 2; color: var(--highlight); }
 .profile-asset > button {
-  grid-area: 1 / 2 / 3;
+  grid-area: 1 / 2 / 3 / 3;
   align-self: center;
-  min-width: min(96px, 100%);
+  min-width: 0;
   min-height: 44px;
   margin-top: 4px;
   padding: 4px 12px;
@@ -164,6 +164,7 @@
 .member-page .member-evidence { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .member-evidence img { width: 100%; aspect-ratio: 1 / 1; object-fit: contain; border-radius: 8px; background: var(--surface-recessed); }
 .member-page .member-file-picker { max-width: 100%; }
+.member-claim-account { overflow-wrap: anywhere; }
 .member-page textarea { min-height: 110px; }
 .member-invite-table {
   width: 100%;

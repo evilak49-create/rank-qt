@@ -408,7 +408,9 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
 .shop-screen h3 { font-size: 14px; overflow-wrap: anywhere; }
 .shop-screen .surface { min-width: 0; }
 .shop-balance { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px; border-color: var(--line-strong); background: linear-gradient(112deg, var(--surface-highlight), var(--surface)); }
-.shop-balance strong { display: block; color: var(--highlight); font-size: 28px; line-height: 1.2; }
+.shop-balance > div { min-width: 0; overflow-wrap: anywhere; }
+.shop-balance > button { max-width: 48%; overflow-wrap: anywhere; }
+.shop-balance strong { display: block; color: var(--highlight); font-size: clamp(19px, 5.9vw, 28px); line-height: 1.2; }
 .shop-login { padding: 0; min-height: 38px; color: var(--accent); font-weight: 750; }
 .shop-search, .shop-actions { display: flex; gap: 8px; }
 .shop-search .field { flex: 1; min-width: 0; }

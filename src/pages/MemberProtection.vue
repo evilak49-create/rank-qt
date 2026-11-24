@@ -189,7 +189,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
 
     <section v-else-if="isNew" class="surface stack">
       <template v-if="item">
-        <p>{{ item.platform_name }} · {{ item.platform_account_id }}</p>
+        <p class="member-claim-account">{{ item.platform_name }} · {{ item.platform_account_id }}</p>
         <form class="stack" @submit.prevent="submit">
           <label class="field">{{ t('出款金额（BRL）') }}<input v-model="form.amount" inputmode="decimal" maxlength="12" required :disabled="working"></label>
           <label class="field">{{ t('出款时间（本地时间）') }}<input v-model="form.withdrawn_at" type="datetime-local" required :disabled="working"></label>

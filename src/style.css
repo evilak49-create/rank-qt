@@ -197,8 +197,8 @@ input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--con
 .platform-picker [aria-pressed="true"] { border-color: var(--accent); }
 .platform-picker img { width: 25px; height: 25px; object-fit: cover; border-radius: 5px; }
 .summary-list { margin: 0; }
-.summary-list div { display: flex; justify-content: space-between; gap: 6px; border-bottom: 1px solid var(--line); padding: 5px 0; }
-.summary-list dd { margin: 0; color: var(--highlight); }
+.summary-list div { display: grid; grid-template-columns: minmax(0, 1fr) fit-content(60%); gap: 6px; border-bottom: 1px solid var(--line); padding: 5px 0; overflow-wrap: anywhere; }
+.summary-list dd { margin: 0; color: var(--highlight); text-align: end; }
 .chat-suggestions { display: grid; justify-items: start; }
 .chat-history { display: grid; gap: 12px; max-height: 42dvh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-question { color: var(--accent); font-weight: 750; margin-bottom: 4px; }
