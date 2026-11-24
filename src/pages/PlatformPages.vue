@@ -3,6 +3,7 @@ const directoryCache = new Map()
 </script>
 
 <script setup>
+import { protectionStatusLabel } from '../protectionStatus.js'
 import EmptyState from '../EmptyState.vue'
 import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
@@ -99,7 +100,6 @@ const platformScore = computed(() => platform.value?.rating == null ? '—' : sc
 const maxRebate = computed(() => formatRule(platform.value?.max_rebate_percent, '%', ''))
 const rebateWager = computed(() => formatRule(platform.value?.min_rebate_wager_multiplier, '×', ''))
 const platformDescription = computed(() => platform.value?.description?.trim())
-const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const activeBinding = computed(() => ownBindings.value.find(item => String(item.platform_id) === String(selected.value?.id)))
 const reviewBinding = computed(() => ownBindings.value.some(item => String(item.platform_id) === props.route.params.id))
 const requiresCode = computed(() => !props.member?.phone_verified_at || nationalPhone(phone.value) !== nationalPhone(props.member.phone))
@@ -864,7 +864,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
             </dl>
             <span class="bound-platform-status" :class="{ 'binding-protected': item.protection_status === 'active' }">
               <span class="bound-platform-status-dot" aria-hidden="true"></span>
-              <span class="bound-platform-status-label">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</span>
+              <span class="bound-platform-status-label">{{ t(protectionStatusLabel(item.protection_status)) }}</span>
             </span>
           </header>
           <footer class="bound-platform-footer">
@@ -901,7 +901,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           </div>
           <div><dt>{{ t('绑定时间') }}</dt><dd>{{ formatDate(bindingDetail.created_at) }}</dd></div>
             <div><dt>{{ t('上次兑换时间') }}</dt><dd>{{ formatDate(bindingDetail.last_redeemed_at) }}</dd></div>
-            <div><dt>{{ t('保障状态') }}</dt><dd><button type="button" class="inline-action" @click="go('/protection?binding=' + bindingDetail.id)">{{ t(bindingStatuses[bindingDetail.protection_status]) || t('查看保障') }} ›</button></dd></div>
+            <div><dt>{{ t('保障状态') }}</dt><dd><button type="button" class="inline-action" @click="go('/protection?binding=' + bindingDetail.id)">{{ t(protectionStatusLabel(bindingDetail.protection_status)) }} ›</button></dd></div>
           </dl>
         </div>
         <button v-if="totalsError" class="quiet" type="button" @click="loadBindingTotals">{{ t('重试') }}</button>

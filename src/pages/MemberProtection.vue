@@ -4,7 +4,7 @@ import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { api, imageUrl } from '../api'
-import PlatformCard from '../PlatformCard.vue'
+import { protectionStatusLabel } from '../protectionStatus.js'
 import ProtectionContract from './ProtectionContract.vue'
 import { currentRoute, go, safePath } from '../navigation'
 import MemberPagination from './MemberPagination.vue'
@@ -30,7 +30,6 @@ const focused = ref(null)
 const item = ref(null)
 const files = ref([])
 const form = reactive({ amount: '', withdrawn_at: '', description: '' })
-const statuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
 const caseLabels = {
   pending: ['待处理', 'Pendente'], resolved: ['已解决', 'Resolvida'], unresolved: ['未解决', 'Encerrada sem solução'],
 }
@@ -159,14 +158,13 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
             <span>{{ binding.platform_name.slice(0, 1) }}</span>
           </div>
           <div class="protection-platform-body">
-            <PlatformCard row :platform-id="binding.platform_id" :name="binding.platform_name" :promotion-url="binding.promotion_url">
-              <h3>{{ binding.platform_name }}</h3><p class="muted">{{ binding.platform_account_id }}</p>
-              <p class="member-status">{{ t('保障状态 ·') }} {{ t(statuses[binding.protection_status]) || t('待确认') }}</p>
-            </PlatformCard>
-            <div class="member-actions protection-platform-actions">
-              <button class="quiet" @click="go('/protection/bindings/' + binding.id + '/terms')">{{ t('保障条款') }}</button>
-              <button class="primary" @click="go('/protection/claims/new?binding=' + binding.id)">{{ t('申请保障') }}</button>
-            </div>
+            <h3>{{ binding.platform_name }}</h3>
+            <p class="muted">{{ binding.platform_account_id }}</p>
+            <p class="member-status">{{ t('保障状态 ·') }} {{ t(protectionStatusLabel(binding.protection_status)) }}</p>
+          </div>
+          <div class="protection-platform-actions">
+            <button type="button" class="quiet" @click="go('/protection/bindings/' + binding.id + '/terms')">{{ t('保障条款') }}</button>
+            <button type="button" class="primary" @click="go('/protection/claims/new?binding=' + binding.id)">{{ t('申请保障') }}</button>
           </div>
         </article>
         <EmptyState v-if="bindings && !currentBindings.length" :message="t('暂无已绑定平台。')" />
@@ -210,7 +208,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
       <dl class="member-definition">
         <div><dt>{{ t('平台') }}</dt><dd>{{ item.platform_name }}</dd></div>
         <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
-        <div><dt>{{ t('提交时保障状态') }}</dt><dd>{{ t(statuses[item.protection_status]) || t('待确认') }}</dd></div>
+        <div><dt>{{ t('提交时保障状态') }}</dt><dd>{{ t(protectionStatusLabel(item.protection_status)) }}</dd></div>
         <div><dt>{{ t('案件状态', 'Situação da solicitação') }}</dt><dd>{{ caseStatus(item.case_status) }}</dd></div>
         <div><dt>{{ t('出款金额') }}</dt><dd>{{ brl.format(item.amount_cents / 100) }}</dd></div>
         <div><dt>{{ t('出款时间') }}</dt><dd>{{ date(item.withdrawn_at) }}</dd></div>
@@ -238,9 +236,9 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
 <style scoped>
 .protection-platform {
   display: grid;
-  grid-template-columns: clamp(58px, 19vw, 80px) minmax(0, 1fr);
+  grid-template-columns: clamp(40px, 14vw, 68px) minmax(0, 1fr) auto;
   align-items: center;
-  gap: clamp(10px, 3vw, 16px);
+  gap: clamp(8px, 2.5vw, 14px);
 }
 .protection-logo {
   display: grid;
@@ -262,7 +260,27 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
 }
 .protection-logo img[hidden] { display: none; }
 .protection-logo img:not([hidden]) + span { display: none; }
-.protection-platform-body { display: grid; gap: 8px; min-width: 0; overflow-wrap: anywhere; }
-.member-page .protection-platform-actions { align-items: stretch; }
-.protection-platform-actions > button { flex: 1 1 auto; min-width: 0; padding-inline: 10px; }
+.protection-platform-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.protection-platform-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: clamp(94px, 30vw, 128px);
+  gap: 6px;
+}
+.protection-platform-actions > button {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 5px 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
 </style>
