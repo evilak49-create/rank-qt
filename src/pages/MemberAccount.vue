@@ -15,6 +15,7 @@ const quickLinks = [
   ['/rescue-fund', '救援金', icons.protection],
 ]
 const accountLinks = [
+  ['/check-in', '每日签到', 'M5 4h14v16H5zM8 12l2 2 5-5'],
   ['/shop/redemptions', '兑换记录', icons.shop],
   ['/withdrawal-history', '提现订单', 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6m-6 4h6'],
   ['/protection', '我的保障', icons.protection],

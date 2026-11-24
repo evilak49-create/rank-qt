@@ -16,8 +16,20 @@ const legacySource = ref(null)
 let request
 
 const statuses = { reviewing: '审核中', succeeded: '成功', failed: '失败', cancelled: '已取消，款项已退回' }
+const lifecycle = {
+  pending: ['待审核', 'Aguardando análise'], processing: ['出款中', 'Pagamento em processamento'],
+  unresolved: ['等待三方确认', 'Aguardando confirmação do provedor'],
+  failed: ['出款失败，款项已退回', 'Pagamento falhou e o valor foi devolvido'],
+  rejected: ['已拒绝，款项已退回', 'Solicitação recusada e valor devolvido'],
+}
 const sources = { red_packet: '红包提现', balance: '余额提现' }
 const legacyPaths = { red_packet: '/pix-withdrawals', balance: '/cash-wallet/withdrawals' }
+
+function statusLabel(order) {
+  if (order.rejection_deducted) return t('已拒绝，款项已扣除')
+  const label = lifecycle[order.lifecycle_status]
+  return label ? t(...label) : t(statuses[order.status] || '待确认')
+}
 
 function formatDate(value) {
   const date = value ? new Date(value) : null
@@ -42,6 +54,7 @@ async function fetchOrders(page, signal) {
     data: result.data.map(order => ({
       ...order,
       source,
+      lifecycle_status: order.status,
       status: order.status === 'paid' ? 'succeeded' : order.status === 'cancelled' ? 'cancelled' : ['failed', 'rejected'].includes(order.status) ? 'failed' : 'reviewing',
     })),
   }
@@ -89,7 +102,7 @@ watchNotice(error, '提现订单加载失败', 'error')
         <li v-for="order in records.data" :key="order.id" class="surface stack withdrawal-order">
           <header class="withdrawal-summary">
             <h2>{{ t(sources[order.source]) || t('提现') }}</h2>
-            <span class="withdrawal-status" :data-status="order.status">{{ t(order.rejection_deducted ? '已拒绝，款项已扣除' : statuses[order.status]) || t('待确认') }}</span>
+            <span class="withdrawal-status" :data-status="order.status">{{ statusLabel(order) }}</span>
           </header>
           <strong class="withdrawal-amount">{{ formatBrl(order.amount_cents) }}</strong>
           <dl class="withdrawal-details">

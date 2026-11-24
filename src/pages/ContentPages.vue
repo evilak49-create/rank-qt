@@ -70,7 +70,8 @@ watchNotice(error, () => props.route.path.startsWith('/help') ? '帮助中心加
     <article v-else-if="!busy && data" class="surface stack content-article">
       <h2>{{ data.title }}</h2>
       <time v-if="data.published_at" class="muted" :datetime="data.published_at">{{ date(data.published_at) }}</time>
-      <p v-if="data.body">{{ data.body }}</p>
+      <div v-if="data.body_html" class="content-rich" v-html="data.body_html"></div>
+      <p v-else-if="data.body">{{ data.body }}</p>
       <section v-for="(step, index) in data.steps" :key="index" class="stack">
         <h3 v-if="step.title">{{ step.title }}</h3>
         <p v-if="step.body">{{ step.body }}</p>

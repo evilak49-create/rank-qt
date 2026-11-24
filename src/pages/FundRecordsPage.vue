@@ -17,6 +17,8 @@ let requestedPage = 1
 const labels = {
   rebate: ['返利', 'Cashback'],
   rescue_fund: ['救援金', 'Auxílio'],
+  checkin: ['签到奖励', 'Recompensa de check-in'],
+  manual_adjustment: ['人工调账', 'Ajuste de saldo'],
   withdrawal: ['提现', 'Saque'],
   withdrawal_refund: ['提现返回', 'Estorno de saque'],
   platform_payment: ['平台兑换支出', 'Pagamento para resgate na plataforma'],

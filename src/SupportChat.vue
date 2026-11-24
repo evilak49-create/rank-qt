@@ -1,13 +1,20 @@
 <script setup>
-import { computed, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { api, imageUrl } from './api'
 import { watchNotice } from './feedback'
 import { icons } from './icons'
+import { createRequestId } from './requestId'
 
 const props = defineProps({ language: String, topic: String })
 const emit = defineEmits(['follow', 'account', 'back'])
 const settings = ref(null)
 const messages = ref([])
+const drafts = ref([])
+const threadId = ref(null)
+const threadMode = ref('ai')
+const threadLoaded = ref(false)
+const hasEarlier = ref(false)
+const loadingEarlier = ref(false)
 const question = ref('')
 const busy = ref(false)
 const error = ref('')
@@ -15,7 +22,11 @@ const copied = ref('')
 const handoff = ref(null)
 const conversation = ref(null)
 const viewportHeight = ref(0)
-const liveChat = computed(() => settings.value?.mode === 'chat')
+let session
+let pollTimer
+let readVersion = 0
+let polling = false
+const liveChat = computed(() => threadLoaded.value)
 const avatar = computed(() => imageUrl(settings.value?.avatar_url))
 const humanChannels = computed(() => messages.value.findLast(item => item.reply?.type === 'human')?.reply.channels
   ?? settings.value?.channels ?? [])
@@ -27,6 +38,8 @@ const labels = computed(() => props.language === 'pt-BR' ? {
   send: 'Enviar', retry: 'Tentar de novo', contact: 'Atendimento humano',
   greeting: 'Olá! Como posso ajudar?', back: 'Voltar',
   records: 'Ver meus registros', close: 'Fechar', copy: 'Copiar',
+  earlier: 'Mensagens anteriores', staff: 'Atendimento humano em andamento',
+  awaitingStaff: 'Envie uma mensagem para o atendimento',
   notice: 'Atendimento', copyNotice: 'Contato', copied: 'Contato copiado',
   copyFailed: 'Não foi possível copiar. Selecione e copie o contato manualmente.',
   unavailable: 'O atendimento está indisponível no momento. Tente novamente.',
@@ -36,6 +49,8 @@ const labels = computed(() => props.language === 'pt-BR' ? {
   send: '发送', retry: '重试', contact: '联系人工客服',
   greeting: '您好，请问有什么可以帮您？', back: '返回',
   records: '查看个人记录', close: '关闭', copy: '复制',
+  earlier: '查看更早消息', staff: '人工客服接待中',
+  awaitingStaff: '可留言等待人工客服',
   notice: '客服服务提醒', copyNotice: '联系方式复制提醒', copied: '已复制联系方式',
   copyFailed: '无法自动复制，请手动选择联系方式。',
   unavailable: '客服暂不可用，请稍后重试。',
@@ -43,7 +58,8 @@ const labels = computed(() => props.language === 'pt-BR' ? {
 const supportName = computed(() => settings.value?.display_name || labels.value.name)
 
 const availability = computed(() => {
-  if (liveChat.value) return labels.value.online
+  if (threadMode.value === 'human') return labels.value.staff
+  if (liveChat.value) return settings.value?.mode === 'chat' ? labels.value.online : labels.value.awaitingStaff
   if (humanChannels.value.length) return labels.value.human
   return settings.value || error.value ? labels.value.offline : ''
 })
@@ -74,37 +90,98 @@ async function copyContact(channel) {
   }
 }
 
+function displayError(failure) {
+  error.value = props.language === 'pt-BR' ? labels.value.unavailable : failure.message
+}
+
 async function load() {
+  const signal = session?.signal
+  if (!signal || signal.aborted) return
   error.value = ''
   try {
-    settings.value = (await api('/support?' + new URLSearchParams({ language: props.language }), { fresh: true })).data
+    settings.value = (await api('/support?' + new URLSearchParams({ language: props.language }), { fresh: true, signal })).data
+    await pollThread()
   } catch (failure) {
-    error.value = props.language === 'pt-BR' ? labels.value.unavailable : failure.message
+    if (!signal.aborted) displayError(failure)
+  }
+}
+
+function mergeThread(data, page) {
+  if (threadId.value !== data.id) {
+    messages.value = []
+    hasEarlier.value = false
+  }
+  threadId.value = data.id
+  threadMode.value = data.mode
+  threadLoaded.value = true
+  if (data.messages.length) {
+    const merged = new Map(messages.value.map(message => [message.id, message]))
+    for (const message of data.messages) merged.set(message.id, message)
+    messages.value = [...merged.values()].sort((left, right) => left.id - right.id)
+    const acknowledged = new Set(data.messages.map(message => message.request_id).filter(Boolean))
+    drafts.value = drafts.value.filter(draft => !acknowledged.has(draft.id))
+  }
+  if (page === 'first' || page === 'earlier') hasEarlier.value = data.has_earlier
+}
+
+async function pollThread() {
+  const signal = session?.signal
+  if (!signal || signal.aborted || polling || busy.value || loadingEarlier.value || document.hidden) return
+  const version = readVersion
+  polling = true
+  try {
+    const last = messages.value.at(-1)?.id
+    const { data } = await api('/support/conversation' + (last ? '?after=' + last : ''), { signal, background: true })
+    if (signal.aborted || readVersion !== version) return
+    const panel = conversation.value
+    const nearBottom = !panel || panel.scrollHeight - panel.scrollTop - panel.clientHeight < 90
+    mergeThread(data, last ? 'newer' : 'first')
+    if (data.messages.length && nearBottom) scrollToLatest()
+  } catch (failure) {
+    if (!signal.aborted && !threadLoaded.value) displayError(failure)
+  } finally {
+    polling = false
+  }
+}
+
+async function loadEarlier() {
+  const signal = session?.signal
+  const first = messages.value[0]?.id
+  if (!signal || signal.aborted || !first || loadingEarlier.value || busy.value) return
+  const version = ++readVersion
+  loadingEarlier.value = true
+  const panel = conversation.value
+  const previousHeight = panel?.scrollHeight ?? 0
+  try {
+    const { data } = await api('/support/conversation?before=' + first, { signal, background: true })
+    if (signal.aborted || readVersion !== version) return
+    mergeThread(data, 'earlier')
+    await nextTick()
+    if (panel) panel.scrollTop += panel.scrollHeight - previousHeight
+  } catch (failure) {
+    if (!signal.aborted) displayError(failure)
+  } finally {
+    loadingEarlier.value = false
   }
 }
 
 async function send(item) {
-  if (busy.value) return
+  const signal = session?.signal
+  if (!signal || signal.aborted || busy.value || !liveChat.value) return
+  readVersion++
   busy.value = true
   error.value = ''
   item.state = 'pending'
   scrollToLatest()
-  const history = messages.value.slice(0, messages.value.indexOf(item))
-    .filter(turn => turn.state === 'answered' && turn.reply?.answer?.trim())
-    .slice(-6)
-    .map(turn => ({
-      question: turn.question,
-      answer: Array.from(turn.reply.answer).slice(0, 1400).join(''),
-    }))
   try {
-    const { data } = await api('/support/chat', {
-      body: { question: item.question, language: props.language, history }, timeoutMs: 18000,
+    const { conversation: updatedThread } = await api('/support/chat', {
+      body: { question: item.question, language: props.language, request_id: item.id, conversation_id: threadId.value },
+      signal, timeoutMs: 18000,
     })
-    item.reply = data
-    item.state = 'answered'
+    mergeThread(updatedThread, messages.value.length ? 'newer' : 'first')
   } catch (failure) {
     item.state = 'failed'
-    error.value = props.language === 'pt-BR' ? labels.value.unavailable : failure.message
+    if (!signal.aborted) displayError(failure)
   } finally {
     busy.value = false
     scrollToLatest()
@@ -114,8 +191,8 @@ async function send(item) {
 function ask(text = question.value) {
   const value = text.trim()
   if (!value || busy.value || !liveChat.value) return
-  const item = reactive({ question: value, state: 'pending', reply: null })
-  messages.value.push(item)
+  const item = reactive({ id: createRequestId(), question: value, state: 'pending' })
+  drafts.value.push(item)
   question.value = ''
   send(item)
 }
@@ -126,16 +203,27 @@ function enter(event) {
   ask()
 }
 
-onMounted(() => {
-  load()
+function start() {
+  if (session) return
+  session = new AbortController()
+  if (settings.value) pollThread()
+  else load()
+  pollTimer = window.setInterval(pollThread, 3500)
   resizeChat()
   window.visualViewport?.addEventListener('resize', resizeChat)
-})
-onUnmounted(() => window.visualViewport?.removeEventListener('resize', resizeChat))
-onActivated(() => {
-  resizeChat()
-  scrollToLatest()
-})
+}
+
+function stop() {
+  session?.abort()
+  session = null
+  window.clearInterval(pollTimer)
+  window.visualViewport?.removeEventListener('resize', resizeChat)
+}
+
+onMounted(start)
+onActivated(start)
+onDeactivated(stop)
+onUnmounted(stop)
 </script>
 
 <template>
@@ -164,24 +252,33 @@ onActivated(() => {
         </span>
         <div class="chat-bubble incoming">{{ liveChat ? settings.welcome || labels.greeting : settings.answer || availability }}</div>
       </div>
-      <div v-if="liveChat && !messages.length && settings.suggestions?.length" class="conversation-suggestions">
+      <div v-if="liveChat && threadMode === 'ai' && !messages.length && !drafts.length && settings?.suggestions?.length" class="conversation-suggestions">
         <button v-for="item in settings.suggestions" :key="item.id" @click="ask(item.question)">{{ item.question }}</button>
       </div>
-      <template v-for="(item, index) in messages" :key="index">
-        <div class="conversation-line outgoing-line"><p class="chat-bubble outgoing">{{ item.question }}</p></div>
-        <button v-if="item.state === 'failed'" class="chat-retry" :disabled="busy" @click="send(item)">{{ labels.retry }}</button>
-        <div v-if="item.reply" class="conversation-line">
+      <button v-if="hasEarlier" class="text-button chat-earlier" :disabled="loadingEarlier || busy" @click="loadEarlier">{{ labels.earlier }}</button>
+      <template v-for="item in messages" :key="item.id">
+        <div v-if="item.sender === 'visitor'" class="conversation-line outgoing-line"><p class="chat-bubble outgoing">{{ item.body }}</p></div>
+        <div v-else class="conversation-line">
           <span class="chat-avatar mini" aria-hidden="true">
             <img v-if="avatar" :src="avatar" alt="">
             <svg v-else viewBox="0 0 24 24"><path :d="icons.support"/></svg>
           </span>
           <div class="chat-bubble incoming">
-            <p>{{ item.reply.answer }}</p>
-            <button v-if="item.reply.help" class="chat-bubble-link" @click="emit('follow', item.reply.help.link)">{{ item.reply.help.title }} →</button>
-            <button v-if="item.reply.type === 'personal'" class="chat-bubble-link" @click="emit('account', destinations[item.reply.link])">{{ labels.records }} →</button>
-            <button v-if="item.reply.type === 'human' && humanChannels.length" class="chat-bubble-link" @click="handoff.showModal()">{{ labels.contact }} →</button>
+            <p>{{ item.body }}</p>
+            <button v-if="item.reply?.help" class="chat-bubble-link" @click="emit('follow', item.reply.help.link)">{{ item.reply.help.title }} →</button>
+            <button v-if="item.reply?.type === 'personal'" class="chat-bubble-link" @click="emit('account', destinations[item.reply.link])">{{ labels.records }} →</button>
+            <template v-if="item.reply?.type === 'human'">
+              <template v-for="channel in item.reply.channels" :key="channel.name + channel.url">
+                <a v-if="imageUrl(channel.url)" class="chat-bubble-link" :href="imageUrl(channel.url)" target="_blank" rel="noopener noreferrer">{{ channel.name }} →</a>
+                <button v-else-if="channel.contact" class="chat-bubble-link" @click="copyContact(channel)">{{ channel.name }} · {{ labels.copy }}</button>
+              </template>
+            </template>
           </div>
         </div>
+      </template>
+      <template v-for="item in drafts" :key="item.id">
+        <div class="conversation-line outgoing-line"><p class="chat-bubble outgoing">{{ item.question }}</p></div>
+        <button v-if="item.state === 'failed'" class="chat-retry" :disabled="busy || !liveChat" @click="send(item)">{{ labels.retry }}</button>
       </template>
     </div>
 
@@ -191,7 +288,7 @@ onActivated(() => {
     </form>
     <div v-else-if="humanChannels.length || error" class="chat-composer contact-only">
       <button v-if="humanChannels.length" class="primary" @click="handoff.showModal()">{{ labels.contact }}</button>
-      <button v-else-if="error && !settings" class="quiet" @click="load">{{ labels.retry }}</button>
+      <button v-else-if="error && !threadLoaded" class="quiet" @click="load">{{ labels.retry }}</button>
     </div>
 
     <dialog ref="handoff" :aria-label="labels.contact">
@@ -232,6 +329,7 @@ onActivated(() => {
 .chat-bubble.outgoing { border-bottom-right-radius: 4px; color: var(--on-primary); background: var(--primary); }
 .chat-bubble-link { display: block; padding: 7px 0 0; color: var(--accent); text-align: left; font-size: 12px; }
 .chat-retry { align-self: flex-end; margin-top: -7px; color: var(--danger); font-size: 11px; }
+.chat-earlier { align-self: center; }
 .conversation-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 37px; }
 .conversation-suggestions button { min-height: 34px; padding: 4px 9px; border: 1px solid var(--line-strong); border-radius: 14px; color: var(--accent); font-size: 12px; text-align: left; }
 .chat-composer { display: flex; align-items: end; gap: 8px; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--chrome); }

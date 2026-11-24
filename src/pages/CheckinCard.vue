@@ -1,6 +1,7 @@
 <script setup>
 import { useLocale } from '../locale.js'
 import { computed } from 'vue'
+import { formatBrl } from '../money'
 
 const { t } = useLocale()
 
@@ -47,13 +48,13 @@ const actionLabel = computed(() => {
       <h3>{{ t('连续签到奖励') }}</h3>
       <ul v-if="tiers?.length">
         <li v-for="tier in tiers" :key="tier.days">
-          <span>{{ tier.days }} {{ t('天') }}</span><strong>+{{ tier.points }} {{ t('积分') }}</strong>
+          <span>{{ tier.days }} {{ t('天') }}</span><strong>+{{ formatBrl(tier.reward_cents) }}</strong>
         </li>
       </ul>
       <p v-else>{{ tiers ? t('暂无奖励档位') : t('暂未获取奖励档位') }}</p>
     </div>
     <p v-if="!entry && state?.checked_in" class="checkin-reward" role="status">
-      {{ state.reward_points > 0 ? t('今日获得 ') + state.reward_points + t(' 积分') : t('今日签到已记录') }}
+      {{ state.reward_cents > 0 ? t('今日获得 ', 'Recebido hoje: ') + formatBrl(state.reward_cents) : t('今日签到已记录') }}
     </p>
     <button v-if="!entry" class="checkin-action" :disabled="loading || working || state?.checked_in" @click="$emit('action')">{{ t(actionLabel) }}</button>
   </section>

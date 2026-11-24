@@ -388,6 +388,10 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
             <template v-if="order.paused || order.needs_review"><dt>{{ t('处理进度', 'Andamento') }}</dt><dd>{{ order.needs_review ? t('等待人工核实', 'Aguardando verificação manual') : t('发放已暂停', 'Crédito suspenso') }}</dd></template>
             <template v-if="order.reviewed_at"><dt>{{ t('审核时间', 'Data da análise') }}</dt><dd>{{ date(order.reviewed_at) }}</dd></template>
             <template v-if="order.review_reason"><dt>{{ t('审核说明', 'Nota da análise') }}</dt><dd>{{ order.review_reason }}</dd></template>
+            <template v-if="order.balance_paid_cents != null && ['rejected', 'failed', 'cancelled'].includes(order.status) && typeof order.payment_refunded === 'boolean'">
+              <dt>{{ t('资金结果', 'Resultado financeiro') }}</dt>
+              <dd>{{ order.payment_refunded ? t('款项已退回可用余额', 'O valor foi devolvido ao saldo disponível') : t('款项已扣除', 'O valor foi descontado') }}</dd>
+            </template>
           </dl>
         </article>
         <div v-if="member" class="shop-actions">

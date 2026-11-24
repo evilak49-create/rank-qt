@@ -62,6 +62,10 @@
 .auth-country-code { display: grid; place-items: center; border: 1px solid var(--control-line); border-radius: 8px; background: var(--surface-raised); color: var(--text); font-size: 15px; font-weight: 750; }
 .content-article { overflow-wrap: anywhere; }
 .content-article p { white-space: pre-wrap; }
+.content-rich { display: grid; gap: .75rem; }
+.content-rich img { display: block; max-width: 100%; height: auto; border-radius: .5rem; }
+.content-rich a { color: var(--accent); text-decoration: underline; }
+.content-rich :is(ol, ul) { padding-inline-start: 1.5em; }
 .content-image { padding: 0; border-radius: 8px; overflow: hidden; text-align: left; }
 .content-image img, .photo-dialog img { max-width: 100%; height: auto; display: block; }
 .photo-dialog form { display: flex; justify-content: end; margin-bottom: 7px; }

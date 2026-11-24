@@ -14,6 +14,7 @@ import { go, restoreScroll, resume, safePath } from '../navigation'
 import { avatarForReview } from './memberAvatars.js'
 import PlatformIntroduction from './PlatformIntroduction.vue'
 import PlatformRechargeHistory from './PlatformRechargeHistory.vue'
+import TurnstileChallenge from './TurnstileChallenge.vue'
 
 const { locale, t } = useLocale()
 
@@ -102,9 +103,15 @@ const reviewBinding = computed(() => ownBindings.value.some(item => String(item.
 const requiresCode = computed(() => !props.member?.phone_verified_at || nationalPhone(phone.value) !== nationalPhone(props.member.phone))
 const bindingVerification = ref(null)
 const bindingCaptcha = ref(null)
+const bindingTurnstileToken = ref('')
+const bindingTurnstileReset = ref(0)
 const captchaLoading = ref(false)
 const captchaError = ref('')
-const bindingUsesImage = computed(() => screen.value === 'bind' && bindingVerification.value === 'image')
+const bindingMode = computed(() => bindingVerification.value?.mode)
+const bindingUsesImage = computed(() => screen.value === 'bind' && bindingMode.value === 'image')
+const bindingUsesCloudflare = computed(() => screen.value === 'bind' && bindingMode.value === 'cloudflare')
+const bindingChallengeReady = computed(() => bindingVerification.value && (!bindingUsesImage.value || bindingCaptcha.value)
+  && (!bindingUsesCloudflare.value || bindingTurnstileToken.value))
 const choices = directory
 const registrationNoticeDismissed = ref(false)
 const detailActions = ref(null)
@@ -462,7 +469,8 @@ async function initialize() {
         loadBindings(signal, { allPages: true }),
       ])
       if (signal.aborted) return
-      bindingVerification.value = verification.data.mode
+      bindingTurnstileToken.value = ''
+      bindingVerification.value = verification.data
       phone.value = props.member.phone ?? ''
       const platformId = props.route.query.get('platform')
       const preset = ownBindings.value.find(item => String(item.platform_id) === platformId)
@@ -592,13 +600,16 @@ watch([bindingUsesImage, () => props.route], ([useImage], _previous, onCleanup) 
 })
 
 function bindAccount() {
-  if (!selected.value || activeBinding.value || !bindingVerification.value || (bindingUsesImage.value && !bindingCaptcha.value)) return
+  if (!selected.value || activeBinding.value || !bindingChallengeReady.value) return
   return run(async current => {
     const body = { phone: phone.value.trim() }
     const useImage = bindingUsesImage.value
+    const useCloudflare = bindingUsesCloudflare.value
     if (useImage) {
       body.challenge_id = bindingCaptcha.value.challenge_id
       body.code = code.value.trim()
+    } else if (useCloudflare) {
+      body.turnstile_token = bindingTurnstileToken.value
     } else if (requiresCode.value) {
       body.code = code.value.trim()
     }
@@ -607,6 +618,7 @@ function bindAccount() {
       if (current()) finishBinding()
     } catch (failure) {
       if (useImage && current()) await refreshBindingCaptcha()
+      if (useCloudflare && current()) bindingTurnstileReset.value++
       const notFound = '未查到符合条件的推广账号'
       if (failure.status === 422 &&
           (failure.errors?.phone?.includes(notFound) || failure.message === notFound)) {
@@ -723,7 +735,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
             {{ t('出款保障') }}
             <strong v-if="guaranteeAmount" class="protection-amount">{{ guaranteeAmount }}</strong>
           </h2>
-          <p>{{ t('符合保障条款的拒绝出款申诉，经核实后由本站赔付。') }}</p>
+          <p>{{ t('符合保障条款的拒绝出款申诉，将通过线下协商处理。', 'Contestações de saques recusados que atendam aos termos da proteção serão tratadas por negociação fora do site.') }}</p>
         </div>
         <button class="quiet" type="button" @click="go(platformPath + '/protection')">{{ t('查看条款') }}</button>
       </section>
@@ -960,7 +972,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           <label class="field">{{ t('平台账号') }}
             <input v-model.trim="phone" type="tel" maxlength="32" autocomplete="tel" required :disabled="busy" @input="code = ''; status = ''">
           </label>
-          <div v-if="bindingVerification === 'sms'" class="code-row">
+          <div v-if="bindingMode === 'sms'" class="code-row">
             <label class="field">{{ t('短信验证码') }}
               <input v-model.trim="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code"
                      :required="requiresCode" :disabled="busy || !requiresCode"
@@ -977,8 +989,10 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
               <span v-else>{{ t('获取图片') }}</span>
             </button>
           </div>
+          <TurnstileChallenge v-if="bindingUsesCloudflare" v-model="bindingTurnstileToken"
+                              :site-key="bindingVerification?.turnstile_site_key" :reset-key="bindingTurnstileReset" action="platform_binding" />
           <p class="muted">{{ t('绑定成功后不可更换，请核对平台和账号。') }}</p>
-          <button class="primary" :disabled="busy || !selected || !phone || !bindingVerification || (bindingUsesImage && !bindingCaptcha)">{{ t('确认绑定') }}</button>
+          <button class="primary" :disabled="busy || !selected || !phone || !bindingChallengeReady">{{ t('确认绑定') }}</button>
         </form>
       </div>
     </dialog>

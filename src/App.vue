@@ -14,6 +14,7 @@ import { back, currentRoute, go, restoreScroll, resume, safePath } from './navig
 import AuthPages from './pages/AuthPages.vue'
 import ContentPages from './pages/ContentPages.vue'
 import CashWalletPage from './pages/CashWalletPage.vue'
+import CheckinPage from './pages/CheckinPage.vue'
 import FundRecordsPage from './pages/FundRecordsPage.vue'
 import RescueFundPage from './pages/RescueFundPage.vue'
 import WithdrawalHistoryPage from './pages/WithdrawalHistoryPage.vue'
@@ -53,6 +54,7 @@ const pages = [
   [/^\/shop\/redemptions$/, '兑换记录', ShopPages, true],
   [/^\/shop\/redemptions\/\d+$/, '兑换详情', ShopPages, true],
   [/^\/member$/, '个人中心', MemberPages, true],
+  [/^\/check-in$/, '每日签到', CheckinPage, true],
   [/^\/cash-wallet(?:\/withdraw)?$/, '余额提现', CashWalletPage, true],
   [/^\/fund-records$/, '资金明细', FundRecordsPage, true],
   [/^\/withdrawal-history$/, '提现订单', WithdrawalHistoryPage, true],
@@ -119,7 +121,8 @@ const recordsLinks = {
 }
 const recordsLink = computed(() => recordsLinks[viewRoute.value.path])
 const ready = computed(() => !requiresSession.value || (sessionState.value === 'ready' && Boolean(member.value)))
-const viewReady = computed(() => auth.value || ready.value)
+const viewReady = computed(() => (auth.value || ready.value) &&
+  (viewRoute.value.path !== '/support' || sessionState.value === 'ready'))
 const cachedView = computed(() => page.value === ContentPages && !viewRoute.value.params.id)
 function requiresMember(value) {
   return pages.some(([pattern, , , protectedPage]) => protectedPage === true && pattern.test(value.path))
@@ -259,10 +262,8 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
         <div v-if="sessionState === 'error'" class="state"><button class="text-button" @click="refreshMember">{{ t('重试') }}</button></div>
       </template>
       <template v-else>
-        <KeepAlive>
-          <SupportChat v-if="viewRoute.path === '/support'" :key="language" :language="language" :topic="viewRoute.query.get('topic')"
-                       @follow="go" @account="go($event || '/member')" @back="back('/')" />
-        </KeepAlive>
+        <SupportChat v-if="viewRoute.path === '/support'" :key="(member?.id ?? 'guest') + ':' + language" :language="language" :topic="viewRoute.query.get('topic')"
+                     @follow="go" @account="go($event || '/member')" @back="back('/')" />
         <KeepAlive :max="8">
           <component :is="page" v-if="cachedView" :key="viewRoute.fullPath" :route="viewRoute" :language="language" />
         </KeepAlive>

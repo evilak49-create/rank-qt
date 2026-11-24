@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '../api'
 import { showNotice, watchNotice } from '../feedback'
 import { go, safePath } from '../navigation'
+import TurnstileChallenge from './TurnstileChallenge.vue'
 
 const { t } = useLocale()
 const passwordRequirement = '密码须包含字母和数字，长度为 8–20 位。'
@@ -24,6 +25,8 @@ const showPhoneError = computed(() => registering.value && phoneChecked.value &&
 const code = ref('')
 const verification = ref(null)
 const challenge = ref(null)
+const turnstileToken = ref('')
+const turnstileReset = ref(0)
 const imageBusy = ref(false)
 const currentPassword = ref('')
 const password = ref('')
@@ -33,8 +36,12 @@ const smsBusy = ref(false)
 const wait = ref(0)
 const info = ref('')
 const created = ref(false)
-const imageMode = computed(() => verification.value?.mode === 'image')
-const resetUnavailable = computed(() => !registering.value && !signingIn.value && verification.value?.can_reset_password === false)
+const verificationMode = computed(() => registering.value ? verification.value?.mode : verification.value?.reset_mode
+  ?? (props.member ? verification.value?.mode : 'sms'))
+const imageMode = computed(() => verificationMode.value === 'image')
+const cloudflareMode = computed(() => registering.value && verificationMode.value === 'cloudflare')
+const challengeReady = computed(() => verification.value && (!imageMode.value || challenge.value)
+  && (!cloudflareMode.value || turnstileToken.value))
 const destination = computed(() => safePath(props.route.query.get('next'), '/member'))
 let timer
 
@@ -45,13 +52,14 @@ watch(type, async (path, previous, onCleanup) => {
   onCleanup(() => request.abort())
   verification.value = null
   challenge.value = null
+  turnstileToken.value = ''
   code.value = ''
   currentPassword.value = ''
   if (path === '/login') return
   try {
     const result = await api('/auth/verification', { signal: request.signal })
     verification.value = result.data
-    if (imageMode.value && !resetUnavailable.value) await refreshCaptcha(request.signal)
+    if (imageMode.value) await refreshCaptcha(request.signal)
   } catch (failure) {
     if (!request.signal.aborted) showError(failure)
   }
@@ -130,8 +138,7 @@ async function refreshCaptcha(signal) {
 }
 
 async function submit() {
-  if (busy.value || smsBusy.value || (!signingIn.value && !created.value
-    && (!verification.value || resetUnavailable.value || (imageMode.value && !challenge.value)))) return
+  if (busy.value || smsBusy.value || (!signingIn.value && !created.value && !challengeReady.value)) return
   if (registering.value && !checkRegistrationPhone()) return
   busy.value = true
   info.value = ''
@@ -146,7 +153,9 @@ async function submit() {
     if (new TextEncoder().encode(password.value).length > 72 || password.value.includes('\0')) {
       throw new Error('密码最多 72 字节，且不能包含空字符。')
     }
-    const body = { ...credentials, code: code.value.trim() }
+    const body = { ...credentials }
+    if (cloudflareMode.value) body.turnstile_token = turnstileToken.value
+    else body.code = code.value.trim()
     if (imageMode.value) {
       body.challenge_id = challenge.value.challenge_id
       if (!registering.value) body.current_password = currentPassword.value
@@ -168,7 +177,8 @@ async function submit() {
     }
   } catch (failure) {
     showError(failure)
-    if (imageMode.value && !created.value && !resetUnavailable.value) await refreshCaptcha()
+    if (imageMode.value && !created.value) await refreshCaptcha()
+    if (cloudflareMode.value && !created.value) turnstileReset.value++
   } finally {
     busy.value = false
   }
@@ -191,15 +201,14 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
         </div>
         <p v-if="showPhoneError" id="auth-phone-error" class="auth-phone-error" role="status">{{ t('手机号码不正确') }}</p>
       </div>
-      <p v-if="resetUnavailable" class="muted" role="status">{{ t('短信找回暂不可用，请联系人工客服。') }}</p>
-      <div v-if="!signingIn && !created && verification?.mode === 'sms'" class="field">
+      <div v-if="!signingIn && !created && verification && verificationMode === 'sms'" class="field">
         <label for="auth-code">{{ t('短信验证码') }}</label>
         <div class="inline-form">
           <input id="auth-code" v-model="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
           <button class="quiet" type="button" :disabled="busy || smsBusy || wait > 0" @click="sms">{{ wait ? wait + t(' 秒') : t('获取验证码') }}</button>
         </div>
       </div>
-      <div v-if="!signingIn && !created && imageMode && !resetUnavailable" class="field">
+      <div v-if="!signingIn && !created && imageMode" class="field">
         <label for="image-code">{{ t('图片验证码') }}</label>
         <div class="inline-form">
           <input id="image-code" v-model="code" autocomplete="off" pattern="[A-Za-z2-9]{4}" maxlength="4" required>
@@ -209,7 +218,9 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
           </button>
         </div>
       </div>
-      <label v-if="!registering && !signingIn && imageMode && !resetUnavailable" class="field">{{ t('当前密码') }}
+      <TurnstileChallenge v-if="!created && cloudflareMode" v-model="turnstileToken"
+                          :site-key="verification?.turnstile_site_key" :reset-key="turnstileReset" action="register" />
+      <label v-if="!registering && !signingIn && imageMode" class="field">{{ t('当前密码') }}
         <input v-model="currentPassword" type="password" autocomplete="current-password" maxlength="72" required>
       </label>
       <div class="field">
@@ -225,7 +236,7 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
         <input v-model="repeat" type="password" autocomplete="new-password" minlength="8" maxlength="20" required>
       </label>
       <div v-if="signingIn" class="action-row"><button type="button" class="text-button" @click="change('/reset-password')">{{ t('忘记密码') }}</button></div>
-      <button class="primary" :disabled="busy || smsBusy || (!signingIn && !created && (!verification || resetUnavailable || (imageMode && !challenge)))">{{ signingIn || created ? t('登录') : registering ? t('注册') : t('确认修改') }}</button>
+      <button class="primary" :disabled="busy || smsBusy || (!signingIn && !created && !challengeReady)">{{ signingIn || created ? t('登录') : registering ? t('注册') : t('确认修改') }}</button>
     </form>
     <div class="action-row auth-links">
       <button v-if="signingIn" class="text-button" @click="change('/register')">{{ t('去注册') }}</button>

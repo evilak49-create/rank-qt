@@ -29,6 +29,10 @@ const item = ref(null)
 const files = ref([])
 const form = reactive({ amount: '', withdrawn_at: '', description: '' })
 const statuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
+const caseLabels = {
+  pending: ['待处理', 'Pendente'], resolved: ['已解决', 'Resolvida'], unresolved: ['未解决', 'Encerrada sem solução'],
+}
+const caseStatus = value => t(...(caseLabels[value] ?? caseLabels.pending))
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const currentBindings = computed(() => {
   const list = bindings.value?.data ?? []
@@ -173,7 +177,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
         <li v-for="record in cases.data" :key="record.id">
           <button type="button" @click="go('/protection/claims/' + record.id)">
             <span><strong>{{ record.platform_name }}</strong><small>{{ date(record.created_at) }}</small></span>
-            <span>{{ brl.format(record.amount_cents / 100) }} ›</span>
+            <span>{{ brl.format(record.amount_cents / 100) }}<small>{{ caseStatus(record.case_status) }} ›</small></span>
           </button>
         </li>
       </ul>
@@ -209,6 +213,7 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
         <div><dt>{{ t('平台') }}</dt><dd>{{ item.platform_name }}</dd></div>
         <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
         <div><dt>{{ t('提交时保障状态') }}</dt><dd>{{ t(statuses[item.protection_status]) || t('待确认') }}</dd></div>
+        <div><dt>{{ t('案件状态', 'Situação da solicitação') }}</dt><dd>{{ caseStatus(item.case_status) }}</dd></div>
         <div><dt>{{ t('出款金额') }}</dt><dd>{{ brl.format(item.amount_cents / 100) }}</dd></div>
         <div><dt>{{ t('出款时间') }}</dt><dd>{{ date(item.withdrawn_at) }}</dd></div>
         <div><dt>{{ t('提交时间') }}</dt><dd>{{ date(item.created_at) }}</dd></div>
