@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { api } from '../api'
+import { api, imageUrl } from '../api'
 import { useLocale } from '../locale.js'
 import { formatBrl } from '../money'
 import { go } from '../navigation'
@@ -90,7 +90,9 @@ async function claim(bindingId) {
     creditedAmount.value = data.amount_cents
     const claimedPlatform = platforms.value.find(platform => Number(platform.binding_id) === bindingId)
     if (claimedPlatform) {
-      unavailable.value.push({ binding_id: claimedPlatform.binding_id, platform_name: claimedPlatform.platform_name })
+      unavailable.value.push({
+        binding_id: claimedPlatform.binding_id, platform_name: claimedPlatform.platform_name, logo_url: claimedPlatform.logo_url,
+      })
     }
     platforms.value = platforms.value.filter(platform => Number(platform.binding_id) !== bindingId)
     emit('refresh-member')
@@ -131,17 +133,23 @@ onUnmounted(() => {
       <p class="muted">{{ t('有一笔领取结果待确认。') }}</p>
       <button class="quiet" type="button" :disabled="submitting" @click="claim(attempt.bindingId)">{{ t(submitting ? '正在领取…' : '重试领取') }}</button>
     </section>
-    <section class="stack" aria-labelledby="rescue-platforms-title" :aria-busy="loading">
-      <h2 id="rescue-platforms-title">{{ t('已绑定的平台', 'Plataformas vinculadas') }}</h2>
+    <section class="stack" :aria-label="t('救援金')" :aria-busy="loading">
       <p v-if="loading" class="state" role="status">{{ t('正在加载…', 'Carregando…') }}</p>
       <div v-else-if="loadFailed" class="state">
         <p>{{ t('暂时无法读取救援金，请重试。') }}</p>
         <button class="text-button" type="button" @click="load">{{ t('重试') }}</button>
       </div>
-      <p v-else-if="!cards.length" class="state">{{ t('暂无已绑定的平台。', 'Nenhuma plataforma vinculada.') }}</p>
+      <p v-else-if="!cards.length" class="state">{{ t('暂无平台。', 'Nenhuma plataforma disponível.') }}</p>
       <template v-else>
         <article v-for="platform in cards" :key="platform.binding_id" class="surface stack rescue-card">
-          <h3>{{ platform.platform_name }}</h3>
+          <header class="rescue-card-heading">
+            <div class="rescue-platform-logo" aria-hidden="true">
+              <span>{{ platform.platform_name.slice(0, 1) }}</span>
+              <img v-if="imageUrl(platform.logo_url)" :key="platform.logo_url" :src="imageUrl(platform.logo_url)"
+                   width="40" height="40" alt="" loading="lazy" @error="$event.target.hidden = true">
+            </div>
+            <h2>{{ platform.platform_name }}</h2>
+          </header>
           <dl class="summary-list">
             <div><dt>{{ t('本期充值') }}</dt><dd>{{ showValue(platform.deposit_cents, formatBrl) }}</dd></div>
             <div><dt>{{ t('本期净亏损') }}</dt><dd>{{ showValue(platform.net_loss_cents, formatBrl) }}</dd></div>
@@ -186,7 +194,24 @@ onUnmounted(() => {
 .rescue-fund-page > .stack { gap: 10px; }
 .rescue-fund-page .error { padding-inline: 2px; }
 .rescue-result a { color: var(--highlight); text-decoration: underline; }
-.rescue-card h3 { overflow-wrap: anywhere; }
+.rescue-card-heading { display: flex; align-items: center; gap: 10px; }
+.rescue-card-heading h2 { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.rescue-platform-logo {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface-highlight);
+  color: var(--accent);
+  font-weight: 800;
+}
+.rescue-platform-logo > * { grid-area: 1 / 1; }
+.rescue-platform-logo img { width: 100%; height: 100%; object-fit: contain; background: var(--surface-highlight); }
+.rescue-platform-logo img[hidden] { display: none; }
 .rescue-card .summary-list { font-size: 13px; }
 .rescue-card .summary-list dd { color: var(--text); text-align: end; }
 .rescue-card .rescue-amount { align-items: center; border-bottom: 0; padding: 9px 0 0; }
