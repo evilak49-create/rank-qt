@@ -23,7 +23,8 @@ const days = computed(() => {
 const actionLabel = computed(() => {
   if (props.loading) return '立即签到'
   if (!props.state) return '重新加载'
-  return props.state.checked_in ? '今日已签到' : '立即签到'
+  if (props.state.checked_in) return '今日已签到'
+  return tiers.value?.length ? '立即签到' : '暂无奖励档位'
 })
 </script>
 
@@ -56,6 +57,6 @@ const actionLabel = computed(() => {
     <p v-if="!entry && state?.checked_in" class="checkin-reward" role="status">
       {{ state.reward_cents > 0 ? t('今日获得 ', 'Recebido hoje: ') + formatBrl(state.reward_cents) : t('今日签到已记录') }}
     </p>
-    <button v-if="!entry" class="checkin-action" :disabled="loading || working || state?.checked_in" @click="$emit('action')">{{ t(actionLabel) }}</button>
+    <button v-if="!entry" class="checkin-action" :disabled="loading || working || state?.checked_in || (state && !tiers?.length)" @click="$emit('action')">{{ t(actionLabel) }}</button>
   </section>
 </template>

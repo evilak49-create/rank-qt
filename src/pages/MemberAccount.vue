@@ -1,21 +1,25 @@
 <script setup>
+import { onMounted, onUnmounted, ref } from 'vue'
+import { api } from '../api'
 import { useLocale } from '../locale.js'
 import { formatBrl } from '../money'
 import { go } from '../navigation'
 import { icons } from '../icons'
+import CheckinCard from './CheckinCard.vue'
 import MemberAvatar from './MemberAvatar.vue'
 
 const { t } = useLocale()
 
 defineProps({ route: Object, member: Object })
 const emit = defineEmits(['logout'])
+const checkin = ref(null)
+const checkinRequest = new AbortController()
 const quickLinks = [
   ['/binding', '绑定平台', icons.bind],
   ['/cashback', '现金返利', icons.cashWallet],
   ['/rescue-fund', '救援金', icons.protection],
 ]
 const accountLinks = [
-  ['/check-in', '每日签到', 'M5 4h14v16H5zM8 12l2 2 5-5'],
   ['/shop/redemptions', '兑换记录', icons.shop],
   ['/withdrawal-history', '提现订单', 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6m-6 4h6'],
   ['/protection', '我的保障', icons.protection],
@@ -23,6 +27,15 @@ const accountLinks = [
   ['/fund-records', '资金记录', 'M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h4'],
   ['/pix', '收款账户', 'M4 5h16v14H4zM4 10h16m-12 5h3'],
 ]
+onMounted(async () => {
+  try {
+    const { data } = await api('/check-in', { fresh: true, background: true, signal: checkinRequest.signal })
+    checkin.value = data
+  } catch {
+    // The details page remains reachable and can retry the request.
+  }
+})
+onUnmounted(() => checkinRequest.abort())
 </script>
 
 <template>
@@ -40,6 +53,8 @@ const accountLinks = [
         </section>
       </div>
     </section>
+
+    <CheckinCard :state="checkin" entry @action="go('/check-in')" />
 
     <nav class="profile-section surface" :aria-label="t('常用功能')">
       <h2>{{ t('常用功能') }}</h2>

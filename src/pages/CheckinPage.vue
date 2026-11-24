@@ -31,6 +31,7 @@ async function load() {
 async function act() {
   if (loading.value || working.value || state.value?.checked_in) return
   if (!state.value) return load()
+  if (!state.value.tiers?.length) return
   working.value = true
   try {
     state.value = (await api('/check-in', { method: 'POST' })).data
