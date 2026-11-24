@@ -749,22 +749,30 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
       </button>
       <div v-if="ownBindings.length" class="stack">
         <article v-for="item in ownBindings" :key="item.id" class="surface bound-platform">
-          <span class="platform-logo bound-platform-logo" aria-hidden="true">
-            <span>{{ item.platform_name.slice(0, 2) }}</span>
-            <img v-if="imageUrl(item.logo_url)" :key="item.logo_url" :src="imageUrl(item.logo_url)" width="48" height="48" alt=""
-                 loading="lazy" @error="$event.target.hidden = true">
-          </span>
-          <div class="bound-platform-main">
-            <header class="bound-platform-heading">
+          <header class="bound-platform-heading">
+            <span class="platform-logo bound-platform-logo" aria-hidden="true">
+              <img v-if="imageUrl(item.logo_url)" :key="item.logo_url" :src="imageUrl(item.logo_url)" width="48" height="48" alt=""
+                   loading="lazy" @error="$event.target.hidden = true">
+              <span>{{ item.platform_name.slice(0, 2) }}</span>
+            </span>
+            <div class="bound-platform-identity">
               <h2>{{ item.platform_name }}</h2>
-              <span class="bound-platform-status" :class="{ 'binding-protected': item.protection_status === 'active' }">{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}</span>
-            </header>
-            <dl class="bound-platform-data">
-              <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
+              <dl class="bound-platform-data bound-platform-account">
+                <div><dt>{{ t('平台账号') }}</dt><dd>{{ item.platform_account_id }}</dd></div>
+              </dl>
+            </div>
+            <span class="bound-platform-status" :class="{ 'binding-protected': item.protection_status === 'active' }">
+              <span aria-hidden="true"></span>{{ t(bindingStatuses[item.protection_status]) || t('待确认') }}
+            </span>
+          </header>
+          <footer class="bound-platform-footer">
+            <dl class="bound-platform-data bound-platform-time">
               <div><dt>{{ t('绑定时间') }}</dt><dd><time :datetime="item.created_at">{{ formatDate(item.created_at) }}</time></dd></div>
             </dl>
-            <a class="text-button bound-platform-details" :href="'#/bindings/' + item.id" @click.prevent="go('/bindings/' + item.id)">{{ t('查看明细', 'Ver detalhes') }} ›</a>
-          </div>
+            <a class="bound-platform-details" :href="'#/bindings/' + item.id" @click.prevent="go('/bindings/' + item.id)">
+              {{ t('查看明细', 'Ver detalhes') }} <span aria-hidden="true">›</span>
+            </a>
+          </footer>
         </article>
       </div>
       <p v-else class="surface muted message">{{ t('暂无已绑定平台。') }}</p>
