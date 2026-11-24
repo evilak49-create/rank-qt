@@ -104,6 +104,7 @@ const captchaLoading = ref(false)
 const captchaError = ref('')
 const bindingUsesImage = computed(() => screen.value === 'bind' && bindingVerification.value === 'image')
 const choices = directory
+const supportsAutoBinding = computed(() => Number(platform.value?.guarantee_amount_brl) > 0 && promotion.value.startsWith('https://'))
 const promotion = computed(() => {
   try {
     const url = new URL(platform.value?.promotion_url)
@@ -112,6 +113,32 @@ const promotion = computed(() => {
     return ''
   }
 })
+
+function registerForPlatform() {
+  if (busy.value) return
+  if (!props.member) {
+    requireLogin()
+    return
+  }
+
+  const path = platformPath.value + '/registration'
+  const tab = window.open('about:blank', '_blank')
+  if (tab) tab.opener = null
+  run(async current => {
+    let opened = false
+    try {
+      const { data } = await api(path, { method: 'POST' })
+      if (!current()) return
+      const url = new URL(data.url)
+      if (url.protocol !== 'https:') throw new Error(t('推广链接不可用。', 'O link de inscrição está indisponível.'))
+      if (tab && !tab.closed) tab.location.replace(url.href)
+      else window.location.assign(url.href)
+      opened = true
+    } finally {
+      if (!opened) tab?.close()
+    }
+  })
+}
 
 function formatDate(value) {
   return value ? date.value.format(new Date(value)) : t('暂无记录')
@@ -710,11 +737,20 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           <p v-else class="muted">{{ t('暂无平台简介。', 'Descrição indisponível') }}</p>
         </article>
       </section>
+      <p v-if="supportsAutoBinding && member?.phone_verified_at" class="muted">
+        {{ t('请用返利网的手机号注册。注册成功后将尝试自动绑定。', 'Use o mesmo telefone da sua conta de cashback. A vinculação será tentada após o cadastro.') }}
+        <button type="button" class="inline-action" @click="go(bindPath(platform.id))">
+          {{ t('手动绑定', 'Vincular manualmente') }}
+        </button>
+      </p>
       <footer class="platform-actions detail-actions">
         <button class="quiet" type="button" :aria-pressed="favorite" :disabled="busy || favoriteLoading" @click="toggleFavorite">
           <span aria-hidden="true">{{ favorite ? '★' : '☆' }}</span> {{ favorite ? t('已收藏') : t('收藏') }}
         </button>
-        <a v-if="promotion" class="primary" :href="promotion" target="_blank" rel="noopener noreferrer">{{ t('通过本站注册') }} <span aria-hidden="true">↗</span></a>
+        <button v-if="supportsAutoBinding" type="button" class="primary" :disabled="busy" @click="registerForPlatform">
+          {{ t('通过本站注册') }} <span aria-hidden="true">↗</span>
+        </button>
+        <a v-else-if="promotion" class="primary" :href="promotion" target="_blank" rel="noopener noreferrer">{{ t('通过本站注册') }} <span aria-hidden="true">↗</span></a>
         <button v-else class="primary" type="button" disabled>{{ t('通过本站注册') }}</button>
       </footer>
     </template>
