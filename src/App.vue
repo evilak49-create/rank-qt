@@ -24,7 +24,7 @@ import MemberPages from './pages/MemberPages.vue'
 
 const route = currentRoute
 const member = ref(null)
-const cardBindings = shallowRef(new Map())
+const cardBindings = shallowRef(null)
 const sessionState = ref('loading')
 const sessionError = ref('')
 const authPhone = ref('')
@@ -86,9 +86,9 @@ const viewRoute = computed(() => {
   const previous = lastView.value
   return !member.value && requiresMember(previous) ? homeRoute : previous
 })
-watch([() => ['/', '/platforms'].includes(viewRoute.value.path), () => member.value?.id], async ([showCards, memberId], _, onCleanup) => {
-  cardBindings.value = new Map()
-  if (!showCards || memberId == null) return
+watch([() => viewRoute.value.path === '/' || /^\/platforms(?:\/\d+)?$/.test(viewRoute.value.path), () => member.value?.id], async ([needsBindings, memberId], _, onCleanup) => {
+  cardBindings.value = null
+  if (!needsBindings || memberId == null) return
   const controller = new AbortController()
   const { signal } = controller
   onCleanup(() => controller.abort())

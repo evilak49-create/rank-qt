@@ -35,6 +35,7 @@ const target = computed(() => safePath(props.route.query.get('return'), ''))
 const directory = ref([])
 const selected = ref(null)
 const platform = ref(null)
+const detailBindingId = computed(() => props.cardBindings?.get(String(platform.value?.id)))
 const guaranteeAmount = computed(() => formatGuaranteeAmount(platform.value?.guarantee_amount_brl))
 const terms = ref(null)
 const reviews = ref([])
@@ -710,8 +711,9 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           </div>
         </div>
         <div class="platform-hero-actions">
-          <button class="primary" type="button" @click="go(bindPath(platform.id))">{{ t('绑定平台', 'Vincular conta') }}</button>
-          <button class="primary" type="button" @click="go(cardBindings?.has(String(platform.id)) ? '/cashback/' + cardBindings.get(String(platform.id)) : '/cashback')">{{ t('查看返利', 'Ver cashback') }}</button>
+          <button v-if="detailBindingId != null" class="primary" type="button" @click="go('/bindings/' + detailBindingId)">{{ t('绑定详情') }}</button>
+          <button v-else class="primary" type="button" @click="go(bindPath(platform.id))">{{ t('绑定平台', 'Vincular conta') }}</button>
+          <button class="primary" type="button" @click="go(detailBindingId != null ? '/cashback/' + detailBindingId : '/cashback')">{{ t('查看返利', 'Ver cashback') }}</button>
         </div>
       </header>
       <section class="surface protection-banner">
@@ -784,7 +786,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
         </article>
       </section>
       <footer ref="detailActions" class="platform-actions detail-actions">
-        <aside v-if="supportsAutoBinding && member && !registrationNoticeDismissed"
+        <aside v-if="supportsAutoBinding && member && cardBindings && detailBindingId == null && !registrationNoticeDismissed"
                class="registration-notice" :aria-label="t('绑定平台提醒')">
           <div class="registration-notice-text">
             <p>{{ t('请用返利网的手机号注册。注册成功后将尝试自动绑定。', 'Use o mesmo telefone da sua conta de cashback. A vinculação será tentada após o cadastro.') }}</p>
