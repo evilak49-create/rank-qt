@@ -31,7 +31,15 @@ try {
 } catch {}
 
 const hasPendingCard = computed(() => platforms.value.some(platform => Number(platform.binding_id) === attempt.value?.bindingId))
+const cards = computed(() => [
+  ...platforms.value.map(platform => ({ ...platform, canClaim: true })),
+  ...unavailable.value.map(platform => ({ ...platform, canClaim: false })),
+])
 const scale = 1_000_000
+
+function showValue(value, format) {
+  return value == null ? '—' : format(value)
+}
 
 function formatRate(micros) {
   return new Intl.NumberFormat(locale.value, { style: 'percent', maximumFractionDigits: 6 }).format(micros / scale / 100)
@@ -130,28 +138,23 @@ onUnmounted(() => {
         <p>{{ t('暂时无法读取救援金，请重试。') }}</p>
         <button class="text-button" type="button" @click="load">{{ t('重试') }}</button>
       </div>
-      <p v-else-if="!platforms.length && !unavailable.length" class="state">{{ t('暂无已绑定的平台。', 'Nenhuma plataforma vinculada.') }}</p>
+      <p v-else-if="!cards.length" class="state">{{ t('暂无已绑定的平台。', 'Nenhuma plataforma vinculada.') }}</p>
       <template v-else>
-        <article v-for="platform in platforms" :key="platform.binding_id" class="surface stack rescue-card">
+        <article v-for="platform in cards" :key="platform.binding_id" class="surface stack rescue-card">
           <h3>{{ platform.platform_name }}</h3>
           <dl class="summary-list">
-            <div><dt>{{ t('本期充值') }}</dt><dd>{{ formatBrl(platform.deposit_cents) }}</dd></div>
-            <div><dt>{{ t('本期净亏损') }}</dt><dd>{{ formatBrl(platform.net_loss_cents) }}</dd></div>
-            <div><dt>{{ t('打码档位') }}</dt><dd>{{ formatTier(platform.wager_tier_micros) }}</dd></div>
-            <div><dt>{{ t('救援金比例') }}</dt><dd>{{ formatRate(settings.percent_micros) }}</dd></div>
-            <div class="rescue-amount"><dt>{{ t('可领救援金') }}</dt><dd>{{ formatBrl(platform.amount_cents) }}</dd></div>
+            <div><dt>{{ t('本期充值') }}</dt><dd>{{ showValue(platform.deposit_cents, formatBrl) }}</dd></div>
+            <div><dt>{{ t('本期净亏损') }}</dt><dd>{{ showValue(platform.net_loss_cents, formatBrl) }}</dd></div>
+            <div><dt>{{ t('打码档位') }}</dt><dd>{{ showValue(platform.wager_tier_micros, formatTier) }}</dd></div>
+            <div><dt>{{ t('救援金比例') }}</dt><dd>{{ showValue(settings?.percent_micros, formatRate) }}</dd></div>
+            <div class="rescue-amount"><dt>{{ t('可领救援金') }}</dt><dd>{{ showValue(platform.amount_cents, formatBrl) }}</dd></div>
           </dl>
-          <button class="primary" type="button"
+          <button v-if="platform.canClaim" class="primary" type="button"
                   :disabled="submitting || Boolean(attempt && attempt.bindingId !== Number(platform.binding_id))"
                   @click="claim(Number(platform.binding_id))">
             {{ t(attempt?.bindingId === Number(platform.binding_id) ? submitting ? '正在领取…' : '重试领取' : '领取救援金') }}
           </button>
-        </article>
-        <article v-for="platform in unavailable" :key="platform.binding_id" class="surface rescue-unavailable">
-          <h3>{{ platform.platform_name }}</h3>
-          <span class="muted">{{ platform.query_unavailable
-            ? t('暂时无法核验', 'Verificação indisponível')
-            : t('暂不可领取', 'Auxílio indisponível') }}</span>
+          <button v-else class="primary" type="button" disabled>{{ t('未满足领取条件', 'Requisitos não atendidos') }}</button>
         </article>
         <p v-if="platforms.length" class="muted">{{ t('领取后即时进入现金钱包，可提现。') }}</p>
       </template>
@@ -183,9 +186,7 @@ onUnmounted(() => {
 .rescue-fund-page > .stack { gap: 10px; }
 .rescue-fund-page .error { padding-inline: 2px; }
 .rescue-result a { color: var(--highlight); text-decoration: underline; }
-.rescue-unavailable { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.rescue-unavailable h3 { min-width: 0; margin: 0; overflow-wrap: anywhere; }
-.rescue-unavailable span { flex-shrink: 0; font-size: 13px; }
+.rescue-card h3 { overflow-wrap: anywhere; }
 .rescue-card .summary-list { font-size: 13px; }
 .rescue-card .summary-list dd { color: var(--text); text-align: end; }
 .rescue-card .rescue-amount { align-items: center; border-bottom: 0; padding: 9px 0 0; }
