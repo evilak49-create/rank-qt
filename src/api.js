@@ -27,7 +27,7 @@ function canCache(path) {
     && resource !== '/health'
     && resource !== '/red-packets/invites'
     && !resource.startsWith('/point-quotes/')
-    && !/^\/(?:platform-bindings|protection\/(?:bindings|claims)|platform-funds\/orders|pix-withdrawals|pix-account|cash-wallet|rescue-fund)(?:\/|$)/.test(resource)
+    && !/^\/(?:platform-bindings|protection\/(?:bindings|claims)|platform-funds\/orders|pix-withdrawals|pix-account|cash-wallet|rescue-fund|cashback)(?:\/|$)/.test(resource)
 }
 
 export async function api(path, options = {}) {
@@ -45,7 +45,7 @@ export async function api(path, options = {}) {
     invalidateResponses()
   }
   const version = cacheVersion
-  pending.value++
+  if (!options.background) pending.value++
   try {
     const result = await request(path, options)
     if (key && result !== null && !writesInProgress && version === cacheVersion && !options.signal?.aborted) {
@@ -54,7 +54,7 @@ export async function api(path, options = {}) {
     }
     return result
   } finally {
-    pending.value--
+    if (!options.background) pending.value--
     if (writes) {
       writesInProgress--
       invalidateResponses()

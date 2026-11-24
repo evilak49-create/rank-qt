@@ -8,7 +8,7 @@ import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
 import { icons } from '../icons'
-import { formatBrl, formatGuaranteeAmount } from '../money'
+import { formatGuaranteeAmount } from '../money'
 import PlatformCard from '../PlatformCard.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
 import { avatarForReview } from './memberAvatars.js'
@@ -18,7 +18,6 @@ import PlatformRechargeHistory from './PlatformRechargeHistory.vue'
 const { locale, t } = useLocale()
 
 const props = defineProps({ route: { type: Object, required: true }, member: Object, cardBindings: Map })
-const emit = defineEmits(['credited'])
 const screen = computed(() => {
   const path = props.route.path
   if (path.endsWith('/reviews/new')) return 'review'
@@ -26,10 +25,9 @@ const screen = computed(() => {
   if (path === '/bindings') return 'bindings'
   if (path.startsWith('/bindings/')) return 'bindingDetail'
   if (path === '/binding') return 'bind'
-  if (path === '/cashback' || path === '/points') return 'cashback'
   return path === '/platforms' ? 'directory' : 'detail'
 })
-const protectedScreens = ['review', 'bindings', 'bindingDetail', 'bind', 'cashback']
+const protectedScreens = ['review', 'bindings', 'bindingDetail', 'bind']
 const platformPath = computed(() => '/platforms/' + props.route.params.id)
 const target = computed(() => safePath(props.route.query.get('return'), ''))
 const directory = ref([])
@@ -72,7 +70,6 @@ const bindingTotals = ref(null)
 const totalsError = ref('')
 const phone = ref('')
 const code = ref('')
-const quote = ref(null)
 const defaultRating = 5
 const rating = ref(defaultRating)
 const reviewBody = ref('')
@@ -81,13 +78,11 @@ const loading = ref(false)
 const error = ref('')
 const loadError = ref('')
 const status = ref('')
-const now = ref(Date.now())
 let loadRequest
 let directoryRequest
 let searchTimer
 let reviewIntent
 let disposed = false
-const ticker = window.setInterval(() => { now.value = Date.now() }, 1000)
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
 const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
@@ -97,18 +92,6 @@ const maxRebate = computed(() => formatRule(platform.value?.max_rebate_percent, 
 const rebateWager = computed(() => formatRule(platform.value?.min_rebate_wager_multiplier, '×', ''))
 const platformDescription = computed(() => platform.value?.description?.trim())
 const bindingStatuses = { pending: '待确认', active: '保障中', inactive: '未生效' }
-const eligibility = {
-  eligible: '已达到投注要求',
-  insufficient_wager: '当前打码未达到返利标准',
-  insufficient_rebate: '暂无可领取的返利',
-  insufficient_points: '暂无可领取的返利',
-  no_deposit: '暂无可领取的返利',
-  rebate_disabled: '返利暂未开放',
-  paused: '兑换暂不可用',
-  stale_snapshot: '平台快照已失效，请重新查询',
-  regressed: '平台数据暂不可用于兑换',
-  out_of_range: '当前金额超出兑换范围',
-}
 const activeBinding = computed(() => ownBindings.value.find(item => String(item.platform_id) === String(selected.value?.id)))
 const reviewBinding = computed(() => ownBindings.value.some(item => String(item.platform_id) === props.route.params.id))
 const requiresCode = computed(() => !props.member?.phone_verified_at || nationalPhone(phone.value) !== nationalPhone(props.member.phone))
@@ -117,28 +100,7 @@ const bindingCaptcha = ref(null)
 const captchaLoading = ref(false)
 const captchaError = ref('')
 const bindingUsesImage = computed(() => screen.value === 'bind' && bindingVerification.value === 'image')
-const mayConfirm = computed(() => quote.value?.cash_only === true && quote.value.status === 'pending' && quote.value.eligibility === 'eligible'
-  && Date.parse(quote.value.expires_at) > now.value)
-const estimatedCashback = computed(() => {
-  const result = quote.value
-  if (!result) return null
-  if (result.status === 'confirmed' || result.rebate_enabled === false) return result.rebate_cents
-
-  const percent = /^(\d+)(?:\.(\d{1,6}))?$/.exec(String(result.max_rebate_percent ?? ''))
-  const deposit = String(result.deposit_cents ?? '')
-  if (!percent || !/^-?\d+$/.test(deposit)) return null
-
-  // The API quotes percentages to six decimal places. Round down to a whole cent like settlement does.
-  const percentMicros = BigInt(percent[1] + (percent[2] ?? '').padEnd(6, '0'))
-  return BigInt(deposit) > 0n ? String(BigInt(deposit) * percentMicros / 100000000n) : 0
-})
-const showQuoteAction = computed(() => screen.value === 'cashback' && quote.value && activeBinding.value
-  && quote.value.status !== 'confirmed')
-const choices = computed(() => {
-  if (screen.value !== 'cashback') return directory.value
-  const keyword = search.value.trim().toLowerCase()
-  return ownBindings.value.map(bindingPlatform).filter(item => item.name.toLowerCase().includes(keyword))
-})
+const choices = directory
 const promotion = computed(() => {
   try {
     const url = new URL(platform.value?.promotion_url)
@@ -183,10 +145,6 @@ function nationalPhone(value) {
 
 function failureMessage(failure) {
   return Object.values(failure.errors ?? {}).flat()[0] || failure.message
-}
-
-function bindingPlatform(binding) {
-  return { id: binding.platform_id, name: binding.platform_name, logo_url: binding.logo_url }
 }
 
 function bindPath(id, destination) {
@@ -264,7 +222,7 @@ function openPicker() {
   listLastPage.value = 1
   highlighted.value = -1
   picker.value = true
-  if (screen.value !== 'cashback') listPlatforms()
+  listPlatforms()
 }
 
 function closePicker() {
@@ -278,10 +236,6 @@ function closePicker() {
 function typePicker(event) {
   picker.value = true
   search.value = event.target.value
-  if (screen.value === 'cashback') {
-    highlighted.value = -1
-    return
-  }
   updateSearch()
 }
 
@@ -323,7 +277,6 @@ function choose(item) {
   closePicker()
   phone.value = props.member?.phone ?? ''
   code.value = ''
-  quote.value = null
   error.value = ''
   status.value = ''
 }
@@ -333,7 +286,7 @@ async function loadBindings(signal, { allPages = false, throughPage = 1 } = {}) 
   let currentPage = 1
   let result
   do {
-    result = await api('/platform-bindings?page=' + currentPage, { signal, fresh: screen.value === 'bind' || screen.value === 'cashback' })
+    result = await api('/platform-bindings?page=' + currentPage, { signal, fresh: screen.value === 'bind' })
     items.push(...result.data)
     currentPage++
   } while (currentPage <= result.last_page && (allPages || currentPage <= throughPage))
@@ -405,7 +358,6 @@ async function initialize() {
   listing.value = false
   listingError.value = ''
   ownBindings.value = []
-  quote.value = null
   reviews.value = []
   reviewsLoading.value = false
   reviewListError.value = ''
@@ -433,29 +385,21 @@ async function initialize() {
 
   loading.value = true
   try {
-    if (mode === 'bind' || mode === 'cashback') {
-      if (mode === 'bind') {
-        bindingVerification.value = null
-        const result = await api('/auth/verification', { signal })
-        if (signal.aborted) return
-        bindingVerification.value = result.data.mode
-      }
+    if (mode === 'bind') {
+      bindingVerification.value = null
+      const verification = await api('/auth/verification', { signal })
+      if (signal.aborted) return
+      bindingVerification.value = verification.data.mode
       await loadBindings(signal, { allPages: true })
       if (signal.aborted) return
       phone.value = props.member.phone ?? ''
-      const bindingId = props.route.query.get('binding')
       const platformId = props.route.query.get('platform')
-      const preset = ownBindings.value.find(item => mode === 'cashback'
-        ? String(item.id) === bindingId || (platformId && String(item.platform_id) === platformId)
-        : String(item.platform_id) === platformId)
-      if (mode === 'bind' && preset) {
+      const preset = ownBindings.value.find(item => String(item.platform_id) === platformId)
+      if (preset) {
         go('/bindings/' + preset.id, { replace: true })
         return
       }
-      if (preset) {
-        choose(bindingPlatform(preset))
-        if (mode === 'cashback' && props.route.query.get('auto') === '1') await queryCashback()
-      } else if (mode === 'bind' && /^\d+$/.test(platformId ?? '')) {
+      if (/^\d+$/.test(platformId ?? '')) {
         const result = await api('/platforms/' + platformId, { signal })
         if (!signal.aborted) choose(result.data)
       }
@@ -608,38 +552,6 @@ async function loadBindingTotals() {
   }
 }
 
-function queryCashback() {
-  return run(async current => {
-    quote.value = null
-    const binding = activeBinding.value
-    const { data } = await api('/platform-bindings/' + binding.id + '/point-quotes', { body: { cash_only: true } })
-    if (!current()) return
-    if (data.cash_only !== true) throw new Error(t('现金返利暂不可用', 'Cashback indisponível no momento'))
-    quote.value = data
-  })
-}
-
-function confirmCashback() {
-  return run(async current => {
-    const path = '/point-quotes/' + quote.value.id
-    let result
-    try {
-      result = await api(path + '/confirm', { method: 'POST' })
-    } catch (failure) {
-      if (failure.status && failure.status < 500 && failure.status !== 409) throw failure
-      result = await api(path).catch(() => { throw failure })
-      if (result.data.status === 'pending' && result.data.eligibility === 'eligible') throw failure
-    }
-    if (result.data.status === 'confirmed') {
-      if (current()) {
-        activeBinding.value.last_redeemed_at = result.data.confirmed_at
-      }
-      emit('credited')
-    }
-    if (current()) quote.value = result.data
-  })
-}
-
 watch([() => props.route.key, () => props.member?.id], initialize, { immediate: true })
 onMounted(() => document.addEventListener('pointerdown', outsidePicker))
 onUnmounted(() => {
@@ -648,28 +560,20 @@ onUnmounted(() => {
   loadRequest?.abort()
   directoryRequest?.abort()
   clearTimeout(searchTimer)
-  clearInterval(ticker)
 })
 
 import { watchNotice } from '../feedback'
-watchNotice(error, () => screen.value === 'bind' ? '绑定平台提醒' : screen.value === 'cashback' ? '现金返利提醒' : screen.value === 'review' ? '评价提醒' : '平台操作提醒', 'error')
+watchNotice(error, () => screen.value === 'bind' ? '绑定平台提醒' : screen.value === 'review' ? '评价提醒' : '平台操作提醒', 'error')
 watchNotice(loadError, '平台数据加载失败', 'error')
 watchNotice(totalsError, () => t('平台金额查询失败', 'Falha ao consultar os valores'), 'error')
 watchNotice(listingError, '平台搜索失败', 'error')
 watchNotice(reviewListError, '评价加载失败', 'error')
 watchNotice(captchaError, '验证码加载失败', 'error')
 watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送' : '评价提醒', 'success')
-watchNotice(() => {
-  const result = quote.value
-  if (result?.status !== 'confirmed') return ''
-  return t('返利已到账', 'Cashback creditado') + ' · ' + formatBrl(result.rebate_cents)
-}, '兑换成功', 'success')
-watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.value.eligibility !== 'eligible'
-  ? eligibility[quote.value.eligibility] || '当前报价不可兑换。' : '', '暂不可兑换')
 </script>
 
 <template>
-  <section class="stack platform-pages" :class="{ 'with-platform-actions': (screen === 'detail' && platform) || showQuoteAction }" :aria-busy="loading || busy">
+  <section class="stack platform-pages" :class="{ 'with-platform-actions': screen === 'detail' && platform }" :aria-busy="loading || busy">
     <template v-if="protectedScreens.includes(screen) && !member">
       <div class="surface stack guest-panel">
         <h2>{{ t('请先登录') }}</h2>
@@ -715,7 +619,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
         </div>
         <div class="platform-hero-actions">
           <button class="primary" type="button" @click="go(bindPath(platform.id))">{{ t('绑定平台', 'Vincular conta') }}</button>
-          <button class="primary" type="button" @click="go('/cashback?platform=' + platform.id + '&amp;auto=1')">{{ t('一键返利', 'Consultar cashback') }}</button>
+          <button class="primary" type="button" @click="go(cardBindings?.has(String(platform.id)) ? '/cashback/' + cardBindings.get(String(platform.id)) : '/cashback')">{{ t('查看返利', 'Ver cashback') }}</button>
         </div>
       </header>
       <section class="surface protection-banner">
@@ -871,14 +775,14 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           </dl>
         </div>
         <button v-if="totalsError" class="quiet" type="button" @click="loadBindingTotals">{{ t('重试') }}</button>
-        <button type="button" class="primary" @click="go('/cashback?binding=' + bindingDetail.id)">{{ t('查询返利', 'Consultar cashback') }}</button>
+        <button type="button" class="primary" @click="go('/cashback/' + bindingDetail.id)">{{ t('查看返利', 'Ver cashback') }}</button>
       </section>
       <section v-show="bindingTab === 'recharges'" id="binding-panel-recharges" role="tabpanel" aria-labelledby="binding-tab-recharges" tabindex="0">
         <PlatformRechargeHistory v-if="bindingTab === 'recharges'" :binding-id="bindingDetail.id" />
       </section>
     </template>
 
-    <template v-else-if="screen === 'bind' || screen === 'cashback'">
+    <template v-else-if="screen === 'bind'">
       <section class="surface stack platform-content">
         <div ref="pickerBox" class="field platform-picker-field"
              @focusout="$event.relatedTarget && !pickerBox.contains($event.relatedTarget) && closePicker()">
@@ -918,8 +822,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
 
         <template v-if="activeBinding">
           <div class="field"><span>{{ t('平台账号') }}</span><div class="masked-account">{{ activeBinding.platform_account_id }} <span>{{ t('已绑定') }}</span></div></div>
-          <button v-if="screen === 'cashback'" class="primary" type="button" :disabled="busy" @click="queryCashback">{{ t('查询') }}</button>
-          <button v-else-if="target" class="primary" type="button" @click="finishBinding(activeBinding)">{{ t('继续') }}</button>
+          <button v-if="target" class="primary" type="button" @click="finishBinding(activeBinding)">{{ t('继续') }}</button>
           <button v-else class="quiet" type="button" @click="go('/bindings/' + activeBinding.id)">{{ t('查看绑定详情') }}</button>
         </template>
         <form v-else-if="selected && screen === 'bind'" class="stack" @submit.prevent="bindAccount">
@@ -944,38 +847,7 @@ watchNotice(() => quote.value && quote.value.status !== 'confirmed' && quote.val
           <p class="muted">{{ t('绑定成功后不可更换，请核对平台和账号。') }}</p>
           <button class="primary" :disabled="busy || !bindingVerification || (bindingUsesImage && !bindingCaptcha)">{{ t('确认绑定') }}</button>
         </form>
-        <template v-else-if="screen === 'cashback' && !ownBindings.length">
-          <p class="muted">{{ t('请先绑定平台，再查询返利。', 'Vincule uma plataforma para consultar o cashback.') }}</p>
-          <button class="primary" type="button" @click="go('/binding?return=' + encodeURIComponent('/cashback'))">{{ t('去绑定') }}</button>
-        </template>
       </section>
-      <section v-if="screen === 'cashback' && quote && activeBinding" class="surface stack platform-content quote-result">
-        <div class="quote-highlight">
-          <p>{{ quote.status === 'confirmed' ? t('已到账') : t('预计入账') }}</p>
-          <dl class="quote-totals">
-            <div><dt>{{ t('返利') }}</dt><dd>{{ formatMoney(estimatedCashback) }}</dd></div>
-          </dl>
-        </div>
-        <dl class="platform-data">
-          <div><dt>{{ t('当前充值总额') }}</dt><dd>{{ formatMoney(quote.observed_deposit_cents) }}</dd></div>
-          <div><dt>{{ t('当前投注额') }}</dt><dd>{{ formatMoney(quote.observed_valid_bet_cents) }}</dd></div>
-          <div><dt>{{ t('本次待兑换存款') }}</dt><dd>{{ formatMoney(quote.deposit_cents) }}</dd></div>
-          <div><dt>{{ t('本期有效投注额') }}</dt><dd>{{ formatMoney(quote.valid_bet_cents) }}</dd></div>
-          <div v-if="quote.matched_rebate_wager_multiplier != null"><dt>{{ t('命中打码档位', 'Faixa de apostas atingida') }}</dt><dd>{{ formatRule(quote.matched_rebate_wager_multiplier, '×') }}</dd></div>
-          <div v-if="quote.rebate_enabled"><dt>{{ t('当前返利比例', 'Percentual atual de cashback') }}</dt><dd>{{ formatRule(quote.rebate_percent, '%') }}</dd></div>
-          <div v-if="quote.rebate_enabled"><dt>{{ t('当前实际可获得返利', 'Cashback disponível agora') }}</dt><dd>{{ formatMoney(quote.rebate_cents) }}</dd></div>
-          <div><dt>{{ t('基线快照读取时间') }}</dt><dd>{{ formatDate(quote.baseline_observed_at) }}</dd></div>
-          <div><dt>{{ t('本次快照读取时间') }}</dt><dd>{{ formatDate(quote.observed_at) }}</dd></div>
-        </dl>
-        <template v-if="quote.status === 'confirmed'">
-          <button v-if="quote.rebate_enabled || quote.rebate_cents > 0" class="quiet" type="button" @click="go('/cash-wallet/withdraw')">{{ t('查看可用余额') }}</button>
-        </template>
-        <p v-else-if="mayConfirm" class="muted">{{ t('确认领取时按平台最新数据计算返利。', 'O cashback será recalculado com os dados mais recentes da plataforma ao confirmar.') }}</p>
-        <p v-else class="muted" role="status">{{ quote.eligibility === 'eligible' && !mayConfirm ? t('报价已失效，请重新查询。') : t(eligibility[quote.eligibility]) || t('当前报价不可兑换。') }}</p>
-      </section>
-      <footer v-if="showQuoteAction" class="platform-actions quote-actions">
-        <button class="primary" type="button" :disabled="busy || !mayConfirm" @click="confirmCashback">{{ t('确认领取返利', 'Confirmar cashback') }}</button>
-      </footer>
     </template>
 
   </section>

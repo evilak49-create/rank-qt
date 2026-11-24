@@ -160,8 +160,8 @@ function details(event) {
             :aria-expanded="opened" @click="toggle"></button>
     <div v-if="opened || inlineActions" class="platform-entry-actions">
       <a v-if="inlineActions && cashbackBindingId != null" class="primary platform-cashback"
-         :href="'#/cashback?binding=' + cashbackBindingId + '&amp;auto=1'">
-        {{ t('一键返利', 'Consultar cashback') }}
+         :href="'#/cashback/' + cashbackBindingId">
+        {{ t('查看返利', 'Ver cashback') }}
       </a>
       <template v-else v-for="action in actionOrder" :key="action">
         <a v-if="action === 'details'" class="primary platform-details" :href="detailHref || '#' + path" @click="details">

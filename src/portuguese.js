@@ -398,6 +398,8 @@ export const portuguese = {
   "返利比例": "Percentual de cashback",
   "返利规则": "Regras de cashback",
   "现金返利": "Cashback",
+  "返利记录": "Histórico de cashback",
+  "返利明细": "Detalhes do cashback",
   "现金返利提醒": "Aviso de cashback",
   "暂无可领取的返利": "Nenhum cashback disponível",
   "返利暂未开放": "Cashback indisponível",

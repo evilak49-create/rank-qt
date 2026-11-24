@@ -121,7 +121,6 @@
 .detail-actions { box-shadow: 0 -4px 18px var(--shadow); }
 .detail-actions .quiet { gap: 5px; }
 .detail-actions .quiet span { font-size: 19px; line-height: 1; }
-.quote-actions { grid-template-columns: minmax(0, 1fr); }
 .rating-picker { border: 0; padding: 0; margin: 0; }
 .rating-picker label { position: relative; display: inline-grid; width: 45px; height: 44px; place-items: center; color: var(--text-subtle); font-size: 28px; cursor: pointer; }
 .rating-picker label.highlighted { color: var(--highlight); }
@@ -180,12 +179,6 @@
 .picker-message, .picker-more { padding: 8px 10px; }
 .picker-more { width: 100%; color: var(--accent); min-height: 42px; }
 .code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
-.quote-highlight { padding: 10px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface-highlight); text-align: center; }
-.quote-highlight > p { font-weight: 750; }
-.quote-totals { margin: 8px 0 0; }
-.quote-totals > div { padding: 3px 5px; }
-.quote-totals dt { color: var(--muted); font-size: 12px; }
-.quote-totals dd { margin: 2px 0 0; color: var(--highlight); font-size: clamp(19px, 6vw, 28px); font-weight: 850; line-height: 1.2; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 
 @media (max-width: 350px) {
   .protection-banner { grid-template-columns: auto minmax(0, 1fr); }

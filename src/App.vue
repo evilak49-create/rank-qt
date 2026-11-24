@@ -17,6 +17,7 @@ import CashWalletPage from './pages/CashWalletPage.vue'
 import FundRecordsPage from './pages/FundRecordsPage.vue'
 import RescueFundPage from './pages/RescueFundPage.vue'
 import WithdrawalHistoryPage from './pages/WithdrawalHistoryPage.vue'
+import CashbackPage from './pages/CashbackPage.vue'
 import PlatformPages from './pages/PlatformPages.vue'
 import ShopPages from './pages/ShopPages.vue'
 import MemberPages from './pages/MemberPages.vue'
@@ -41,7 +42,9 @@ const pages = [
   [/^\/platforms\/\d+\/reviews\/new$/, '写评价', PlatformPages, true],
   [/^\/platforms\/\d+\/protection$/, '保障条款', PlatformPages],
   [/^\/binding$/, '绑定平台', PlatformPages, true],
-  [/^\/(?:cashback|points)$/, '现金返利', PlatformPages, true],
+  [/^\/(?:cashback|points)$/, '现金返利', CashbackPage, true],
+  [/^\/cashback\/records$/, '返利记录', CashbackPage, true],
+  [/^\/cashback\/\d+$/, '返利明细', CashbackPage, true],
   [/^\/rescue-fund$/, '救援金', RescueFundPage, true],
   [/^\/bindings$/, '已绑定平台', PlatformPages, true],
   [/^\/bindings\/\d+$/, '绑定详情', PlatformPages, true],
@@ -106,6 +109,7 @@ const requiresSession = computed(() => requiresMember(route.value))
 const title = computed(() => t(authTitles[route.value.path] || pageTitle(viewRoute.value, viewConfiguration.value)))
 const viewTitle = computed(() => t(pageTitle(viewRoute.value, viewConfiguration.value)))
 const navActive = computed(() => navbar[viewRoute.value.path])
+const isCashbackList = computed(() => ['/cashback', '/points'].includes(viewRoute.value.path))
 const isCashWithdrawalPage = computed(() => ['/cash-wallet', '/cash-wallet/withdraw'].includes(viewRoute.value.path))
 const ready = computed(() => !requiresSession.value || (sessionState.value === 'ready' && Boolean(member.value)))
 const viewReady = computed(() => auth.value || ready.value)
@@ -209,6 +213,7 @@ function fallback() {
   if (path.startsWith('/platforms/')) return '/platforms'
   if (path.startsWith('/shop/redemptions/')) return '/shop/redemptions'
   if (path.startsWith('/shop/')) return '/shop'
+  if (path.startsWith('/cashback/')) return '/cashback'
   if (path.startsWith('/bindings/')) return '/bindings'
   if (path.startsWith('/protection/')) return '/protection'
   if (path.startsWith('/red-packets/')) return '/red-packets'
@@ -230,7 +235,7 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
             @language="language = $event" />
   <template v-else>
     <header v-if="viewRoute.path !== '/support'" class="page-topbar">
-      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund', 'has-withdrawal-history': isCashWithdrawalPage }">
+      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund', 'has-withdrawal-history': isCashWithdrawalPage || isCashbackList }">
         <button class="page-back" :aria-label="t('返回')" @click="back(fallback())">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>
         </button>
@@ -238,6 +243,8 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
         <div v-if="viewRoute.path === '/rescue-fund'" id="rescue-fund-actions" class="page-action"></div>
         <a v-else-if="isCashWithdrawalPage" class="page-action withdrawal-history-link" href="#/withdrawal-history"
            @click.prevent="go('/withdrawal-history')">{{ t('提现记录') }}</a>
+        <a v-else-if="isCashbackList" class="page-action withdrawal-history-link" href="#/cashback/records"
+           @click.prevent="go('/cashback/records')">{{ t('返利记录') }}</a>
         <a v-else class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
       </div>
     </header>
@@ -255,7 +262,7 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
         </KeepAlive>
         <component :is="page" v-if="page && !cachedView" :key="viewRoute.path" :route="viewRoute" :member="member" :language="language"
                    v-bind="page === PlatformPages ? { cardBindings } : {}"
-                   @logout="logout" @refresh-member="refreshMember" @credited="refreshMember" />
+                   @logout="logout" @refresh-member="refreshMember" />
         <div v-else-if="!page && viewRoute.path !== '/support'" class="state">
           <p>{{ t('这个页面不存在。') }}</p><button class="text-button" @click="go('/')">{{ t('返回首页') }}</button>
         </div>
