@@ -189,7 +189,6 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
       <h2>{{ item?.title || t('保障条款') }}</h2>
       <p v-if="item" class="member-paragraph">{{ item.body }}</p>
       <p v-else class="muted">{{ t('该平台暂无公开保障条款。') }}</p>
-      <button class="primary" type="button" @click="go('/protection/claims/new?binding=' + route.params.id)">{{ t('申请保障') }}</button>
     </section>
 
     <section v-else-if="isNew" class="surface stack">
