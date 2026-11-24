@@ -12,6 +12,7 @@ const { locale, t } = useLocale()
 const props = defineProps({ route: Object })
 const path = props.route.path
 const summary = path === '/protection'
+const isClaims = path === '/protection/claims'
 const isTerms = path.endsWith('/terms')
 const isNew = path === '/protection/claims/new'
 const rawBindingId = props.route.query.get('binding') ?? ''
@@ -50,7 +51,7 @@ function goPage(key, page) {
   const params = new URLSearchParams(props.route.query)
   if (page === 1) params.delete(key)
   else params.set(key, page)
-  go('/protection' + (params.size ? '?' + params : ''), { replace: true })
+  go(path + (params.size ? '?' + params : ''), { replace: true })
 }
 
 async function load() {
@@ -59,12 +60,8 @@ async function load() {
   evidenceError.value = false
   try {
     if (summary) {
-      const [bindingPage, claimPage] = await Promise.all([
-        api('/platform-bindings?page=' + (Number(props.route.query.get('bindingsPage')) || 1)),
-        api('/protection/claims?page=' + (Number(props.route.query.get('claimsPage')) || 1)),
-      ])
+      const bindingPage = await api('/platform-bindings?page=' + (Number(props.route.query.get('bindingsPage')) || 1))
       bindings.value = bindingPage
-      cases.value = claimPage
       if (bindingId && !bindingPage.data.some(binding => String(binding.id) === bindingId)) {
         focused.value = (await api('/platform-bindings/' + bindingId)).data
       }
@@ -72,6 +69,8 @@ async function load() {
         await nextTick()
         selectedBinding.value?.scrollIntoView({ block: 'nearest' })
       }
+    } else if (isClaims) {
+      cases.value = await api('/protection/claims?page=' + (Number(props.route.query.get('page')) || 1))
     } else if (isNew && bindingId) {
       item.value = (await api('/platform-bindings/' + bindingId)).data
     } else if (isTerms) {
@@ -167,20 +166,20 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
         <p v-if="bindings && !currentBindings.length" class="surface muted">{{ t('暂无已绑定平台。') }}</p>
         <MemberPagination :page="bindings" :busy="loading" @page="goPage('bindingsPage', $event)" />
       </section>
-      <section class="surface stack">
-        <h2>{{ t('申诉记录') }}</h2>
-        <ul v-if="cases?.data.length" class="row-list">
-          <li v-for="record in cases.data" :key="record.id">
-            <button @click="go('/protection/claims/' + record.id)">
-              <span><strong>{{ record.platform_name }}</strong><small>{{ date(record.created_at) }}</small></span>
-              <span>{{ brl.format(record.amount_cents / 100) }} ›</span>
-            </button>
-          </li>
-        </ul>
-        <p v-else-if="cases" class="muted">{{ t('暂无申诉记录。') }}</p>
-        <MemberPagination :page="cases" :busy="loading" @page="goPage('claimsPage', $event)" />
-      </section>
     </template>
+
+    <section v-else-if="isClaims && !loading && !error" class="surface stack" :aria-label="t('申诉记录')">
+      <ul v-if="cases?.data.length" class="row-list">
+        <li v-for="record in cases.data" :key="record.id">
+          <button type="button" @click="go('/protection/claims/' + record.id)">
+            <span><strong>{{ record.platform_name }}</strong><small>{{ date(record.created_at) }}</small></span>
+            <span>{{ brl.format(record.amount_cents / 100) }} ›</span>
+          </button>
+        </li>
+      </ul>
+      <p v-else-if="cases" class="muted">{{ t('暂无申诉记录。') }}</p>
+      <MemberPagination :page="cases" :busy="loading" @page="goPage('page', $event)" />
+    </section>
 
     <section v-else-if="isTerms" class="surface stack">
       <h2>{{ item?.title || t('保障条款') }}</h2>

@@ -59,6 +59,7 @@ const pages = [
   [/^\/pix$/, 'Pix 收款账户', MemberPages, true],
   [/^\/protection$/, '我的保障', MemberPages, true],
   [/^\/protection\/bindings\/\d+\/terms$/, '保障条款', MemberPages, true],
+  [/^\/protection\/claims$/, '申诉记录', MemberPages, true],
   [/^\/protection\/claims\/new$/, '申请保障', MemberPages, true],
   [/^\/protection\/claims\/\d+$/, '申诉详情', MemberPages, true],
   [/^\/red-packets$/, '我的红包', MemberPages, true],
@@ -109,8 +110,14 @@ const requiresSession = computed(() => requiresMember(route.value))
 const title = computed(() => t(authTitles[route.value.path] || pageTitle(viewRoute.value, viewConfiguration.value)))
 const viewTitle = computed(() => t(pageTitle(viewRoute.value, viewConfiguration.value)))
 const navActive = computed(() => navbar[viewRoute.value.path])
-const isCashbackList = computed(() => ['/cashback', '/points'].includes(viewRoute.value.path))
-const isCashWithdrawalPage = computed(() => ['/cash-wallet', '/cash-wallet/withdraw'].includes(viewRoute.value.path))
+const recordsLinks = {
+  '/cash-wallet': ['/withdrawal-history', '提现记录'],
+  '/cash-wallet/withdraw': ['/withdrawal-history', '提现记录'],
+  '/cashback': ['/cashback/records', '返利记录'],
+  '/points': ['/cashback/records', '返利记录'],
+  '/protection': ['/protection/claims', '申诉记录'],
+}
+const recordsLink = computed(() => recordsLinks[viewRoute.value.path])
 const ready = computed(() => !requiresSession.value || (sessionState.value === 'ready' && Boolean(member.value)))
 const viewReady = computed(() => auth.value || ready.value)
 const cachedView = computed(() => page.value === ContentPages && !viewRoute.value.params.id)
@@ -215,6 +222,7 @@ function fallback() {
   if (path.startsWith('/shop/')) return '/shop'
   if (path.startsWith('/cashback/')) return '/cashback'
   if (path.startsWith('/bindings/')) return '/bindings'
+  if (/^\/protection\/claims\/\d+$/.test(path)) return '/protection/claims'
   if (path.startsWith('/protection/')) return '/protection'
   if (path.startsWith('/red-packets/')) return '/red-packets'
   if (path.startsWith('/help/')) return '/help'
@@ -235,16 +243,14 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
             @language="language = $event" />
   <template v-else>
     <header v-if="viewRoute.path !== '/support'" class="page-topbar">
-      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund', 'has-withdrawal-history': isCashWithdrawalPage || isCashbackList }">
+      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund', 'has-records-link': recordsLink }">
         <button class="page-back" :aria-label="t('返回')" @click="back(fallback())">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>
         </button>
         <h1>{{ viewRoute.path === '/' ? copy.favorites : viewTitle }}</h1>
         <div v-if="viewRoute.path === '/rescue-fund'" id="rescue-fund-actions" class="page-action"></div>
-        <a v-else-if="isCashWithdrawalPage" class="page-action withdrawal-history-link" href="#/withdrawal-history"
-           @click.prevent="go('/withdrawal-history')">{{ t('提现记录') }}</a>
-        <a v-else-if="isCashbackList" class="page-action withdrawal-history-link" href="#/cashback/records"
-           @click.prevent="go('/cashback/records')">{{ t('返利记录') }}</a>
+        <a v-else-if="recordsLink" class="page-action page-records-link" :href="'#' + recordsLink[0]"
+           @click.prevent="go(recordsLink[0])">{{ t(recordsLink[1]) }}</a>
         <a v-else class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
       </div>
     </header>
