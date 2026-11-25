@@ -35,8 +35,7 @@
 .large-logo { width: 64px; height: 64px; font-size: 21px; }
 .large-logo > * { grid-area: 1 / 1; }
 .small-logo { width: 40px; height: 40px; font-size: 13px; }
-.score, .review-stars { color: var(--highlight); font-weight: 750; }
-.score { font-variant-numeric: tabular-nums; }
+.score { color: var(--highlight); font-weight: 750; font-variant-numeric: tabular-nums; }
 .dim-stars { color: var(--control-line); }
 .message { padding: 14px; text-align: center; overflow-wrap: anywhere; }
 .platform-content, .guest-panel { padding: 15px; }
@@ -99,7 +98,7 @@
 .review-avatar { display: block; width: 35px; height: 35px; border-radius: 50%; object-fit: cover; background: var(--surface-highlight); }
 .review-meta { display: grid; gap: 2px; font-size: 13px; overflow-wrap: anywhere; }
 .review-meta time { font-size: 11px; }
-.review-stars { white-space: nowrap; }
+.review-stars { color: #ffe668; font-weight: 750; white-space: nowrap; }
 .preserved { white-space: pre-wrap; overflow-wrap: anywhere; }
 .with-platform-actions { padding-bottom: var(--platform-actions-height, calc(64px + env(safe-area-inset-bottom))); }
 .platform-actions {
