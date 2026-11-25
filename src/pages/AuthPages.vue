@@ -219,9 +219,6 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
           </button>
         </div>
       </div>
-      <TurnstileChallenge v-if="!created && cloudflareMode" v-model="turnstileToken"
-                          :site-key="verification?.turnstile_site_key" :reset-key="turnstileReset"
-                          :action="registering ? 'register' : 'reset_password'" />
       <label v-if="requiresCurrentPassword" class="field">{{ t('当前密码') }}
         <input v-model="currentPassword" type="password" autocomplete="current-password" maxlength="72" required>
       </label>
@@ -237,6 +234,9 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
       <label v-if="!signingIn && !created" class="field">{{ t('确认密码') }}
         <input v-model="repeat" type="password" autocomplete="new-password" minlength="8" maxlength="20" required>
       </label>
+      <TurnstileChallenge v-if="!created && cloudflareMode" v-model="turnstileToken"
+                          :site-key="verification?.turnstile_site_key" :reset-key="turnstileReset"
+                          :action="registering ? 'register' : 'reset_password'" />
       <div v-if="signingIn" class="action-row"><button type="button" class="text-button" @click="change('/reset-password')">{{ t('忘记密码') }}</button></div>
       <button class="primary" :disabled="busy || smsBusy || (!signingIn && !created && !challengeReady)">{{ signingIn || created ? t('登录') : registering ? t('注册') : t('确认修改') }}</button>
     </form>
