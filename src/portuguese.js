@@ -487,6 +487,8 @@ export const portuguese = {
   "该手机号已注册。": "Este celular já está cadastrado.",
   "手机号或密码错误。": "Celular ou senha incorretos.",
   "会员账号已禁用。": "Sua conta foi desativada.",
+  "Cloudflare 验证暂不可用。": "A verificação Cloudflare está indisponível.",
+  "Cloudflare 验证无效或已过期，请重新验证。": "A verificação Cloudflare é inválida ou expirou. Tente novamente.",
   "当前密码错误。": "A senha atual está incorreta.",
   "手机号须与当前会员账号一致。": "Informe o celular cadastrado na sua conta.",
   "短信服务暂不可用。": "O serviço de SMS está indisponível.",

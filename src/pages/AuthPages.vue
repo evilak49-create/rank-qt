@@ -39,7 +39,8 @@ const created = ref(false)
 const verificationMode = computed(() => registering.value ? verification.value?.mode : verification.value?.reset_mode
   ?? (props.member ? verification.value?.mode : 'sms'))
 const imageMode = computed(() => verificationMode.value === 'image')
-const cloudflareMode = computed(() => registering.value && verificationMode.value === 'cloudflare')
+const cloudflareMode = computed(() => verificationMode.value === 'cloudflare')
+const requiresCurrentPassword = computed(() => type.value === '/reset-password' && (imageMode.value || cloudflareMode.value))
 const challengeReady = computed(() => verification.value && (!imageMode.value || challenge.value)
   && (!cloudflareMode.value || turnstileToken.value))
 const destination = computed(() => safePath(props.route.query.get('next'), '/member'))
@@ -158,8 +159,8 @@ async function submit() {
     else body.code = code.value.trim()
     if (imageMode.value) {
       body.challenge_id = challenge.value.challenge_id
-      if (!registering.value) body.current_password = currentPassword.value
     }
+    if (requiresCurrentPassword.value) body.current_password = currentPassword.value
     if (registering.value) {
       const invitation = props.route.query.get('invite_code') || new URLSearchParams(location.search).get('invite_code')
       if (/^[a-f\d]{32}$/i.test(invitation ?? '')) body.invite_code = invitation
@@ -219,8 +220,9 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
         </div>
       </div>
       <TurnstileChallenge v-if="!created && cloudflareMode" v-model="turnstileToken"
-                          :site-key="verification?.turnstile_site_key" :reset-key="turnstileReset" action="register" />
-      <label v-if="!registering && !signingIn && imageMode" class="field">{{ t('当前密码') }}
+                          :site-key="verification?.turnstile_site_key" :reset-key="turnstileReset"
+                          :action="registering ? 'register' : 'reset_password'" />
+      <label v-if="requiresCurrentPassword" class="field">{{ t('当前密码') }}
         <input v-model="currentPassword" type="password" autocomplete="current-password" maxlength="72" required>
       </label>
       <div class="field">

@@ -57,20 +57,33 @@ async function renderChallenge() {
       action: props.action,
       language: locale.value.toLowerCase(),
       size: host.value.clientWidth < 300 ? 'compact' : 'flexible',
-      callback: token => emit('update:modelValue', token),
+      callback: token => {
+        unavailable.value = false
+        emit('update:modelValue', token)
+      },
       'expired-callback': () => emit('update:modelValue', ''),
-      'error-callback': () => emit('update:modelValue', ''),
+      'error-callback': showRetry,
+      'timeout-callback': showRetry,
     })
   } catch {
     if (!disposed) unavailable.value = true
   }
 }
 
-onMounted(renderChallenge)
-watch(() => props.resetKey, () => {
+function showRetry() {
   emit('update:modelValue', '')
-  if (widget != null) window.turnstile?.reset(widget)
-})
+  unavailable.value = true
+}
+
+function retryChallenge() {
+  if (widget == null) return renderChallenge()
+  emit('update:modelValue', '')
+  unavailable.value = false
+  window.turnstile?.reset(widget)
+}
+
+onMounted(renderChallenge)
+watch(() => props.resetKey, retryChallenge)
 onBeforeUnmount(() => {
   disposed = true
   if (widget != null) window.turnstile?.remove(widget)
@@ -82,7 +95,7 @@ onBeforeUnmount(() => {
     <div ref="host"></div>
     <div v-if="unavailable" class="stack">
       <p role="status">{{ t('Cloudflare 验证暂不可用。', 'A verificação Cloudflare está indisponível.') }}</p>
-      <button v-if="siteKey" type="button" class="quiet" @click="renderChallenge">{{ t('重试', 'Tentar novamente') }}</button>
+      <button v-if="siteKey" type="button" class="quiet" @click="retryChallenge">{{ t('重试', 'Tentar novamente') }}</button>
     </div>
   </div>
 </template>
