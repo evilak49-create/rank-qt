@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { notices, showNotice } from './feedback'
 import { useLocale } from './locale.js'
+import { go } from './navigation'
 
 defineProps({ language: String })
 const { locale, t } = useLocale()
@@ -12,6 +13,11 @@ let validating = false
 watch(active, notice => {
   if (notice && modal.value && !modal.value.open) modal.value.showModal()
 }, { flush: 'post', immediate: true })
+
+function followAction(path) {
+  modal.value.close()
+  go(path)
+}
 
 function invalid(event) {
   if (!event.target.validationMessage) return
@@ -41,6 +47,8 @@ onUnmounted(() => document.removeEventListener('invalid', invalid, true))
         <div class="feedback-symbol" aria-hidden="true">{{ active.tone === 'error' ? '!' : active.tone === 'success' ? '✓' : '✦' }}</div>
         <h2 id="feedback-title">{{ t(active.title) }}</h2>
         <p id="feedback-text">{{ t(active.text) }}</p>
+        <a v-if="active.action" class="feedback-link" :href="'#' + active.action.path"
+           @click.prevent="followAction(active.action.path)">{{ t(active.action.label) }}</a>
         <form method="dialog">
           <button class="primary" autofocus>{{ language === 'pt-BR' ? 'OK' : '确定' }}</button>
         </form>
@@ -58,6 +66,7 @@ onUnmounted(() => document.removeEventListener('invalid', invalid, true))
 [data-tone="success"] .feedback-symbol { background: var(--success-surface); color: var(--success); }
 .feedback-content h2 { margin: 0; font-size: 19px; overflow-wrap: anywhere; }
 .feedback-content p { margin: 0; color: var(--muted); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.feedback-link { color: var(--highlight); text-decoration: underline; }
 .feedback-content form { width: 100%; margin-top: 3px; }
 .feedback-content button { width: 100%; }
 </style>

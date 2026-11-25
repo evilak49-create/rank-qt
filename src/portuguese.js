@@ -18,6 +18,7 @@ export const portuguese = {
   "领取救援金": "Receber auxílio",
   "正在领取…": "Solicitando…",
   "重试领取": "Tentar receber novamente",
+  "领取救援金成功": "Auxílio recebido",
   "救援金已到账": "Auxílio creditado",
   "查看资金明细": "Ver movimentações",
   "当前无法领取，请查看更新后的可领取平台。": "O auxílio não está disponível agora. Confira a lista atualizada de plataformas elegíveis.",

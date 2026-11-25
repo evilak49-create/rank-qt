@@ -4,7 +4,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api, imageUrl } from '../api'
 import { useLocale } from '../locale.js'
 import { formatBrl } from '../money'
-import { go } from '../navigation'
+import { showNotice } from '../feedback'
 import { createRequestId } from '../requestId.js'
 
 const props = defineProps({ member: Object })
@@ -18,7 +18,6 @@ const loading = ref(true)
 const loadFailed = ref(false)
 const submitting = ref(false)
 const claimFailure = ref('')
-const creditedAmount = ref(null)
 const attempt = ref(null)
 const attemptKey = 'cash-club:rescue-fund:' + props.member.id
 let request
@@ -81,14 +80,18 @@ function saveAttempt(value) {
 async function claim(bindingId) {
   if (submitting.value || (attempt.value && attempt.value.bindingId !== bindingId)) return
   submitting.value = true
-  creditedAmount.value = null
   claimFailure.value = ''
   if (!attempt.value) saveAttempt({ bindingId, requestId: createRequestId() })
   try {
     const { data } = await api('/rescue-fund/' + bindingId + '/claim', { body: { request_id: attempt.value.requestId } })
     if (!active) return
     saveAttempt(null)
-    creditedAmount.value = data.amount_cents
+    showNotice(
+      '领取救援金成功',
+      t('救援金已到账') + ' · ' + formatBrl(data.amount_cents) + '\n' + t('领取后即时进入现金钱包，可提现。'),
+      'success',
+      { label: '查看资金明细', path: '/fund-records' },
+    )
     const claimedPlatform = platforms.value.find(platform => Number(platform.binding_id) === bindingId)
     if (claimedPlatform) {
       unavailable.value.push({
@@ -124,11 +127,6 @@ onUnmounted(() => {
   </Teleport>
 
   <div class="member-page rescue-fund-page">
-    <section v-if="creditedAmount != null" class="surface stack rescue-result" role="status">
-      <h2>{{ t('救援金已到账') }} · {{ formatBrl(creditedAmount) }}</h2>
-      <p class="muted">{{ t('领取后即时进入现金钱包，可提现。') }}</p>
-      <a href="#/fund-records" @click.prevent="go('/fund-records')">{{ t('查看资金明细') }}</a>
-    </section>
     <p v-if="claimFailure" class="error" role="alert">{{ t(claimFailure) }}</p>
     <section v-if="attempt && (!hasPendingCard || loadFailed) && !loading" class="surface stack">
       <p class="muted">{{ t('有一笔领取结果待确认。') }}</p>
@@ -194,7 +192,6 @@ onUnmounted(() => {
 .rescue-rules-trigger { color: var(--highlight); font-size: 13px; white-space: nowrap; }
 .rescue-fund-page > .stack { gap: 10px; }
 .rescue-fund-page .error { padding-inline: 2px; }
-.rescue-result a { color: var(--highlight); text-decoration: underline; }
 .rescue-card-heading { display: flex; align-items: center; gap: 10px; }
 .rescue-card-heading h2 { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .rescue-platform-logo {
