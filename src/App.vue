@@ -10,7 +10,7 @@ import { watchNotice } from './feedback'
 import SupportChat from './SupportChat.vue'
 import { homeCopy } from './homeCopy'
 import { icons } from './icons'
-import { back, currentRoute, go, restoreScroll, resume, safePath } from './navigation'
+import { back, currentRoute, go, lockPageScroll, restoreScroll, resume, safePath } from './navigation'
 import AuthPages from './pages/AuthPages.vue'
 import ContentPages from './pages/ContentPages.vue'
 import CashWalletPage from './pages/CashWalletPage.vue'
@@ -137,10 +137,55 @@ function switchAuth(path) {
 watch([route, ready], ([current, available]) => {
   if (!auth.value && available) lastView.value = current
 }, { flush: 'sync', immediate: true })
-watch([auth, authDialog], ([open, dialog]) => {
-  if (!dialog || dialog.open === open) return
-  if (open) dialog.showModal()
-  else dialog.close()
+watch([auth, authDialog], ([open, dialog], _, onCleanup) => {
+  if (!open || !dialog) return
+  const unlock = lockPageScroll()
+  dialog.showModal()
+  const viewport = window.visualViewport
+  const body = dialog.querySelector('.auth-sheet-body')
+  let frame
+
+  function fitToViewport() {
+    if (viewport) {
+      const root = document.documentElement
+      const offset = viewport.offsetTop
+      const bottom = Math.max(0, root.clientHeight - viewport.height - offset)
+      root.style.setProperty('--auth-viewport-top', offset + 'px')
+      dialog.style.setProperty('--auth-viewport-bottom', bottom + 'px')
+      dialog.style.setProperty('--auth-viewport-height', viewport.height + 'px')
+    }
+
+    const field = document.activeElement
+    if (!body.contains(field) || !field.matches('input, textarea, select')) return
+    const fieldRect = field.getBoundingClientRect()
+    const bounds = body.getBoundingClientRect()
+    if (fieldRect.bottom > bounds.bottom - 8) body.scrollTop += fieldRect.bottom - bounds.bottom + 8
+    else if (fieldRect.top < bounds.top + 8) body.scrollTop -= bounds.top + 8 - fieldRect.top
+  }
+
+  function scheduleFit() {
+    cancelAnimationFrame(frame)
+    frame = requestAnimationFrame(fitToViewport)
+  }
+
+  window.addEventListener('resize', scheduleFit)
+  viewport?.addEventListener('resize', scheduleFit)
+  viewport?.addEventListener('scroll', scheduleFit)
+  dialog.addEventListener('focusin', scheduleFit)
+  fitToViewport()
+
+  onCleanup(() => {
+    cancelAnimationFrame(frame)
+    window.removeEventListener('resize', scheduleFit)
+    viewport?.removeEventListener('resize', scheduleFit)
+    viewport?.removeEventListener('scroll', scheduleFit)
+    dialog.removeEventListener('focusin', scheduleFit)
+    dialog.close()
+    document.documentElement.style.removeProperty('--auth-viewport-top')
+    dialog.style.removeProperty('--auth-viewport-bottom')
+    dialog.style.removeProperty('--auth-viewport-height')
+    unlock()
+  })
 }, { flush: 'post' })
 const loginPath = (next = route.value.fullPath) => '/login?' + new URLSearchParams({ next })
 watchNotice(sessionError, '账户状态提醒', 'error')

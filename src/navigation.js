@@ -9,6 +9,7 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 let currentKey = history.state?.cashClubKey || createRequestId()
 history.replaceState({ ...history.state, cashClubKey: currentKey }, '')
 let stopRestoring
+let lockedScrollTop
 
 export function safePath(value, fallback = '/') {
   if (typeof value !== 'string' || !/^\/(?!\/)/.test(value) || /[\\#\u0000-\u001f]/.test(value)) return fallback
@@ -27,7 +28,7 @@ function update() {
   const key = history.state?.cashClubKey
   if (key === currentKey && readRoute().fullPath === currentRoute.value.fullPath) return
   stopRestoring?.()
-  scrollPositions.set(currentKey, window.scrollY)
+  scrollPositions.set(currentKey, lockedScrollTop ?? window.scrollY)
   const newEntry = !key || key === currentKey
   currentKey = newEntry ? createRequestId() : key
   if (newEntry) history.replaceState({ ...history.state, cashClubKey: currentKey }, '')
@@ -59,6 +60,22 @@ export function resume(value) {
   const path = safePath(value)
   if (history.state?.cashClubDepth > 0 && history.state.cashClubPrevious === path) history.back()
   else go(path, { replace: true })
+}
+
+export function lockPageScroll() {
+  stopRestoring?.()
+  const root = document.documentElement
+  lockedScrollTop = Math.max(0, window.scrollY)
+  root.style.setProperty('--locked-page-top', -lockedScrollTop + 'px')
+  root.classList.add('page-scroll-locked')
+
+  return () => {
+    const top = lockedScrollTop
+    lockedScrollTop = undefined
+    root.classList.remove('page-scroll-locked')
+    root.style.removeProperty('--locked-page-top')
+    window.scrollTo(0, top)
+  }
 }
 
 export function restoreScroll() {
