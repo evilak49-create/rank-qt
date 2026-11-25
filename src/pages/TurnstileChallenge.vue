@@ -41,13 +41,13 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 const { t, locale } = useLocale()
 const host = ref(null)
-const unavailable = ref(false)
+const failureCode = ref(null)
 let widget
 let disposed = false
 
 async function renderChallenge() {
   emit('update:modelValue', '')
-  unavailable.value = false
+  failureCode.value = null
   try {
     if (!props.siteKey) throw new Error('Turnstile site key is missing.')
     const turnstile = await loadTurnstile()
@@ -58,7 +58,7 @@ async function renderChallenge() {
       language: locale.value.toLowerCase(),
       size: host.value.clientWidth < 300 ? 'compact' : 'flexible',
       callback: token => {
-        unavailable.value = false
+        failureCode.value = null
         emit('update:modelValue', token)
       },
       'expired-callback': () => emit('update:modelValue', ''),
@@ -66,19 +66,20 @@ async function renderChallenge() {
       'timeout-callback': showRetry,
     })
   } catch {
-    if (!disposed) unavailable.value = true
+    if (!disposed) showRetry()
   }
 }
 
-function showRetry() {
+function showRetry(code) {
+  if (disposed) return
   emit('update:modelValue', '')
-  unavailable.value = true
+  failureCode.value = /^[0-9]{6}$/.test(String(code)) ? String(code) : ''
 }
 
 function retryChallenge() {
   if (widget == null) return renderChallenge()
   emit('update:modelValue', '')
-  unavailable.value = false
+  failureCode.value = null
   window.turnstile?.reset(widget)
 }
 
@@ -93,8 +94,11 @@ onBeforeUnmount(() => {
 <template>
   <div class="field">
     <div ref="host"></div>
-    <div v-if="unavailable" class="stack">
-      <p role="status">{{ t('Cloudflare 验证暂不可用。', 'A verificação Cloudflare está indisponível.') }}</p>
+    <div v-if="failureCode !== null" class="stack">
+      <p role="status">
+        {{ t('Cloudflare 验证未通过。', 'A verificação Cloudflare falhou.') }}
+        <span v-if="failureCode">{{ t('错误码', 'Código do erro') }} {{ failureCode }}</span>
+      </p>
       <button v-if="siteKey" type="button" class="quiet" @click="retryChallenge">{{ t('重试', 'Tentar novamente') }}</button>
     </div>
   </div>
