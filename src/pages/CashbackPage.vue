@@ -172,8 +172,8 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
         <h2>{{ detail.platform_name }}</h2>
         <p class="muted">{{ t('数据更新时间', 'Dados atualizados em') }} <time :datetime="detail.observed_at">{{ formattedDate(detail.observed_at) }}</time></p>
         <dl class="cashback-metrics">
+          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('最高可领取返利', 'Cashback máximo a receber') }}</dt><dd>{{ money(detail.estimated_cents) }}</dd><small v-if="detail.estimated_wager_multiplier != null">{{ rate(detail.estimated_wager_multiplier, '×') }} · {{ rate(detail.estimated_rebate_percent, '%') }}</small></div>
           <div class="cashback-amount cashback-amount-current"><dt>{{ t('当前可领返利', 'Cashback disponível') }}</dt><dd>{{ money(detail.current_cents) }}</dd><small>{{ rate(detail.rebate_percent, '%') }}</small></div>
-          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('预计可得', 'Cashback estimado') }}</dt><dd>{{ money(detail.estimated_cents) }}</dd><small v-if="detail.estimated_wager_multiplier != null">{{ rate(detail.estimated_wager_multiplier, '×') }} · {{ rate(detail.estimated_rebate_percent, '%') }}</small></div>
         </dl>
         <dl class="summary-list">
           <div><dt>{{ t('当前充值总额') }}</dt><dd>{{ money(detail.observed_deposit_cents) }}</dd></div>
@@ -200,8 +200,8 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
           </div>
         </header>
         <dl class="cashback-metrics">
+          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('最高可领取返利', 'Cashback máximo a receber') }}</dt><dd>{{ money(previews[item.binding_id]?.estimated_cents) }}</dd><small v-if="previews[item.binding_id]?.estimated_wager_multiplier != null">{{ rate(previews[item.binding_id].estimated_wager_multiplier, '×') }} · {{ rate(previews[item.binding_id].estimated_rebate_percent, '%') }}</small></div>
           <div class="cashback-amount cashback-amount-current"><dt>{{ t('当前可领返利', 'Cashback disponível') }}</dt><dd>{{ money(previews[item.binding_id]?.current_cents) }}</dd><small>{{ rate(previews[item.binding_id]?.rebate_percent, '%') }}</small></div>
-          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('预计可得', 'Cashback estimado') }}</dt><dd>{{ money(previews[item.binding_id]?.estimated_cents) }}</dd><small v-if="previews[item.binding_id]?.estimated_wager_multiplier != null">{{ rate(previews[item.binding_id].estimated_wager_multiplier, '×') }} · {{ rate(previews[item.binding_id].estimated_rebate_percent, '%') }}</small></div>
         </dl>
         <footer class="cashback-card-footer">
           <div><span class="muted">{{ t('距下次派发', 'Próximo crédito em') }}</span> <strong class="cashback-countdown">{{ countdown }}</strong></div>
