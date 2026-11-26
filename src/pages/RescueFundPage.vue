@@ -176,11 +176,12 @@ onUnmounted(() => {
       </header>
       <ol>
         <li>{{ t('首次从绑定时记录的盈亏快照起算。没有绑定快照的账号，从首次取得有效快照起算。之后从上次成功领取起算。') }}</li>
-        <li>{{ t('本期净亏损须达到同期充值总额，且打码档位须在可领取上限以内，含上限档。') }}</li>
+        <li>{{ t('本期净亏损须达到平台账号累计存款的指定比例，且打码档位须在可领取上限以内，含上限档。') }}</li>
         <li>{{ t('救援金按本期充值总额乘以适用比例计算。各担保平台统一使用同一个档位上限和救援金比例。') }}</li>
         <li>{{ t('领取后即时进入现金钱包，可提现。到账后可在「个人中心 → 资金记录」查询。') }}</li>
       </ol>
       <dl v-if="settings?.enabled" class="summary-list">
+        <div><dt>{{ t('亏损比例') }}</dt><dd>{{ showValue(settings.loss_percent_micros, formatRate) }}</dd></div>
         <div><dt>{{ t('最高可领档位') }}</dt><dd>{{ formatTier(settings.max_wager_tier_micros) }}</dd></div>
         <div><dt>{{ t('救援金比例') }}</dt><dd>{{ formatRate(settings.percent_micros) }}</dd></div>
       </dl>
