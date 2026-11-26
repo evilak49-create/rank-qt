@@ -202,6 +202,21 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
         </div>
         <p v-if="showPhoneError" id="auth-phone-error" class="auth-phone-error" role="status">{{ t('手机号码不正确') }}</p>
       </div>
+      <label v-if="requiresCurrentPassword" class="field">{{ t('当前密码') }}
+        <input v-model="currentPassword" type="password" autocomplete="current-password" maxlength="72" required>
+      </label>
+      <div class="field">
+        <label for="auth-password">{{ signingIn || registering ? t('密码') : t('新密码') }}</label>
+        <input id="auth-password" v-model="password" type="password" :autocomplete="signingIn || created ? 'current-password' : 'new-password'"
+               :aria-describedby="!signingIn && !created ? 'auth-password-rules' : undefined"
+               :pattern="signingIn || created ? undefined : newPasswordPattern"
+               :title="signingIn || created ? undefined : t(passwordRequirement)"
+               :maxlength="signingIn || created ? 72 : 20" required>
+        <small v-if="!signingIn && !created" id="auth-password-rules" class="muted">{{ t(passwordRequirement) }}</small>
+      </div>
+      <label v-if="!signingIn && !created" class="field">{{ t('确认密码') }}
+        <input v-model="repeat" type="password" autocomplete="new-password" minlength="8" maxlength="20" required>
+      </label>
       <div v-if="!signingIn && !created && verification && verificationMode === 'sms'" class="field">
         <label for="auth-code">{{ t('短信验证码') }}</label>
         <div class="inline-form">
@@ -219,21 +234,6 @@ watchNotice(info, text => text?.startsWith('验证码') ? '验证码已发送' :
           </button>
         </div>
       </div>
-      <label v-if="requiresCurrentPassword" class="field">{{ t('当前密码') }}
-        <input v-model="currentPassword" type="password" autocomplete="current-password" maxlength="72" required>
-      </label>
-      <div class="field">
-        <label for="auth-password">{{ signingIn || registering ? t('密码') : t('新密码') }}</label>
-        <input id="auth-password" v-model="password" type="password" :autocomplete="signingIn || created ? 'current-password' : 'new-password'"
-               :aria-describedby="!signingIn && !created ? 'auth-password-rules' : undefined"
-               :pattern="signingIn || created ? undefined : newPasswordPattern"
-               :title="signingIn || created ? undefined : t(passwordRequirement)"
-               :maxlength="signingIn || created ? 72 : 20" required>
-        <small v-if="!signingIn && !created" id="auth-password-rules" class="muted">{{ t(passwordRequirement) }}</small>
-      </div>
-      <label v-if="!signingIn && !created" class="field">{{ t('确认密码') }}
-        <input v-model="repeat" type="password" autocomplete="new-password" minlength="8" maxlength="20" required>
-      </label>
       <TurnstileChallenge v-if="!created && cloudflareMode" v-model="turnstileToken"
                           :site-key="verification?.turnstile_site_key" :reset-key="turnstileReset"
                           :action="registering ? 'register' : 'reset_password'" />
