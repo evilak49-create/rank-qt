@@ -171,11 +171,11 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
       <section class="surface stack cashback-detail">
         <h2>{{ detail.platform_name }}</h2>
         <p class="muted">{{ t('数据更新时间', 'Dados atualizados em') }} <time :datetime="detail.observed_at">{{ formattedDate(detail.observed_at) }}</time></p>
+        <dl class="cashback-metrics">
+          <div class="cashback-amount cashback-amount-current"><dt>{{ t('当前可领返利', 'Cashback disponível') }}</dt><dd>{{ money(detail.current_cents) }}</dd><small>{{ rate(detail.rebate_percent, '%') }}</small></div>
+          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('预计可得', 'Cashback estimado') }}</dt><dd>{{ money(detail.estimated_cents) }}</dd><small v-if="detail.estimated_wager_multiplier != null">{{ rate(detail.estimated_wager_multiplier, '×') }} · {{ rate(detail.estimated_rebate_percent, '%') }}</small></div>
+        </dl>
         <dl class="summary-list">
-          <div><dt>{{ t('当前可领返利', 'Cashback disponível') }}</dt><dd class="cashback-credit">{{ money(detail.current_cents) }}</dd></div>
-          <div><dt>{{ t('当前返利比例', 'Percentual atual de cashback') }}</dt><dd>{{ rate(detail.rebate_percent, '%') }}</dd></div>
-          <div><dt>{{ t('预计可领返利', 'Cashback estimado') }}</dt><dd>{{ money(detail.estimated_cents) }}</dd></div>
-          <div><dt>{{ t('最高返利比例', 'Percentual máximo de cashback') }}</dt><dd>{{ rate(detail.max_rebate_percent, '%') }}</dd></div>
           <div><dt>{{ t('当前充值总额') }}</dt><dd>{{ money(detail.observed_deposit_cents) }}</dd></div>
           <div><dt>{{ t('当前投注额') }}</dt><dd>{{ money(detail.observed_valid_bet_cents) }}</dd></div>
           <div><dt>{{ t('本期待结算存款', 'Depósitos a liquidar') }}</dt><dd>{{ money(detail.deposit_cents) }}</dd></div>
@@ -200,9 +200,8 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
           </div>
         </header>
         <dl class="cashback-metrics">
-          <div class="cashback-primary-metric"><dt>{{ t('当前可领返利', 'Cashback disponível') }}</dt><dd class="cashback-credit">{{ money(previews[item.binding_id]?.current_cents) }}</dd></div>
-          <div><dt>{{ t('当前返利比例', 'Percentual atual de cashback') }}</dt><dd>{{ rate(previews[item.binding_id]?.rebate_percent, '%') }}</dd></div>
-          <div><dt>{{ t('预计可领返利', 'Cashback estimado') }}</dt><dd>{{ money(previews[item.binding_id]?.estimated_cents) }}</dd><small>{{ t('达到最高挡位时', 'Na faixa máxima') }}</small></div>
+          <div class="cashback-amount cashback-amount-current"><dt>{{ t('当前可领返利', 'Cashback disponível') }}</dt><dd>{{ money(previews[item.binding_id]?.current_cents) }}</dd><small>{{ rate(previews[item.binding_id]?.rebate_percent, '%') }}</small></div>
+          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('预计可得', 'Cashback estimado') }}</dt><dd>{{ money(previews[item.binding_id]?.estimated_cents) }}</dd><small v-if="previews[item.binding_id]?.estimated_wager_multiplier != null">{{ rate(previews[item.binding_id].estimated_wager_multiplier, '×') }} · {{ rate(previews[item.binding_id].estimated_rebate_percent, '%') }}</small></div>
         </dl>
         <footer class="cashback-card-footer">
           <div><span class="muted">{{ t('距下次派发', 'Próximo crédito em') }}</span> <strong class="cashback-countdown">{{ countdown }}</strong></div>
@@ -261,22 +260,20 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
 .cashback-metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  row-gap: 10px;
+  gap: 8px;
   margin: 0;
 }
-.cashback-metrics > div { padding: 0 10px; }
-.cashback-metrics > div:nth-child(3) { border-inline-start: 1px solid var(--cashback-divider); }
-.cashback-metrics > .cashback-primary-metric {
-  grid-column: 1 / -1;
-  padding: 10px 12px;
-  border: 1px solid #705130;
+.cashback-amount {
+  min-width: 0;
+  padding: 10px clamp(7px, 2.5vw, 12px);
+  border: 1px solid;
   border-radius: 10px;
-  background: linear-gradient(105deg, #45321e, #2a241f);
 }
-.cashback-metrics :is(dt, small) { color: var(--cashback-secondary-text); font-size: 12px; }
-.cashback-primary-metric dt { color: #f1d7b3; }
-.cashback-metrics dd { margin: 2px 0 0; font-weight: 750; }
-.cashback-primary-metric dd { font-size: 25px; line-height: 1.2; }
+.cashback-amount-current { background: #392813; border-color: #875a25; color: #ffd16d; }
+.cashback-amount-estimate { background: #143328; border-color: #397457; color: #a5f5c9; }
+.cashback-amount :is(dt, small) { font-size: 12px; }
+.cashback-amount small { display: block; margin-top: 3px; }
+.cashback-amount dd { margin: 4px 0 0; font-weight: 750; font-size: clamp(16px, 5.5vw, 24px); line-height: 1.2; font-variant-numeric: tabular-nums; }
 .cashback-credit, .cashback-countdown { color: var(--highlight); font-variant-numeric: tabular-nums; }
 .cashback-countdown { display: inline-block; }
 .cashback-card-footer {
