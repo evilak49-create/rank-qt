@@ -56,7 +56,7 @@ onUnmounted(() => controller?.abort())
       <h2>{{ hasDates ? t('充值记录', 'Histórico de depósitos') : t('最近一个月', 'Último mês') }}</h2>
       <button type="button" class="quiet" :disabled="loading" @click="load()">{{ t('刷新记录', 'Atualizar registros') }}</button>
     </header>
-    <RecordDateFilter :date-from="dates.date_from" :date-to="dates.date_to" @change="filterRecharges" />
+    <RecordDateFilter inline :date-from="dates.date_from" :date-to="dates.date_to" @change="filterRecharges" />
     <p v-if="loading" class="muted" role="status">{{ t('正在查询充值记录…', 'Consultando depósitos…') }}</p>
     <div v-if="failed" class="stack">
       <p class="muted" role="alert">{{ t('暂时无法获取充值记录，请稍后重试。', 'Não foi possível consultar os depósitos. Tente novamente.') }}</p>

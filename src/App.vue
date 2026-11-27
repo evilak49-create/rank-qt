@@ -120,6 +120,8 @@ const recordsLinks = {
   '/protection': ['/protection/claims', '申诉记录'],
 }
 const recordsLink = computed(() => recordsLinks[viewRoute.value.path])
+const dateFilterPaths = new Set(['/fund-records', '/withdrawal-history', '/cashback/records', '/protection/claims', '/shop/redemptions'])
+const dateFilterHeader = computed(() => viewReady.value && dateFilterPaths.has(viewRoute.value.path))
 const ready = computed(() => !requiresSession.value || (sessionState.value === 'ready' && Boolean(member.value)))
 const viewReady = computed(() => (auth.value || ready.value) &&
   (viewRoute.value.path !== '/support' || sessionState.value === 'ready'))
@@ -291,7 +293,7 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
             @language="language = $event" />
   <template v-else>
     <header v-if="viewRoute.path !== '/support'" class="page-topbar">
-      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund', 'has-records-link': recordsLink }">
+      <div class="wrap page-header" :class="{ 'has-page-action': viewRoute.path === '/rescue-fund', 'has-records-link': recordsLink || dateFilterHeader }">
         <button class="page-back" :aria-label="t('返回')" @click="back(fallback())">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>
         </button>
@@ -299,6 +301,7 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
         <div v-if="viewRoute.path === '/rescue-fund'" id="rescue-fund-actions" class="page-action"></div>
         <a v-else-if="recordsLink" class="page-action page-records-link" :href="'#' + recordsLink[0]"
            @click.prevent="go(recordsLink[0])">{{ t(recordsLink[1]) }}</a>
+        <div v-else-if="dateFilterHeader" id="record-date-filter-actions" class="page-action"></div>
         <a v-else-if="viewRoute.path !== '/red-packets'" class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
       </div>
     </header>
