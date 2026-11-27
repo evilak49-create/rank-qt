@@ -33,11 +33,11 @@ const date = computed(() => new Intl.DateTimeFormat(locale.value, {
 }))
 const decimal = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const countdown = computed(() => {
-  if (!nextDispatch.value) return '—'
   const seconds = Math.max(0, Math.ceil((nextDispatch.value - currentTime.value) / 1000))
   return [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60]
-    .map(value => String(value).padStart(2, '0')).join(':')
+    .map(value => String(value).padStart(2, '0'))
 })
+const countdownUnits = computed(() => [t('小时', 'Horas'), t('分钟', 'Minutos'), t('秒', 'Segundos')])
 const statusLabels = {
   credited: ['已到账', 'Creditado'],
   insufficient_wager: ['未达返利门槛，额度已保留', 'Volume mínimo não atingido. O saldo de cálculo foi mantido.'],
@@ -174,6 +174,32 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
 
 <template>
   <section class="cashback-page stack" :aria-busy="loading">
+    <section v-if="!isHistory" class="cashback-schedule" aria-labelledby="cashback-schedule-title">
+      <div class="cashback-schedule-heading">
+        <h2 id="cashback-schedule-title">{{ t('每天自动派发', 'Crédito automático diário') }}</h2>
+        <div class="cashback-schedule-time">
+          <time datetime="12:00">12:00</time>
+          <span>{{ t('巴西利亚时间', 'Horário de Brasília') }}</span>
+        </div>
+        <p>{{ t('符合条件的返利自动进入可用余额，无需手动领取。', 'O cashback elegível cai no saldo disponível. Você não precisa resgatar.') }}</p>
+      </div>
+      <div class="cashback-next">
+        <h3>{{ t('距下次自动派发', 'Tempo até o próximo crédito') }}</h3>
+        <template v-if="nextDispatch > currentTime">
+          <div class="cashback-countdown" role="timer">
+            <div v-for="(unit, index) in countdownUnits" :key="unit" class="cashback-countdown-unit">
+              <strong>{{ countdown[index] }}</strong>
+              <span>{{ unit }}</span>
+            </div>
+          </div>
+          <time class="cashback-next-date" :datetime="new Date(nextDispatch).toISOString()">
+            {{ formattedDate(new Date(nextDispatch).toISOString()) }}
+          </time>
+        </template>
+        <p v-else-if="nextDispatch" class="cashback-next-date">{{ t('已到派发时间，正在更新下次时间。', 'Chegou o horário do crédito. Atualizando a próxima data.') }}</p>
+        <p v-else-if="!loading" class="cashback-next-date">{{ t('下次派发时间暂不可用。', 'O próximo horário ainda não está disponível.') }}</p>
+      </div>
+    </section>
     <RecordDateFilter v-if="isHistory" :date-from="route.query.get('date_from') ?? ''"
       :date-to="route.query.get('date_to') ?? ''" @change="goHistoryPage(1, $event)" />
     <button v-if="error" class="quiet" type="button" @click="load(isHistory ? routePage() : results?.current_page || 1)">{{ t('重试') }}</button>
@@ -198,8 +224,8 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
         <h2>{{ detail.platform_name }}</h2>
         <p class="muted">{{ t('数据更新时间', 'Dados atualizados em') }} <time :datetime="detail.observed_at">{{ formattedDate(detail.observed_at) }}</time></p>
         <dl class="cashback-metrics">
-          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('最高可领取返利', 'Cashback máximo a receber') }}</dt><dd>{{ money(detail.estimated_cents) }}</dd><small v-if="detail.estimated_wager_multiplier != null">{{ rate(detail.estimated_wager_multiplier, '×') }} · {{ rate(detail.estimated_rebate_percent, '%') }}</small></div>
-          <div class="cashback-amount cashback-amount-current"><dt>{{ t('当前可领返利', 'Cashback disponível') }}</dt><dd>{{ money(detail.current_cents) }}</dd><small>{{ rate(detail.rebate_percent, '%') }}</small></div>
+          <div class="cashback-amount cashback-amount-current"><dt>{{ t('本次预计到账', 'Crédito previsto') }}</dt><dd>{{ money(detail.current_cents) }}</dd><small>{{ t('当前返利比例', 'Taxa atual') }} {{ rate(detail.rebate_percent, '%') }}</small></div>
+          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('最高可能返利', 'Cashback máximo possível') }}</dt><dd>{{ money(detail.estimated_cents) }}</dd><small v-if="detail.estimated_wager_multiplier != null">{{ rate(detail.estimated_wager_multiplier, '×') }} · {{ rate(detail.estimated_rebate_percent, '%') }}</small></div>
         </dl>
         <dl class="summary-list">
           <div><dt>{{ t('当前充值总额') }}</dt><dd>{{ money(detail.observed_deposit_cents) }}</dd></div>
@@ -212,7 +238,6 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
     </template>
 
     <template v-else-if="!bindingId && !isHistory && results">
-      <p v-if="results.data.length" class="cashback-schedule">{{ t('每天巴西利亚时间 12:00 自动派发至可用余额。', 'Crédito automático no saldo às 12h, no horário de Brasília.') }}</p>
       <article v-for="item in results.data" :key="item.binding_id" class="surface cashback-card">
         <header class="cashback-platform">
           <span class="cashback-logo" aria-hidden="true">
@@ -226,11 +251,10 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
           </div>
         </header>
         <dl class="cashback-metrics">
-          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('最高可领取返利', 'Cashback máximo a receber') }}</dt><dd>{{ money(previews[item.binding_id]?.estimated_cents) }}</dd><small v-if="previews[item.binding_id]?.estimated_wager_multiplier != null">{{ rate(previews[item.binding_id].estimated_wager_multiplier, '×') }} · {{ rate(previews[item.binding_id].estimated_rebate_percent, '%') }}</small></div>
-          <div class="cashback-amount cashback-amount-current"><dt>{{ t('当前可领返利', 'Cashback disponível') }}</dt><dd>{{ money(previews[item.binding_id]?.current_cents) }}</dd><small>{{ rate(previews[item.binding_id]?.rebate_percent, '%') }}</small></div>
+          <div class="cashback-amount cashback-amount-current"><dt>{{ t('本次预计到账', 'Crédito previsto') }}</dt><dd>{{ money(previews[item.binding_id]?.current_cents) }}</dd><small>{{ t('当前返利比例', 'Taxa atual') }} {{ rate(previews[item.binding_id]?.rebate_percent, '%') }}</small></div>
+          <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('最高可能返利', 'Cashback máximo possível') }}</dt><dd>{{ money(previews[item.binding_id]?.estimated_cents) }}</dd><small v-if="previews[item.binding_id]?.estimated_wager_multiplier != null">{{ rate(previews[item.binding_id].estimated_wager_multiplier, '×') }} · {{ rate(previews[item.binding_id].estimated_rebate_percent, '%') }}</small></div>
         </dl>
         <footer class="cashback-card-footer">
-          <div><span class="muted">{{ t('距下次派发', 'Próximo crédito em') }}</span> <strong class="cashback-countdown">{{ countdown }}</strong></div>
           <a class="text-button" :href="'#/cashback/' + item.binding_id" @click.prevent="go('/cashback/' + item.binding_id)">{{ t('查看明细', 'Ver detalhes') }} ›</a>
         </footer>
       </article>
@@ -253,13 +277,55 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
 }
 .cashback-page h2 { margin: 0; font-size: 16px; }
 .cashback-schedule {
-  padding: 8px 11px;
-  border-inline-start: 2px solid var(--accent);
-  border-radius: 0 8px 8px 0;
-  background: #30241a;
-  color: #f1d7b3;
-  font-size: 12px;
+  display: grid;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid #7a5730;
+  border-radius: 14px;
+  background: linear-gradient(148deg, #382818, #211b17 72%);
+  color: #f4ddbe;
 }
+.cashback-schedule-heading { display: grid; gap: 5px; }
+.cashback-schedule-heading h2 { color: #fff2df; }
+.cashback-schedule-heading p, .cashback-next-date { font-size: 12px; line-height: 1.45; }
+.cashback-schedule-time { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; }
+.cashback-schedule-time time {
+  color: var(--highlight);
+  font-size: clamp(28px, 9vw, 38px);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cashback-schedule-time span { color: #f3d4a7; font-size: 12px; }
+.cashback-next {
+  display: grid;
+  gap: 7px;
+  padding-top: 11px;
+  border-top: 1px solid #5c422b;
+}
+.cashback-next h3 { margin: 0; color: #fff2df; font-size: 13px; }
+.cashback-countdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  width: min(100%, 300px);
+}
+.cashback-countdown-unit {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 7px 4px;
+  border: 1px solid #63492f;
+  border-radius: 9px;
+  background: #1b1715;
+}
+.cashback-countdown-unit strong {
+  color: var(--highlight);
+  font-size: 23px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.cashback-countdown-unit span { font-size: 11px; }
 .cashback-card, .cashback-detail, .cashback-record {
   border-color: var(--cashback-card-border);
   border-radius: 14px;
@@ -300,8 +366,7 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
 .cashback-amount :is(dt, small) { font-size: 12px; }
 .cashback-amount small { display: block; margin-top: 3px; }
 .cashback-amount dd { margin: 4px 0 0; font-weight: 750; font-size: clamp(16px, 5.5vw, 24px); line-height: 1.2; font-variant-numeric: tabular-nums; }
-.cashback-credit, .cashback-countdown { color: var(--highlight); font-variant-numeric: tabular-nums; }
-.cashback-countdown { display: inline-block; }
+.cashback-credit { color: var(--highlight); font-variant-numeric: tabular-nums; }
 .cashback-card-footer {
   display: flex;
   align-items: center;
@@ -311,8 +376,6 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
   padding-top: 9px;
   border-top: 1px solid var(--cashback-divider);
 }
-.cashback-card-footer > div { display: grid; gap: 1px; }
-.cashback-countdown { font-size: 14px; }
 .cashback-card-footer a {
   display: inline-flex;
   align-items: center;
