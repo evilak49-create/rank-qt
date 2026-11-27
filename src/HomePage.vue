@@ -4,7 +4,7 @@ import EmptyState from './EmptyState.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { api, imageUrl } from './api'
 import heroArt from './assets/home-banner-gold.jpg'
-import brandLogo from './assets/pingji-logo.svg'
+import brandLogo from './assets/qvip-wordmark.png'
 import HomeRedPacketEntry from './HomeRedPacketEntry.vue'
 import PlatformCard from './PlatformCard.vue'
 import { icons } from './icons'
@@ -104,9 +104,8 @@ function copyTextForError() { return props.copy.error }
   <div class="home-gold">
   <header class="site-header">
     <div class="wrap header-inner">
-      <a class="brand" href="#/" aria-label="返利网首页" @click.prevent="go('/')">
-        <img :src="brandLogo" alt="" width="36" height="36">
-        <span>返利网</span>
+      <a class="brand" href="#/" aria-label="QVIP.Com" @click.prevent="go('/')">
+        <img :src="brandLogo" alt="" width="640" height="154">
       </a>
       <div class="header-actions" :class="{ 'header-actions-guest': !member }">
         <button v-if="!member" class="quiet header-auth" type="button" @click="go('/login')">{{ t('登录') }}</button>

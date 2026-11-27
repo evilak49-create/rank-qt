@@ -203,7 +203,7 @@ watch([route, sessionState, member], () => {
 }, { immediate: true })
 
 watch([route, title, language], () => {
-  document.title = route.value.path === '/' ? '返利网' : title.value + t(' · 返利网')
+  document.title = route.value.path === '/' ? 'QVIP.Com' : title.value + ' · QVIP.Com'
 }, { immediate: true })
 
 watch(route, async (current, previous) => {
