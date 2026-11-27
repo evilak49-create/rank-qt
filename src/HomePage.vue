@@ -5,6 +5,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import { api, imageUrl } from './api'
 import heroArt from './assets/home-banner-gold.jpg'
 import brandLogo from './assets/pingji-logo.svg'
+import redPacketEntry from './assets/red-packet-entry.png'
+import { formatBrl } from './money.js'
 import PlatformCard from './PlatformCard.vue'
 import { icons } from './icons'
 import { go } from './navigation'
@@ -26,6 +28,7 @@ const languages = [
   { id: 'pt-BR', name: 'Português' },
 ]
 const localeSheet = ref(null)
+const redPacketBalance = ref(null)
 const currentLanguage = computed(() => languages.find(item => item.id === props.language))
 const slide = ref(0)
 const brokenBanners = ref(new Set())
@@ -77,6 +80,21 @@ for (const name of ['banners', 'notice', 'featured']) loadBlock(blocks[name])
 watch(() => [props.route.key, props.member?.id], () => {
   if (selection.value === 'favorites') loadBlock(blocks.favorites)
 }, { immediate: true })
+
+watch(() => props.member?.id, async (memberId, _, onCleanup) => {
+  redPacketBalance.value = null
+  if (memberId == null) return
+  const controller = new AbortController()
+  onCleanup(() => controller.abort())
+  try {
+    const { data } = await api('/red-packets/summary', { signal: controller.signal, background: true })
+    if (!controller.signal.aborted && Number.isSafeInteger(data?.balance_cents) && data.balance_cents >= 0) {
+      redPacketBalance.value = data.balance_cents
+    }
+  } catch {
+    // The regular red packet tab remains available if the balance request fails.
+  }
+}, { immediate: true, flush: 'sync' })
 
 import { watchNotice } from './feedback'
 watchNotice(() => selectedBlock.value.state === 'error' ? copyTextForError() : '', () => selection.value === 'favorites' ? '收藏加载失败' : '推荐平台加载失败', 'error')
@@ -161,6 +179,12 @@ function copyTextForError() { return props.copy.error }
       <EmptyState v-else-if="selectedBlock.state === 'ready'" :message="selection === 'favorites' ? copy.noFavorites : copy.empty" />
     </section>
   </main>
+
+  <a v-if="redPacketBalance !== null" class="home-red-packet-entry" href="#/red-packets"
+     :aria-label="t('我的红包') + ' · ' + formatBrl(redPacketBalance)" @click.prevent="go('/red-packets')">
+    <strong>{{ formatBrl(redPacketBalance) }}</strong>
+    <img :src="redPacketEntry" width="63" height="63" alt="">
+  </a>
 
   <dialog ref="localeSheet" class="locale-sheet" aria-labelledby="locale-title" @click.self="localeSheet.close()">
     <div class="locale-panel">

@@ -157,3 +157,29 @@
   background: radial-gradient(ellipse at top, #9c4c0d, #351d0e 82%);
   box-shadow: inset 0 0 0 1px #d4893b66;
 }
+
+.home-red-packet-entry {
+  position: fixed;
+  z-index: 2;
+  inset-inline-end: max(10px, env(safe-area-inset-right), calc((100% - 480px) / 2 + 10px));
+  top: 54vh;
+  top: min(54dvh, calc(100dvh - 160px));
+  display: grid;
+  justify-items: center;
+  min-width: 72px;
+  padding: 3px 3px 0;
+  background: transparent;
+  color: #ffda83;
+  text-align: center;
+  text-shadow: 0 1px 3px #13070f, 0 2px 6px #170508;
+}
+.home-red-packet-entry strong {
+  font-size: clamp(14px, 4vw, 19px);
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.home-red-packet-entry img {
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 4px #13021690);
+}

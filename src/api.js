@@ -26,7 +26,7 @@ function canCache(path) {
   return !resource.startsWith('/auth/')
     && resource !== '/health'
     && resource !== '/support/conversation'
-    && resource !== '/red-packets/invites'
+    && !resource.startsWith('/red-packets/')
     && !resource.startsWith('/point-quotes/')
     && !/^\/(?:platform-bindings|protection\/(?:bindings|claims)|platform-funds\/orders|pix-withdrawals|pix-account|cash-wallet|rescue-fund|cashback)(?:\/|$)/.test(resource)
 }

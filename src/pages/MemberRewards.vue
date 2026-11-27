@@ -4,6 +4,7 @@ import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api } from '../api'
+import { icons } from '../icons'
 import { currentRoute, go, resume, safePath } from '../navigation'
 import MemberPagination from './MemberPagination.vue'
 import packetClosed from '../assets/red-packet-closed.png'
@@ -35,6 +36,7 @@ const pixComplete = computed(() => Boolean(account.value?.cpf && account.value?.
 const inviteInput = ref(null)
 const linkVisible = ref(false)
 const reveal = ref(null)
+const rulesDetails = ref(null)
 let revealTimer
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const statuses = { pending: '待审核', processing: '处理中', paid: '已到账', rejected: '未通过', cancelled: '已取消，款项已退回', failed: '提现失败', unresolved: '结果待确认' }
@@ -268,6 +270,12 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
 </script>
 
 <template>
+  <Teleport v-if="isHome && pageCopy?.rules_html" to="#red-packet-actions">
+    <button class="quiet reward-rules-action" type="button"
+            @click="rulesDetails.open = true; rulesDetails.scrollIntoView({ block: 'nearest' })">
+      {{ t('规则', 'Regras') }}
+    </button>
+  </Teleport>
   <div class="member-page" :class="{ 'reward-page': isHome }" :aria-busy="loading">
     <template v-if="isHome">
       <section v-if="packets && !round" class="reward-opening" :data-phase="reveal ? 'reveal' : working ? 'waiting' : 'idle'">
@@ -290,18 +298,24 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
       <section v-else-if="round" class="reward-board">
         <div class="reward-balance">
           <img :src="packetOpened" alt="">
-          <h2>{{ t(pageCopy?.balance_title || '累计红包') }}</h2>
-          <strong>{{ money(round.balance_cents) }}</strong>
+          <div>
+            <h2>{{ t(pageCopy?.balance_title || '累计红包') }}</h2>
+            <strong>{{ money(round.balance_cents) }}</strong>
+          </div>
         </div>
         <div class="reward-panel">
           <div class="reward-target">
             <strong v-if="round.frozen_cents > 0">{{ t('提现处理中') }}</strong>
             <strong v-else-if="round.remaining_cents > 0">{{ t('还差') }} <em>{{ money(round.remaining_cents) }}</em> {{ t('可提现') }}</strong>
             <strong v-else>{{ t('已达到提现目标') }}</strong>
-            <span>{{ t('目标') }} {{ money(round.threshold_cents) }}</span>
           </div>
           <progress class="reward-progress" :value="round.balance_cents" :max="round.threshold_cents" :aria-label="t('提现进度')"></progress>
+          <div class="reward-progress-values">
+            <span>{{ t('已累计', 'Acumulado') }} {{ money(round.balance_cents) }}</span>
+            <span>{{ t('提现门槛', 'Meta de saque') }} {{ money(round.threshold_cents) }}</span>
+          </div>
           <button class="reward-cta" :disabled="ready ? working : !inviteLink" @click="ready ? go(withdraw) : shareInvite()">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path :d="ready ? icons.cashWallet : 'M15 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2m10-13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm5 1v6m-3-3h6'"/></svg>
             {{ ready ? t('申请提现') : t(pageCopy?.invite_label || '邀请好友') }}
           </button>
           <div class="reward-options">
@@ -313,11 +327,19 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
             <input ref="inviteInput" :value="inviteLink" readonly @focus="$event.target.select()">
           </label>
         </div>
+        <a v-if="round.latest_invite_reward_cents > 0" class="reward-credit surface" href="#/red-packets/invites"
+           @click.prevent="go(home + '/invites')">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path :d="icons.shop"/></svg>
+          <span>
+            <strong>{{ t('好友奖励已到账', 'Recompensa de convite creditada') }}</strong>
+            <small>{{ t('邀请明细') }}</small>
+          </span>
+          <strong>+{{ money(round.latest_invite_reward_cents) }}</strong>
+        </a>
       </section>
 
-
       <section v-if="pageCopy?.rules_html" class="surface stack reward-rules">
-        <details open>
+        <details ref="rulesDetails" open>
           <summary>{{ t(pageCopy.rules_title) }}</summary>
           <div class="reward-rule-copy" v-html="t(pageCopy.rules_html)"></div>
         </details>

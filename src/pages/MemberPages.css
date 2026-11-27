@@ -132,25 +132,64 @@
 .reward-reveal strong { color: var(--highlight); font-size: 30px; line-height: 1.25; }
 .reward-cta { display: inline-flex; justify-content: center; align-items: center; width: min(100%, 250px); min-height: 49px; padding: 8px 18px; border-radius: 30px; border: 1px solid var(--accent); background: var(--primary); color: var(--on-primary); font-weight: 850; box-shadow: 0 5px 15px var(--shadow); }
 .reward-stage:focus-visible { outline-offset: 0; border-radius: 20px; outline-color: var(--highlight); }
-.reward-board { display: grid; gap: 0; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 19px; background: var(--surface); }
-.reward-balance { position: relative; isolation: isolate; min-height: 154px; display: grid; align-content: center; justify-items: start; gap: 4px; padding: 22px 16px; background: radial-gradient(ellipse at top right, var(--surface-highlight), var(--surface)); overflow: hidden; }
-.reward-balance img { position: absolute; z-index: -1; right: -12px; bottom: -33px; width: 44%; max-height: 195px; object-fit: contain; transform: rotate(12deg); }
-.reward-balance h2 { color: var(--muted); font-size: 14px; }
-.reward-balance strong { max-width: 71%; color: var(--highlight); font-size: clamp(25px, 8vw, 41px); line-height: 1.14; font-variant-numeric: tabular-nums; font-weight: 850; overflow-wrap: anywhere; }
-.reward-panel { display: grid; gap: 11px; padding: 14px; margin: -2px 9px 9px; border-radius: 14px; background: var(--surface-raised); color: var(--text); }
-.reward-target { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 3px 8px; }
-.reward-target em { color: var(--highlight); font-style: normal; }
-.reward-target span { font-size: 11px; color: var(--muted); }
+.reward-board { display: grid; gap: 10px; }
+.reward-balance, .reward-panel { border: 1px solid #63443d; border-radius: 15px; background: #261d1e; }
+.reward-balance {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-items: center;
+  min-height: 166px;
+  padding: 16px;
+  overflow: hidden;
+  border-color: #87463b;
+  background: radial-gradient(ellipse at top right, #862f25, #542527 52%, #341d22);
+}
+.reward-balance > div { max-width: 67%; min-width: 0; }
+.reward-balance img {
+  position: absolute;
+  z-index: -1;
+  inset: 0 -6px 0 auto;
+  width: 46%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+}
+.reward-balance h2 { color: #f6d7af; font-size: 14px; margin-bottom: 4px; }
+.reward-balance strong {
+  color: #ffdf9d;
+  font-size: clamp(27px, 9vw, 45px);
+  line-height: 1.12;
+  font-variant-numeric: tabular-nums;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+.reward-panel { display: grid; gap: 9px; padding: 13px; color: var(--text); }
+.reward-target strong { display: block; font-size: 15px; }
+.reward-target em { color: #ffca79; font-size: clamp(20px, 6vw, 28px); font-style: normal; }
 .reward-cta:hover:not(:disabled) { background: var(--primary-hover); }
-.reward-panel .reward-cta { width: 100%; }
-.reward-progress { appearance: none; width: 100%; height: 12px; border: 0; border-radius: 12px; overflow: hidden; background: var(--surface-recessed); accent-color: var(--accent); }
-.reward-progress::-webkit-progress-bar { background: var(--surface-recessed); }
-.reward-progress::-webkit-progress-value { background: var(--primary); border-radius: 12px; }
-.reward-progress::-moz-progress-bar { background: var(--primary); border-radius: 12px; }
-.reward-options { display: flex; flex-wrap: wrap; gap: 3px 7px; justify-content: center; }
-.reward-options button { min-height: 39px; padding: 5px 9px; border-radius: 9px; background: var(--surface-highlight); color: var(--accent); font-size: 12px; font-weight: 750; }
-.reward-options button:hover:not(:disabled) { background: var(--surface-recessed); }
+.reward-panel .reward-cta {
+  width: 100%;
+  min-height: 44px;
+  gap: 6px;
+  border-radius: 9px;
+  background: linear-gradient(#ffd18b, #f4a251);
+}
+.reward-progress { appearance: none; width: 100%; height: 8px; border: 0; border-radius: 12px; overflow: hidden; background: #533a3a; accent-color: #ffbd70; }
+.reward-progress::-webkit-progress-bar { background: #533a3a; }
+.reward-progress::-webkit-progress-value { background: linear-gradient(90deg, #eb8351, #ffca75); border-radius: 12px; }
+.reward-progress::-moz-progress-bar { background: linear-gradient(90deg, #eb8351, #ffca75); }
+.reward-progress-values { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px; color: var(--muted); font-size: 12px; }
+.reward-options { display: flex; flex-wrap: wrap; gap: 2px 12px; justify-content: center; }
+.reward-options button { min-height: 38px; padding: 4px; color: #ffdaaf; font-size: 12px; font-weight: 650; }
+.reward-options button:hover:not(:disabled) { text-decoration: underline; }
 .reward-panel input { background: var(--surface-recessed); border-color: var(--control-line); }
+.reward-panel .reward-cta svg, .reward-credit svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
+.reward-credit { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; border-color: #63443d; background: #261d1e; }
+.reward-credit > span { display: grid; min-width: 0; overflow-wrap: anywhere; }
+.reward-credit > strong, .reward-credit svg { color: #ffd296; }
+.reward-credit small { color: var(--muted); }
+.reward-rules-action { min-height: 35px; }
 .reward-rules { border-color: var(--line); }
 .reward-rules summary { min-height: 27px; color: var(--highlight); font-weight: 800; cursor: pointer; }
 .reward-rules p { color: var(--muted); font-size: 12px; line-height: 1.75; }

@@ -296,7 +296,8 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg>
         </button>
         <h1>{{ viewRoute.path === '/' ? copy.favorites : viewTitle }}</h1>
-        <div v-if="viewRoute.path === '/rescue-fund'" id="rescue-fund-actions" class="page-action"></div>
+        <div v-if="viewRoute.path === '/red-packets'" id="red-packet-actions" class="page-action"></div>
+        <div v-else-if="viewRoute.path === '/rescue-fund'" id="rescue-fund-actions" class="page-action"></div>
         <a v-else-if="recordsLink" class="page-action page-records-link" :href="'#' + recordsLink[0]"
            @click.prevent="go(recordsLink[0])">{{ t(recordsLink[1]) }}</a>
         <a v-else class="page-home" href="#/" :aria-label="t('返回首页')" @click.prevent="go('/')">✦</a>
