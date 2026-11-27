@@ -36,7 +36,6 @@ const pixComplete = computed(() => Boolean(account.value?.cpf && account.value?.
 const inviteInput = ref(null)
 const linkVisible = ref(false)
 const reveal = ref(null)
-const rulesDetails = ref(null)
 let revealTimer
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 const statuses = { pending: '待审核', processing: '处理中', paid: '已到账', rejected: '未通过', cancelled: '已取消，款项已退回', failed: '提现失败', unresolved: '结果待确认' }
@@ -270,12 +269,6 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
 </script>
 
 <template>
-  <Teleport v-if="isHome && pageCopy?.rules_html" to="#red-packet-actions">
-    <button class="quiet reward-rules-action" type="button"
-            @click="rulesDetails.open = true; rulesDetails.scrollIntoView({ block: 'nearest' })">
-      {{ t('规则', 'Regras') }}
-    </button>
-  </Teleport>
   <div class="member-page" :class="{ 'reward-page': isHome }" :aria-busy="loading">
     <template v-if="isHome">
       <section v-if="packets && !round" class="reward-opening" :data-phase="reveal ? 'reveal' : working ? 'waiting' : 'idle'">
@@ -339,7 +332,7 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
       </section>
 
       <section v-if="pageCopy?.rules_html" class="surface stack reward-rules">
-        <details ref="rulesDetails" open>
+        <details open>
           <summary>{{ t(pageCopy.rules_title) }}</summary>
           <div class="reward-rule-copy" v-html="t(pageCopy.rules_html)"></div>
         </details>

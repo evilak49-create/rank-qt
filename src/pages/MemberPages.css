@@ -189,7 +189,6 @@
 .reward-credit > span { display: grid; min-width: 0; overflow-wrap: anywhere; }
 .reward-credit > strong, .reward-credit svg { color: #ffd296; }
 .reward-credit small { color: var(--muted); }
-.reward-rules-action { min-height: 35px; }
 .reward-rules { border-color: var(--line); }
 .reward-rules summary { min-height: 27px; color: var(--highlight); font-weight: 800; cursor: pointer; }
 .reward-rules p { color: var(--muted); font-size: 12px; line-height: 1.75; }
