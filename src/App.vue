@@ -22,6 +22,9 @@ import CashbackPage from './pages/CashbackPage.vue'
 import PlatformPages from './pages/PlatformPages.vue'
 import ShopPages from './pages/ShopPages.vue'
 import MemberPages from './pages/MemberPages.vue'
+import PwaInstallBanner from './PwaInstallBanner.vue'
+import PwaOfflineNotice from './PwaOfflineNotice.vue'
+import { usePwa } from './pwa'
 
 const route = currentRoute
 const member = ref(null)
@@ -32,6 +35,7 @@ const authPhone = ref('')
 const accountNotice = ref('')
 const language = ref('zh-CN')
 const { t } = provideLocale(language)
+const { settings: pwaSettings, standalone, installPrompt } = usePwa()
 let sessionVersion = 0
 const navbar = {
   '/': 'home', '/platforms': 'platforms', '/shop': 'shop', '/red-packets': 'redPackets', '/member': 'member',
@@ -78,6 +82,11 @@ try {
   const preference = localStorage.getItem('cash-club-language')
   if (Object.hasOwn(homeCopy, preference)) language.value = preference
 } catch {}
+const installParams = new URLSearchParams(location.search)
+const installLanguage = installParams.get('pwa-lang')
+if (installParams.get('install-pwa') === '1' && Object.hasOwn(homeCopy, installLanguage)) {
+  language.value = installLanguage
+}
 
 const copy = computed(() => homeCopy[language.value])
 const auth = computed(() => Object.hasOwn(authTitles, route.value.path))
@@ -291,6 +300,8 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
 </script>
 
 <template>
+  <PwaInstallBanner v-if="viewRoute.path === '/' && !standalone" :settings="pwaSettings"
+                    :locale="language" :prompt="installPrompt" @consume-prompt="installPrompt = null" />
   <HomePage v-if="viewRoute.path === '/' && viewReady" :route="viewRoute" :language="language" :copy="copy" :member="member" :card-bindings="cardBindings"
             @language="language = $event" />
   <template v-else>
@@ -351,4 +362,5 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
   </dialog>
   <DataLoading :language="language" />
   <FeedbackDialog :language="language" />
+  <PwaOfflineNotice :locale="language" :message="pwaSettings?.copy[language]?.offline" />
 </template>

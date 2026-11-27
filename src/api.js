@@ -23,12 +23,8 @@ function responseKey(path) {
 
 function canCache(path) {
   const resource = path.split('?', 1)[0]
-  return !resource.startsWith('/auth/')
-    && resource !== '/health'
-    && resource !== '/support/conversation'
-    && !resource.startsWith('/red-packets/')
-    && !resource.startsWith('/point-quotes/')
-    && !/^\/(?:platform-bindings|protection\/(?:bindings|claims)|platform-funds\/orders|pix-withdrawals|pix-account|cash-wallet|rescue-fund|cashback)(?:\/|$)/.test(resource)
+  return resource.startsWith('/content/')
+    || /^\/(?:platforms(?:\/featured|\/\d+(?:\/(?:point-rule|reviews|protection-terms))?)?|shop\/products(?:\/\d+)?)$/.test(resource)
 }
 
 export async function api(path, options = {}) {
@@ -36,6 +32,7 @@ export async function api(path, options = {}) {
   const key = method === 'GET' && canCache(path) ? responseKey(path) : ''
   const writes = method !== 'GET' && !queryPosts.has(path)
   options.signal?.throwIfAborted()
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('当前网络不可用，请联网后重试')
 
   if (key && !options.fresh && !writesInProgress && responses.has(key)) {
     return structuredClone(responses.get(key))
