@@ -5,8 +5,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { api, imageUrl } from './api'
 import heroArt from './assets/home-banner-gold.jpg'
 import brandLogo from './assets/pingji-logo.svg'
-import redPacketEntry from './assets/red-packet-entry.png'
-import { formatBrl } from './money.js'
+import HomeRedPacketEntry from './HomeRedPacketEntry.vue'
 import PlatformCard from './PlatformCard.vue'
 import { icons } from './icons'
 import { go } from './navigation'
@@ -180,11 +179,7 @@ function copyTextForError() { return props.copy.error }
     </section>
   </main>
 
-  <a v-if="redPacketBalance !== null" class="home-red-packet-entry" href="#/red-packets"
-     :aria-label="t('我的红包') + ' · ' + formatBrl(redPacketBalance)" @click.prevent="go('/red-packets')">
-    <strong>{{ formatBrl(redPacketBalance) }}</strong>
-    <img :src="redPacketEntry" width="63" height="63" alt="">
-  </a>
+  <HomeRedPacketEntry v-if="redPacketBalance !== null" :balance="redPacketBalance" />
 
   <dialog ref="localeSheet" class="locale-sheet" aria-labelledby="locale-title" @click.self="localeSheet.close()">
     <div class="locale-panel">
