@@ -97,7 +97,9 @@ const date = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: '
 const ruleNumbers = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 6 }))
 const scoreNumbers = computed(() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
 const platformScore = computed(() => platform.value?.rating == null ? '—' : scoreNumbers.value.format(platform.value.rating))
-const maxRebate = computed(() => formatRule(platform.value?.max_rebate_percent, '%', ''))
+const maxRebate = computed(() => formatRule(
+  platform.value?.estimated_rebate_percent ?? platform.value?.max_rebate_percent, '%', '',
+))
 const rebateWager = computed(() => formatRule(platform.value?.min_rebate_wager_multiplier, '×', ''))
 const platformDescription = computed(() => platform.value?.description?.trim())
 const activeBinding = computed(() => ownBindings.value.find(item => String(item.platform_id) === String(selected.value?.id)))
