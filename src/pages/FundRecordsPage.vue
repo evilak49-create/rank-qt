@@ -7,11 +7,13 @@ import { useLocale } from '../locale.js'
 import { formatBrl } from '../money'
 import MemberPagination from './MemberPagination.vue'
 
+const props = defineProps({ route: { type: Object, required: true } })
 const { locale, t } = useLocale()
+const rescueRecords = props.route.path === '/rescue-fund/records'
 const records = ref(null)
 const loading = ref(true)
 const loadFailed = ref(false)
-const source = ref('')
+const source = ref(rescueRecords ? 'rescue_fund' : '')
 const dates = ref({ date_from: '', date_to: '' })
 const typePicker = ref(null)
 let request
@@ -89,15 +91,15 @@ onUnmounted(() => request?.abort())
 </script>
 
 <template>
-  <section class="stack fund-records" :aria-label="t('资金明细')" :aria-busy="loading">
-    <button class="fund-filter" type="button" aria-haspopup="dialog" @click="typePicker.showModal()">
+  <section class="stack fund-records" :aria-label="t(rescueRecords ? '救援金领取记录' : '资金明细')" :aria-busy="loading">
+    <button v-if="!rescueRecords" class="fund-filter" type="button" aria-haspopup="dialog" @click="typePicker.showModal()">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16l-6 7v5l-4 2v-7z" /></svg>
       <span class="fund-filter-label">{{ t('资金类型', 'Tipo de movimentação') }}</span>
       <strong>{{ filterLabel(source) }}</strong>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
     </button>
     <RecordDateFilter :date-from="dates.date_from" :date-to="dates.date_to" @change="filterDates" />
-    <dialog ref="typePicker" class="locale-sheet fund-type-sheet" aria-labelledby="fund-type-title" @click.self="typePicker.close()">
+    <dialog v-if="!rescueRecords" ref="typePicker" class="locale-sheet fund-type-sheet" aria-labelledby="fund-type-title" @click.self="typePicker.close()">
       <div class="locale-panel">
         <div class="locale-heading">
           <h2 id="fund-type-title">{{ t('选择资金类型', 'Selecione o tipo de movimentação') }}</h2>
@@ -114,10 +116,13 @@ onUnmounted(() => request?.abort())
       </div>
     </dialog>
     <div v-if="!loading && loadFailed" class="state">
-      <p>{{ t('暂时无法读取资金明细，请重试。', 'Não foi possível consultar as movimentações. Tente novamente.') }}</p>
+      <p>{{ rescueRecords
+        ? t('暂时无法读取领取记录，请重试。', 'Não foi possível consultar o histórico de auxílio. Tente novamente.')
+        : t('暂时无法读取资金明细，请重试。', 'Não foi possível consultar as movimentações. Tente novamente.') }}</p>
       <button class="text-button" type="button" @click="load(requestedPage)">{{ t('重试') }}</button>
     </div>
-    <EmptyState v-else-if="!loading && !records?.data.length" :message="t('暂无资金明细。', 'Nenhuma movimentação registrada.')" />
+    <EmptyState v-else-if="!loading && !records?.data.length"
+      :message="rescueRecords ? t('暂无救援金领取记录。', 'Nenhum auxílio recebido neste período.') : t('暂无资金明细。', 'Nenhuma movimentação registrada.')" />
     <template v-else-if="!loading">
       <ul class="surface fund-entries">
         <li v-for="entry in records.data" :key="entry.id" class="fund-entry">

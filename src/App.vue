@@ -47,6 +47,7 @@ const pages = [
   [/^\/cashback\/records$/, '返利记录', CashbackPage, true],
   [/^\/cashback\/\d+$/, '返利明细', CashbackPage, true],
   [/^\/rescue-fund$/, '救援金', RescueFundPage, true],
+  [/^\/rescue-fund\/records$/, '救援金领取记录', FundRecordsPage, true],
   [/^\/bindings$/, '绑定平台', PlatformPages, true],
   [/^\/bindings\/\d+$/, '绑定详情', PlatformPages, true],
   [/^\/shop$/, '兑换', ShopPages],
@@ -120,7 +121,7 @@ const recordsLinks = {
   '/protection': ['/protection/claims', '申诉记录'],
 }
 const recordsLink = computed(() => recordsLinks[viewRoute.value.path])
-const dateFilterPaths = new Set(['/fund-records', '/withdrawal-history', '/cashback/records', '/protection/claims', '/shop/redemptions'])
+const dateFilterPaths = new Set(['/fund-records', '/withdrawal-history', '/cashback/records', '/protection/claims', '/shop/redemptions', '/rescue-fund/records'])
 const dateFilterHeader = computed(() => viewReady.value && dateFilterPaths.has(viewRoute.value.path))
 const ready = computed(() => !requiresSession.value || (sessionState.value === 'ready' && Boolean(member.value)))
 const viewReady = computed(() => (auth.value || ready.value) &&
@@ -271,6 +272,7 @@ function fallback() {
   if (path.startsWith('/shop/redemptions/')) return '/shop/redemptions'
   if (path.startsWith('/shop/')) return '/shop'
   if (path.startsWith('/cashback/')) return '/cashback'
+  if (path === '/rescue-fund/records') return '/rescue-fund'
   if (path.startsWith('/bindings/')) return '/binding'
   if (/^\/protection\/claims\/\d+$/.test(path)) return '/protection/claims'
   if (path.startsWith('/protection/')) return '/protection'

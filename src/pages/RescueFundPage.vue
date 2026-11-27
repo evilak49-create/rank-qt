@@ -6,6 +6,7 @@ import { useLocale } from '../locale.js'
 import { formatBrl } from '../money'
 import { showNotice } from '../feedback'
 import { createRequestId } from '../requestId.js'
+import { go } from '../navigation'
 
 const props = defineProps({ member: Object })
 const emit = defineEmits(['refresh-member'])
@@ -123,7 +124,10 @@ onUnmounted(() => {
 
 <template>
   <Teleport to="#rescue-fund-actions">
-    <button class="text-button rescue-rules-trigger" type="button" aria-haspopup="dialog" @click="rules.showModal()">{{ t('领取规则') }}</button>
+    <div class="rescue-header-actions">
+      <button class="text-button rescue-rules-trigger" type="button" aria-haspopup="dialog" @click="rules.showModal()">{{ t('领取规则') }}</button>
+      <a class="page-records-link" href="#/rescue-fund/records" @click.prevent="go('/rescue-fund/records')">{{ t('领取记录') }}</a>
+    </div>
   </Teleport>
 
   <div class="member-page rescue-fund-page">
@@ -190,7 +194,8 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.rescue-rules-trigger { color: var(--highlight); font-size: 13px; white-space: nowrap; }
+.rescue-header-actions { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.rescue-rules-trigger { min-height: 44px; padding-inline: 2px; color: var(--muted); font-size: 12px; }
 .rescue-fund-page > .stack { gap: 10px; }
 .rescue-fund-page .error { padding-inline: 2px; }
 .rescue-card-heading { display: flex; align-items: center; gap: 10px; }

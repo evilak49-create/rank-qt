@@ -6,6 +6,8 @@ export const portuguese = {
   "资金记录": "Movimentações financeiras",
   "资金明细": "Detalhes das movimentações",
   "领取规则": "Regras",
+  "领取记录": "Histórico",
+  "救援金领取记录": "Histórico de auxílio",
   "可领取的平台": "Plataformas com auxílio disponível",
   "暂无可领取救援金的平台。": "Nenhuma plataforma com auxílio disponível no momento.",
   "暂时无法读取救援金，请重试。": "Não foi possível consultar o auxílio. Tente novamente.",
