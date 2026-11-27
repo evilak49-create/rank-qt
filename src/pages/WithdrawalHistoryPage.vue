@@ -1,5 +1,6 @@
 <script setup>
 import EmptyState from '../EmptyState.vue'
+import RecordDateFilter from '../RecordDateFilter.vue'
 import { useLocale } from '../locale.js'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../api'
@@ -13,6 +14,7 @@ const records = ref(null)
 const loading = ref(true)
 const error = ref('')
 const requestedPage = ref(1)
+const dates = ref({ date_from: '', date_to: '' })
 const legacySource = ref(null)
 let request
 
@@ -34,11 +36,15 @@ function statusLabel(order) {
 
 function formatDate(value) {
   const date = value ? new Date(value) : null
-  return date && Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'short' }).format(date) : '—'
+  return date && Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(date) : '—'
 }
 
 async function fetchOrders(page, signal) {
-  const query = '?' + new URLSearchParams({ page })
+  const params = new URLSearchParams({ page })
+  for (const [key, value] of Object.entries(dates.value)) {
+    if (value) params.set(key, value)
+  }
+  const query = '?' + params
   const options = { signal, fresh: true }
   if (!legacySource.value) {
     try {
@@ -64,6 +70,12 @@ async function fetchOrders(page, signal) {
 function selectSource(source) {
   if (source === legacySource.value) return
   legacySource.value = source
+  records.value = null
+  load()
+}
+
+function filterDates(range) {
+  dates.value = range
   records.value = null
   load()
 }
@@ -96,6 +108,7 @@ watchNotice(error, '提现订单加载失败', 'error')
       <button v-for="source in ['balance', 'red_packet']" :key="source" type="button"
               :aria-pressed="legacySource === source" @click="selectSource(source)">{{ t(sources[source]) }}</button>
     </div>
+    <RecordDateFilter :date-from="dates.date_from" :date-to="dates.date_to" @change="filterDates" />
     <button v-if="error" class="quiet" type="button" @click="load(requestedPage)">{{ t('重新获取订单') }}</button>
     <template v-else-if="records">
       <EmptyState v-if="!records.data.length" class="withdrawal-empty" :message="t('暂无提现订单。')" />

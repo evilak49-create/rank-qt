@@ -1,5 +1,6 @@
 <script setup>
 import EmptyState from '../EmptyState.vue'
+import RecordDateFilter from '../RecordDateFilter.vue'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../api'
 import { useLocale } from '../locale.js'
@@ -11,6 +12,7 @@ const records = ref(null)
 const loading = ref(true)
 const loadFailed = ref(false)
 const source = ref('')
+const dates = ref({ date_from: '', date_to: '' })
 const typePicker = ref(null)
 let request
 let requestedPage = 1
@@ -39,6 +41,11 @@ function selectSource(value) {
   load()
 }
 
+function filterDates(range) {
+  dates.value = range
+  load()
+}
+
 function sourceLabel(value) {
   return t(...(Object.hasOwn(labels, value) ? labels[value] : ['其他资金变动', 'Outra movimentação']))
 }
@@ -46,7 +53,7 @@ function sourceLabel(value) {
 function formatDate(value) {
   const date = value ? new Date(value) : null
   return date && Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'short' }).format(date)
+    ? new Intl.DateTimeFormat(locale.value, { dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(date)
     : '—'
 }
 
@@ -61,6 +68,9 @@ async function load(page = 1) {
   const { signal } = request
   const query = new URLSearchParams({ page })
   if (source.value) query.set('source', source.value)
+  for (const [key, value] of Object.entries(dates.value)) {
+    if (value) query.set(key, value)
+  }
   requestedPage = page
   loading.value = true
   loadFailed.value = false
@@ -86,6 +96,7 @@ onUnmounted(() => request?.abort())
       <strong>{{ filterLabel(source) }}</strong>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
     </button>
+    <RecordDateFilter :date-from="dates.date_from" :date-to="dates.date_to" @change="filterDates" />
     <dialog ref="typePicker" class="locale-sheet fund-type-sheet" aria-labelledby="fund-type-title" @click.self="typePicker.close()">
       <div class="locale-panel">
         <div class="locale-heading">

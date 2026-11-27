@@ -1,5 +1,6 @@
 <script setup>
 import EmptyState from '../EmptyState.vue'
+import RecordDateFilter from '../RecordDateFilter.vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
 import { watchNotice } from '../feedback'
@@ -100,7 +101,14 @@ async function load(page = 1, background = false) {
     previews.value = {}
   }
   try {
-    const resource = isHistory ? '/cashback/history?page=' + page
+    const historyQuery = new URLSearchParams({ page })
+    if (isHistory) {
+      for (const key of ['date_from', 'date_to']) {
+        const value = props.route.query.get(key)
+        if (value) historyQuery.set(key, value)
+      }
+    }
+    const resource = isHistory ? '/cashback/history?' + historyQuery
       : bindingId ? '/cashback/' + bindingId : '/cashback?page=' + page
     const response = await api(resource, { signal, background })
     if (signal.aborted) return
@@ -121,6 +129,22 @@ async function load(page = 1, background = false) {
   }
 }
 
+function routePage() {
+  const page = Number(props.route.query.get('page'))
+  return Number.isSafeInteger(page) && page > 0 ? page : 1
+}
+
+function goHistoryPage(page, dates = {}) {
+  const params = new URLSearchParams(props.route.query)
+  for (const [key, value] of Object.entries(dates)) {
+    if (value) params.set(key, value)
+    else params.delete(key)
+  }
+  if (page > 1) params.set('page', page)
+  else params.delete('page')
+  go('/cashback/records' + (params.size ? '?' + params : ''), { replace: true })
+}
+
 function tick() {
   currentTime.value = Date.now() + clockOffset
   if (refreshAt && currentTime.value >= refreshAt && !document.hidden) {
@@ -135,8 +159,8 @@ watch(() => props.route.key, () => {
     go('/cashback/' + legacyBinding, { replace: true })
     return
   }
-  const page = Number(props.route.query.get('page'))
-  load(Number.isSafeInteger(page) && page > 0 ? page : 1)
+  if (isHistory) results.value = null
+  load(routePage())
 }, { immediate: true })
 onMounted(() => {
   if (!isHistory) timer = window.setInterval(tick, 1000)
@@ -150,7 +174,9 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
 
 <template>
   <section class="cashback-page stack" :aria-busy="loading">
-    <button v-if="error" class="quiet" type="button" @click="load(results?.current_page || 1)">{{ t('重试') }}</button>
+    <RecordDateFilter v-if="isHistory" :date-from="route.query.get('date_from') ?? ''"
+      :date-to="route.query.get('date_to') ?? ''" @change="goHistoryPage(1, $event)" />
+    <button v-if="error" class="quiet" type="button" @click="load(isHistory ? routePage() : results?.current_page || 1)">{{ t('重试') }}</button>
 
     <template v-else-if="isHistory && results">
       <ul v-if="results.data.length" class="cashback-records">
@@ -164,7 +190,7 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
         </li>
       </ul>
       <EmptyState v-else :message="t('暂无返利记录。', 'Nenhum cashback registrado.')" />
-      <MemberPagination :page="results" :busy="loading" @page="load" />
+      <MemberPagination :page="results" :busy="loading" @page="goHistoryPage" />
     </template>
 
     <template v-else-if="bindingId && detail">

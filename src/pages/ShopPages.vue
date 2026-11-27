@@ -5,6 +5,7 @@ const submissions = new Map()
 
 <script setup>
 import EmptyState from '../EmptyState.vue'
+import RecordDateFilter from '../RecordDateFilter.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api, imageUrl } from '../api'
 import PlatformCard from '../PlatformCard.vue'
@@ -21,7 +22,7 @@ const statusLabels = computed(() => ({
   pending: t('待处理', 'Pendente'), cancelled: t('已取消', 'Cancelado'), processing: t('处理中', 'Em processamento'),
   paid: t('已到账', 'Creditado'), rejected: t('已驳回', 'Recusado'), failed: t('兑换失败', 'Falha no resgate'), unresolved: t('待核实', 'Aguardando verificação'),
 }))
-const calendar = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }))
+const calendar = computed(() => new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Sao_Paulo' }))
 const mode = computed(() => {
   const { path, params } = props.route
   if (path === '/shop') return 'catalog'
@@ -95,9 +96,22 @@ function catalogPage() {
 }
 
 const platformOrders = '/platform-funds/orders'
+const historyDateFrom = computed(() => props.route.query.get('date_from') || '')
+const historyDateTo = computed(() => props.route.query.get('date_to') || '')
+
+function historyDateQuery(dateFrom, dateTo) {
+  const query = new URLSearchParams()
+  if (dateFrom) query.set('date_from', dateFrom)
+  if (dateTo) query.set('date_to', dateTo)
+  return query.size ? '?' + query : ''
+}
+
+function applyHistoryDates({ date_from, date_to }) {
+  go('/shop/redemptions' + historyDateQuery(date_from, date_to))
+}
 
 function historyPage() {
-  return fetchList(history.value, platformOrders, controller.signal, true)
+  return fetchList(history.value, platformOrders + historyDateQuery(historyDateFrom.value, historyDateTo.value), controller.signal, true)
 }
 
 function refreshHistory() {
@@ -318,6 +332,7 @@ watchNotice(() => history.value?.error, () => t('兑换记录加载失败', 'Nã
     <template v-else-if="mode === 'history'">
       <div v-if="!member" class="surface stack"><p>{{ t('请登录查看兑换记录。', 'Entre para consultar seu histórico de resgates.') }}</p><button class="primary" @click="login">{{ t('登录', 'Entrar') }}</button></div>
       <template v-else-if="history">
+        <RecordDateFilter :date-from="historyDateFrom" :date-to="historyDateTo" @change="applyHistoryDates" />
         <button class="quiet" :disabled="history.loading" @click="refreshHistory">{{ refreshLabel }}</button>
         <div v-if="history.items.length" class="row-list shop-records">
           <button v-for="item in history.items" :key="item.id" class="surface shop-record" @click="go(redemptionPath(item.id))">

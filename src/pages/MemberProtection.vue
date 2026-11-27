@@ -1,5 +1,6 @@
 <script setup>
 import EmptyState from '../EmptyState.vue'
+import RecordDateFilter from '../RecordDateFilter.vue'
 import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
@@ -44,16 +45,20 @@ const currentBindings = computed(() => {
 let requestId
 let previousSubmission
 
-function date(value) {
-  return value ? new Date(value).toLocaleString(locale.value) : '—'
+function date(value, timeZone) {
+  return value ? new Date(value).toLocaleString(locale.value, { timeZone }) : '—'
 }
 
 function showError(failure) {
   error.value = Object.values(failure.errors ?? {}).flat()[0] || failure.message
 }
 
-function goPage(key, page) {
+function goPage(key, page, dates = {}) {
   const params = new URLSearchParams(props.route.query)
+  for (const [name, value] of Object.entries(dates)) {
+    if (value) params.set(name, value)
+    else params.delete(name)
+  }
   if (page === 1) params.delete(key)
   else params.set(key, page)
   go(path + (params.size ? '?' + params : ''), { replace: true })
@@ -75,7 +80,12 @@ async function load() {
         selectedBinding.value?.scrollIntoView({ block: 'nearest' })
       }
     } else if (isClaims) {
-      cases.value = await api('/protection/claims?page=' + (Number(props.route.query.get('page')) || 1))
+      const params = new URLSearchParams({ page: Number(props.route.query.get('page')) || 1 })
+      for (const key of ['date_from', 'date_to']) {
+        const value = props.route.query.get(key)
+        if (value) params.set(key, value)
+      }
+      cases.value = await api('/protection/claims?' + params)
     } else if (isNew && bindingId) {
       item.value = (await api('/platform-bindings/' + bindingId)).data
     } else if (isTerms) {
@@ -172,17 +182,19 @@ watchNotice(() => evidenceError.value ? '部分凭证图片无法读取，请重
       </section>
     </template>
 
-    <section v-else-if="isClaims && !loading && !error" class="surface stack" :aria-label="t('申诉记录')">
-      <ul v-if="cases?.data.length" class="row-list">
+    <section v-else-if="isClaims" class="surface stack" :aria-label="t('申诉记录')">
+      <RecordDateFilter :date-from="route.query.get('date_from') ?? ''" :date-to="route.query.get('date_to') ?? ''"
+        @change="goPage('page', 1, $event)" />
+      <ul v-if="!loading && !error && cases?.data.length" class="row-list">
         <li v-for="record in cases.data" :key="record.id">
           <button type="button" @click="go('/protection/claims/' + record.id)">
-            <span><strong>{{ record.platform_name }}</strong><small>{{ date(record.created_at) }}</small></span>
+            <span><strong>{{ record.platform_name }}</strong><small>{{ date(record.created_at, 'America/Sao_Paulo') }}</small></span>
             <span>{{ brl.format(record.amount_cents / 100) }}<small>{{ caseStatus(record.case_status) }} ›</small></span>
           </button>
         </li>
       </ul>
-      <EmptyState v-else-if="cases" :message="t('暂无申诉记录。')" />
-      <MemberPagination :page="cases" :busy="loading" @page="goPage('page', $event)" />
+      <EmptyState v-else-if="!loading && !error && cases" :message="t('暂无申诉记录。')" />
+      <MemberPagination v-if="!error" :page="cases" :busy="loading" @page="goPage('page', $event)" />
     </section>
 
     <ProtectionContract v-else-if="isTerms && !loading && !error" :terms="item" />
