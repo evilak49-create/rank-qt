@@ -107,14 +107,33 @@ function clearDates() {
 }
 
 .record-date-filter__dialog {
-  width: min(360px, calc(100% - 28px));
-  max-height: calc(100vh - 28px);
+  position: fixed;
+  inset: auto 0 0;
+  width: min(100%, 480px);
+  max-width: none;
+  max-height: calc(100vh - 12px);
+  max-height: calc(100dvh - max(12px, env(safe-area-inset-top)));
+  margin: 0 auto;
   padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--line-strong);
-  border-radius: 16px;
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 20px 55px var(--shadow);
+  box-shadow: 0 -14px 55px var(--shadow);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .record-date-filter__dialog[open] {
+    animation: record-date-slide-in 220ms ease-out both;
+  }
+
+  @keyframes record-date-slide-in {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
 }
 
 .record-date-filter__dialog::backdrop {
@@ -123,9 +142,9 @@ function clearDates() {
 
 .record-date-filter {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
-  padding: 12px;
+  padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
 }
 
 .record-date-filter__header,
