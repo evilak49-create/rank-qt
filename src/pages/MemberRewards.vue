@@ -1,6 +1,5 @@
 <script setup>
 import EmptyState from '../EmptyState.vue'
-import RecordDateFilter from '../RecordDateFilter.vue'
 import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -90,15 +89,8 @@ function clearAttempt(key) {
   try { sessionStorage.removeItem(key) } catch {}
 }
 
-function pageLink(page, dates = {}) {
-  const params = new URLSearchParams(props.route.query)
-  for (const [key, value] of Object.entries(dates)) {
-    if (value) params.set(key, value)
-    else params.delete(key)
-  }
-  if (page > 1) params.set('page', page)
-  else params.delete('page')
-  go(path + (params.size ? '?' + params : ''), { replace: true })
+function pageLink(page) {
+  go(path + (page > 1 ? '?page=' + page : ''), { replace: true })
 }
 
 function bindPix() {
@@ -116,12 +108,7 @@ async function load() {
       packets.value = (await api(home, { fresh: true })).data
       if (round.value) clearAttempt(openKey)
     } else if (isInvites) {
-      const params = new URLSearchParams({ page })
-      for (const key of ['date_from', 'date_to']) {
-        const value = props.route.query.get(key)
-        if (value) params.set(key, value)
-      }
-      records.value = await api(home + '/invites?' + params)
+      records.value = await api(home + '/invites?page=' + page)
     } else if (isPix) {
       account.value = (await api('/pix-account')).data
       if ((next === '/cash-wallet/withdraw' || next === withdraw) && !pixComplete.value) editPix()
@@ -398,8 +385,6 @@ watchNotice(info, text => text?.startsWith(t('已拆开红包，初始奖励 '))
     </section>
 
     <section v-else-if="isInvites" class="surface stack">
-      <RecordDateFilter :date-from="route.query.get('date_from') ?? ''" :date-to="route.query.get('date_to') ?? ''"
-        @change="pageLink(1, $event)" />
       <table v-if="records?.data.length" class="member-invite-table">
         <thead>
           <tr>

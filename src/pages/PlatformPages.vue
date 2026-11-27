@@ -5,7 +5,6 @@ const directoryCache = new Map()
 <script setup>
 import { protectionStatusLabel } from '../protectionStatus.js'
 import EmptyState from '../EmptyState.vue'
-import RecordDateFilter from '../RecordDateFilter.vue'
 import { createRequestId } from '../requestId.js'
 import { useLocale } from '../locale.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -48,7 +47,6 @@ const reviewsLoading = ref(false)
 const reviewListError = ref('')
 const reviewPage = ref(1)
 const reviewLastPage = ref(1)
-const reviewDates = ref(emptyDates())
 const favorite = ref(false)
 const favoriteLoading = ref(false)
 const tab = ref('reviews')
@@ -76,7 +74,6 @@ const highlighted = ref(-1)
 const ownBindings = ref([])
 const bindingPage = ref(1)
 const bindingLastPage = ref(1)
-const bindingDates = ref(emptyDates())
 const bindingsLoading = ref(false)
 const bindingListError = ref('')
 const bindingDetail = ref(null)
@@ -369,23 +366,12 @@ function choose(item) {
   status.value = ''
 }
 
-function emptyDates() {
-  return { date_from: '', date_to: '' }
-}
-
-function pageQuery(page, dates) {
-  const params = new URLSearchParams({ page })
-  if (dates?.date_from) params.set('date_from', dates.date_from)
-  if (dates?.date_to) params.set('date_to', dates.date_to)
-  return params
-}
-
-async function loadBindings(signal, { allPages = false, throughPage = 1, page = 1, dates } = {}) {
+async function loadBindings(signal, { allPages = false, throughPage = 1, page = 1 } = {}) {
   const items = []
   let currentPage = page
   let result
   do {
-    result = await api('/platform-bindings?' + pageQuery(currentPage, dates), { signal, fresh: screen.value === 'bind' || screen.value === 'bindings' })
+    result = await api('/platform-bindings?page=' + currentPage, { signal, fresh: screen.value === 'bind' || screen.value === 'bindings' })
     items.push(...result.data)
     currentPage++
   } while (currentPage <= result.last_page && (allPages || currentPage <= throughPage))
@@ -398,7 +384,7 @@ async function loadBindings(signal, { allPages = false, throughPage = 1, page = 
 function saveBindingProgress() {
   history.replaceState({
     ...history.state,
-    platformBindingProgress: { memberId: props.member.id, page: bindingPage.value, dates: { ...bindingDates.value } },
+    platformBindingProgress: { memberId: props.member.id, page: bindingPage.value },
   }, '')
 }
 
@@ -410,7 +396,7 @@ async function loadBindingList(page = 1, throughPage = page) {
   bindingsLoading.value = true
   bindingListError.value = ''
   try {
-    await loadBindings(signal, { page, throughPage, dates: bindingDates.value })
+    await loadBindings(signal, { page, throughPage })
     if (!signal.aborted && props.route.key === routeKey) {
       saveBindingProgress()
       if (throughPage > 1 && page === 1) {
@@ -425,23 +411,6 @@ async function loadBindingList(page = 1, throughPage = page) {
   }
 }
 
-function filterBindings(dates) {
-  bindingDates.value = dates
-  ownBindings.value = []
-  bindingPage.value = 1
-  bindingLastPage.value = 1
-  saveBindingProgress()
-  loadBindingList()
-}
-
-function filterReviews(dates) {
-  reviewDates.value = dates
-  reviews.value = []
-  reviewPage.value = 1
-  reviewLastPage.value = 1
-  loadPlatformReviews(1)
-}
-
 async function loadPlatformReviews(page, path = platformPath.value) {
   reviewsRequest?.abort()
   reviewsRequest = new AbortController()
@@ -449,7 +418,7 @@ async function loadPlatformReviews(page, path = platformPath.value) {
   reviewsLoading.value = true
   reviewListError.value = ''
   try {
-    const result = await api(path + '/reviews?' + pageQuery(page, reviewDates.value), { signal })
+    const result = await api(path + '/reviews?page=' + page, { signal })
     if (signal.aborted) return
     reviews.value = page === 1 ? result.data : [...reviews.value, ...result.data]
     reviewPage.value = result.current_page
@@ -496,11 +465,9 @@ async function initialize() {
   ownBindings.value = []
   bindingPage.value = 1
   bindingLastPage.value = 1
-  bindingDates.value = emptyDates()
   bindingsLoading.value = false
   bindingListError.value = ''
   reviews.value = []
-  reviewDates.value = emptyDates()
   reviewsLoading.value = false
   reviewListError.value = ''
   reviewPage.value = 1
@@ -552,7 +519,6 @@ async function initialize() {
     } else if (mode === 'bindings') {
       const progress = history.state?.platformBindingProgress
       const ownProgress = progress?.memberId === props.member.id ? progress : null
-      bindingDates.value = ownProgress?.dates ?? emptyDates()
       loading.value = false
       await loadBindingList(1, ownProgress?.page ?? 1)
     } else if (mode === 'bindingDetail') {
@@ -831,7 +797,6 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           <p class="review-score"><span class="score"><strong class="big-score">{{ platformScore }}</strong> <span>/ 5</span></span> <span class="muted">{{ platform.review_count }} {{ t('条评价') }}</span></p>
           <button class="quiet" type="button" @click="writeReview">{{ t('写评价') }}</button>
         </div>
-        <RecordDateFilter :date-from="reviewDates.date_from" :date-to="reviewDates.date_to" @change="filterReviews" />
         <article v-for="review in reviews" :key="review.id" class="surface review-item">
           <header class="review-header">
             <img class="review-avatar" :src="avatarForReview(review.id)" alt="" width="35" height="35" loading="lazy">
@@ -850,8 +815,8 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
           <button class="quiet" type="button" @click="loadPlatformReviews(reviews.length ? reviewPage + 1 : 1)">{{ t('重试') }}</button>
         </div>
         <EmptyState v-else-if="!reviewsLoading && !reviews.length"
-          :message="reviewDates.date_from || reviewDates.date_to ? t('这段时间暂无评价。', 'Nenhuma avaliação neste período.') : t('暂无评价。')">
-          <button v-if="!reviewDates.date_from && !reviewDates.date_to && !platform.review_count"
+          :message="t('暂无评价。')">
+          <button v-if="!platform.review_count"
             class="quiet" type="button" @click="writeReview">{{ t('写下第一条评价') }}</button>
         </EmptyState>
         <button v-else-if="reviewPage < reviewLastPage" type="button" class="quiet"
@@ -920,8 +885,6 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
       <button class="primary binding-add" type="button" aria-haspopup="dialog" @click="go(route.path + '?new=1')">
         <span aria-hidden="true">＋</span>{{ t('绑定新平台') }}
       </button>
-      <RecordDateFilter v-if="screen === 'bindings'" :date-from="bindingDates.date_from"
-        :date-to="bindingDates.date_to" @change="filterBindings" />
       <div v-if="ownBindings.length" class="stack">
         <article v-for="item in ownBindings" :key="item.id" class="surface bound-platform">
           <header class="bound-platform-heading">
@@ -955,7 +918,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
         <button type="button" class="quiet" @click="loadBindingList(ownBindings.length ? bindingPage + 1 : 1)">{{ t('重试') }}</button>
       </div>
       <EmptyState v-else-if="!ownBindings.length"
-        :message="bindingDates.date_from || bindingDates.date_to ? t('这段时间暂无绑定记录。', 'Nenhuma conta vinculada neste período.') : t('暂无已绑定平台。')" />
+        :message="t('暂无已绑定平台。')" />
       <button v-else-if="screen === 'bindings' && bindingPage < bindingLastPage" type="button" class="quiet"
         @click="loadBindingList(bindingPage + 1)">{{ t('加载更多') }}</button>
     </template>
