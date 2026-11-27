@@ -176,15 +176,20 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
   <section class="cashback-page stack" :aria-busy="loading">
     <section v-if="!isHistory" class="cashback-schedule" aria-labelledby="cashback-schedule-title">
       <div class="cashback-schedule-heading">
-        <h2 id="cashback-schedule-title">{{ t('每天自动派发', 'Crédito automático diário') }}</h2>
         <div class="cashback-schedule-time">
+          <h2 id="cashback-schedule-title">{{ t('每天自动派发', 'Crédito diário') }}</h2>
           <time datetime="12:00">12:00</time>
-          <span>{{ t('巴西利亚时间', 'Horário de Brasília') }}</span>
+          <span>{{ t('巴西利亚时间', 'Hora de Brasília') }}</span>
         </div>
-        <p>{{ t('符合条件的返利自动进入可用余额，无需手动领取。', 'O cashback elegível cai no saldo disponível. Você não precisa resgatar.') }}</p>
+        <p>{{ t('符合条件的返利自动到账，无需领取。', 'Crédito automático direto no saldo.') }}</p>
       </div>
       <div class="cashback-next">
-        <h3>{{ t('距下次自动派发', 'Tempo até o próximo crédito') }}</h3>
+        <div class="cashback-next-heading">
+          <h3>{{ t('距下次派发', 'Próximo crédito em') }}</h3>
+          <time v-if="nextDispatch > currentTime" class="cashback-next-date" :datetime="new Date(nextDispatch).toISOString()">
+            {{ formattedDate(new Date(nextDispatch).toISOString()) }}
+          </time>
+        </div>
         <template v-if="nextDispatch > currentTime">
           <div class="cashback-countdown" role="timer">
             <div v-for="(unit, index) in countdownUnits" :key="unit" class="cashback-countdown-unit">
@@ -192,9 +197,6 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
               <span>{{ unit }}</span>
             </div>
           </div>
-          <time class="cashback-next-date" :datetime="new Date(nextDispatch).toISOString()">
-            {{ formattedDate(new Date(nextDispatch).toISOString()) }}
-          </time>
         </template>
         <p v-else-if="nextDispatch" class="cashback-next-date">{{ t('已到派发时间，正在更新下次时间。', 'Chegou o horário do crédito. Atualizando a próxima data.') }}</p>
         <p v-else-if="!loading" class="cashback-next-date">{{ t('下次派发时间暂不可用。', 'O próximo horário ainda não está disponível.') }}</p>
@@ -249,14 +251,15 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
             <p v-if="previews[item.binding_id]?.observed_at" class="muted">{{ t('数据更新时间', 'Dados atualizados em') }} <time :datetime="previews[item.binding_id].observed_at">{{ formattedDate(previews[item.binding_id].observed_at) }}</time></p>
             <p v-else-if="previews[item.binding_id] === null" class="muted">{{ t('平台数据暂未更新', 'Dados da plataforma indisponíveis no momento') }}</p>
           </div>
+          <a class="cashback-details-link" :href="'#/cashback/' + item.binding_id"
+             @click.prevent="go('/cashback/' + item.binding_id)">
+            {{ t('查看明细', 'Ver detalhes') }} <span aria-hidden="true">›</span>
+          </a>
         </header>
         <dl class="cashback-metrics">
           <div class="cashback-amount cashback-amount-current"><dt>{{ t('本次预计到账', 'Crédito previsto') }}</dt><dd>{{ money(previews[item.binding_id]?.current_cents) }}</dd><small>{{ t('当前返利比例', 'Taxa atual') }} {{ rate(previews[item.binding_id]?.rebate_percent, '%') }}</small></div>
           <div class="cashback-amount cashback-amount-estimate"><dt>{{ t('最高可能返利', 'Cashback máximo possível') }}</dt><dd>{{ money(previews[item.binding_id]?.estimated_cents) }}</dd><small v-if="previews[item.binding_id]?.estimated_wager_multiplier != null">{{ rate(previews[item.binding_id].estimated_wager_multiplier, '×') }} · {{ rate(previews[item.binding_id].estimated_rebate_percent, '%') }}</small></div>
         </dl>
-        <footer class="cashback-card-footer">
-          <a class="text-button" :href="'#/cashback/' + item.binding_id" @click.prevent="go('/cashback/' + item.binding_id)">{{ t('查看明细', 'Ver detalhes') }} ›</a>
-        </footer>
       </article>
       <EmptyState v-if="!results.data.length" :message="t('绑定平台后，可在这里查看自动派发的现金返利。', 'Vincule uma plataforma para acompanhar o cashback automático.')">
         <button class="primary" type="button" @click="go('/binding?return=%2Fcashback')">{{ t('绑定平台') }}</button>
@@ -278,69 +281,74 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
 .cashback-page h2 { margin: 0; font-size: 16px; }
 .cashback-schedule {
   display: grid;
-  gap: 14px;
-  padding: 15px;
-  border: 1px solid #7a5730;
-  border-radius: 14px;
-  background: linear-gradient(148deg, #382818, #211b17 72%);
+  gap: 6px;
+  padding: 9px 11px;
+  border: 1px solid #6c512f;
+  border-radius: 12px;
+  background: #2a2018;
   color: #f4ddbe;
 }
-.cashback-schedule-heading { display: grid; gap: 5px; }
-.cashback-schedule-heading h2 { color: #fff2df; }
-.cashback-schedule-heading p, .cashback-next-date { font-size: 12px; line-height: 1.45; }
-.cashback-schedule-time { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; }
+.cashback-schedule-heading { display: grid; gap: 3px; }
+.cashback-schedule-heading h2 { color: #fff2df; font-size: 13px; }
+.cashback-schedule-heading p, .cashback-next-date { font-size: 11px; line-height: 1.35; }
+.cashback-schedule-time { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; }
 .cashback-schedule-time time {
   color: var(--highlight);
-  font-size: clamp(28px, 9vw, 38px);
+  font-size: 20px;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
-.cashback-schedule-time span { color: #f3d4a7; font-size: 12px; }
-.cashback-next {
-  display: grid;
-  gap: 7px;
-  padding-top: 11px;
-  border-top: 1px solid #5c422b;
-}
-.cashback-next h3 { margin: 0; color: #fff2df; font-size: 13px; }
-.cashback-countdown {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
-  width: min(100%, 300px);
-}
+.cashback-schedule-time span { color: #f3d4a7; font-size: 11px; }
+.cashback-next { display: grid; gap: 5px; padding-top: 6px; border-top: 1px solid #5c422b; }
+.cashback-next-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 8px; }
+.cashback-next h3 { margin: 0; color: #fff2df; font-size: 12px; }
+.cashback-countdown { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
 .cashback-countdown-unit {
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  padding: 7px 4px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  padding: 3px;
   border: 1px solid #63492f;
-  border-radius: 9px;
+  border-radius: 7px;
   background: #1b1715;
 }
 .cashback-countdown-unit strong {
   color: var(--highlight);
-  font-size: 23px;
-  line-height: 1.05;
+  font-size: 16px;
+  line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
-.cashback-countdown-unit span { font-size: 11px; }
+.cashback-countdown-unit span { font-size: 10px; }
 .cashback-card, .cashback-detail, .cashback-record {
   border-color: var(--cashback-card-border);
   border-radius: 14px;
   background: var(--cashback-card-bg);
   box-shadow: 0 5px 14px #03020255;
 }
-.cashback-card { display: grid; gap: 12px; }
-.cashback-platform { display: flex; align-items: center; gap: 10px; }
-.cashback-platform > div { min-width: 0; }
-.cashback-platform p, .cashback-record time, .cashback-card-footer { font-size: 12px; }
+.cashback-card {
+  display: grid;
+  gap: 10px;
+  border-color: #6b665c;
+  border-top: 2px solid #c28b44;
+  background: linear-gradient(140deg, #303039, #24262c 70%);
+}
+.cashback-platform {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+.cashback-platform > div { align-self: center; min-width: 0; }
+.cashback-platform h2 { color: #fff8ef; font-size: 17px; line-height: 1.15; font-weight: 800; }
+.cashback-platform p, .cashback-record time { font-size: 12px; }
 .cashback-platform p, .cashback-record time { color: var(--cashback-secondary-text); }
 .cashback-logo {
   display: grid;
   place-items: center;
-  flex: 0 0 44px;
+  width: 44px;
   aspect-ratio: 1;
   overflow: hidden;
   border: 1px solid var(--cashback-divider);
@@ -367,27 +375,24 @@ watchNotice(error, () => t('现金返利提醒', 'Aviso de cashback'), 'error')
 .cashback-amount small { display: block; margin-top: 3px; }
 .cashback-amount dd { margin: 4px 0 0; font-weight: 750; font-size: clamp(16px, 5.5vw, 24px); line-height: 1.2; font-variant-numeric: tabular-nums; }
 .cashback-credit { color: var(--highlight); font-variant-numeric: tabular-nums; }
-.cashback-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  padding-top: 9px;
-  border-top: 1px solid var(--cashback-divider);
-}
-.cashback-card-footer a {
+.cashback-details-link {
   display: inline-flex;
   align-items: center;
-  margin-inline-start: auto;
+  justify-content: center;
+  gap: 4px;
   min-height: 44px;
-  padding: 0 10px;
-  border: 1px solid #745c40;
+  padding: 0 8px;
+  border: 1px solid #8d6439;
   border-radius: 8px;
-  background: #30271f;
-  text-align: start;
+  background: #402e1d;
+  color: #ffd18a;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
 }
-.cashback-card-footer a:hover { border-color: var(--accent); }
+.cashback-details-link:hover { border-color: var(--accent); }
+.cashback-details-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cashback-detail .summary-list > div { border-color: var(--cashback-divider); }
 .cashback-records { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
 .cashback-record { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; }
