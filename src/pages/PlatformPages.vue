@@ -735,7 +735,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
                       :platform-id="item.id" :name="item.name" :logo-url="item.logo_url"
                       :cashback-binding-id="cardBindings?.get(String(item.id))"
                       :rating="item.rating" :rank="item.featured_position"
-                      :guarantee-amount="item.guarantee_amount_brl" :max-rebate-percent="item.max_rebate_percent"
+                      :guarantee-amount="item.guarantee_amount_brl" :max-rebate-percent="item.estimated_rebate_percent ?? item.max_rebate_percent"
                       :promotion-url="item.promotion_url" inline-actions />
       </div>
       <div v-if="!listing && listingError" class="surface stack message">
@@ -848,7 +848,13 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
         <button class="quiet" type="button" :aria-pressed="favorite" :disabled="busy || favoriteLoading" @click="toggleFavorite">
           <span aria-hidden="true">{{ favorite ? '★' : '☆' }}</span> {{ favorite ? t('已收藏') : t('收藏') }}
         </button>
-        <button v-if="supportsAutoBinding" type="button" class="primary" :disabled="busy" @click="registerForPlatform">
+        <template v-if="detailBindingId != null">
+          <a v-if="promotion" class="primary" :href="promotion" target="_blank" rel="noopener noreferrer">
+            {{ t('通过本站打开', 'Abrir pelo site') }} <span aria-hidden="true">↗</span>
+          </a>
+          <button v-else class="primary" type="button" disabled>{{ t('通过本站打开', 'Abrir pelo site') }}</button>
+        </template>
+        <button v-else-if="supportsAutoBinding" type="button" class="primary" :disabled="busy" @click="registerForPlatform">
           {{ t('通过本站注册') }} <span aria-hidden="true">↗</span>
         </button>
         <a v-else-if="promotion" class="primary" :href="promotion" target="_blank" rel="noopener noreferrer">{{ t('通过本站注册') }} <span aria-hidden="true">↗</span></a>

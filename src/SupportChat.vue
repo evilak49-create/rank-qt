@@ -28,7 +28,7 @@ let readVersion = 0
 let polling = false
 const liveChat = computed(() => threadLoaded.value)
 const avatar = computed(() => imageUrl(settings.value?.avatar_url))
-const humanChannels = computed(() => messages.value.findLast(item => item.reply?.type === 'human')?.reply.channels
+const humanChannels = computed(() => [...messages.value].reverse().find(item => item.reply?.type === 'human')?.reply.channels
   ?? settings.value?.channels ?? [])
 const destinations = { '/orders': '/shop/redemptions', '/withdrawals': '/withdrawal-history', '/wallet': '/cash-wallet' }
 
@@ -99,7 +99,7 @@ async function load() {
   if (!signal || signal.aborted) return
   error.value = ''
   try {
-    settings.value = (await api('/support?' + new URLSearchParams({ language: props.language }), { fresh: true, signal })).data
+    settings.value = (await api('/support?' + new URLSearchParams({ language: props.language }), { fresh: true, signal, background: true })).data
     await pollThread()
   } catch (failure) {
     if (!signal.aborted) displayError(failure)
@@ -176,7 +176,7 @@ async function send(item) {
   try {
     const { conversation: updatedThread } = await api('/support/chat', {
       body: { question: item.question, language: props.language, request_id: item.id, conversation_id: threadId.value },
-      signal, timeoutMs: 18000,
+      signal, timeoutMs: 18000, background: true,
     })
     mergeThread(updatedThread, messages.value.length ? 'newer' : 'first')
   } catch (failure) {

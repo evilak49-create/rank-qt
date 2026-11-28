@@ -31,7 +31,7 @@ export async function api(path, options = {}) {
   const method = options.method ?? (options.body === undefined ? 'GET' : 'POST')
   const key = method === 'GET' && canCache(path) ? responseKey(path) : ''
   const writes = method !== 'GET' && !queryPosts.has(path)
-  options.signal?.throwIfAborted()
+  if (options.signal?.aborted) throw options.signal.reason ?? new DOMException('Request aborted', 'AbortError')
   if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('当前网络不可用，请联网后重试')
 
   if (key && !options.fresh && !writesInProgress && responses.has(key)) {
@@ -76,22 +76,19 @@ async function request(path, { body, signal, timeoutMs = 10000, method = body ==
     if (body !== undefined && !multipart) headers['Content-Type'] = 'application/json'
   }
 
-  const timeout = AbortSignal.timeout(timeoutMs)
-  const response = await fetch('/api/v1' + path, {
+  const options = {
     method,
     cache: 'no-store',
     credentials: 'same-origin',
     headers,
     body: multipart ? body : JSON.stringify(body),
-    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-  })
+  }
+  const { response, result, json } = await fetchResponse('/api/v1' + path, options, signal, timeoutMs)
   if (response.status === 204) {
     if (path === '/auth/logout' || path === '/auth/reset-password') authenticated = false
     return null
   }
 
-  const json = response.headers.get('content-type')?.includes('application/json')
-  const result = json ? await response.json() : null
   if (!response.ok || !json) {
     if ((response.status === 401 && (!path.startsWith('/auth/') || (path === '/auth/me' && authenticated)))
       || result?.code === 'member_disabled') {
@@ -110,6 +107,22 @@ async function request(path, { body, signal, timeoutMs = 10000, method = body ==
   }
   if (path === '/auth/me' || path === '/auth/login') authenticated = true
   return result
+}
+
+async function fetchResponse(url, options, signal, timeoutMs) {
+  const controller = new AbortController()
+  const abort = () => controller.abort(signal.reason)
+  if (signal?.aborted) abort()
+  else signal?.addEventListener('abort', abort, { once: true })
+  const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeoutMs)
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal })
+    const json = response.status !== 204 && response.headers.get('content-type')?.includes('application/json')
+    return { response, json, result: json ? await response.json() : null }
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', abort)
+  }
 }
 
 export function imageUrl(value) {

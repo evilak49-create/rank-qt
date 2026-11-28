@@ -167,7 +167,7 @@ function copyTextForError() { return props.copy.error }
                       :key="platform.id" :platform-id="platform.id"
                       :cashback-binding-id="cardBindings?.get(String(platform.id))" :name="platform.name" :logo-url="platform.logo_url"
                       :rating="platform.rating" :rank="platform.featured_position"
-                      :guarantee-amount="platform.guarantee_amount_brl" :max-rebate-percent="platform.max_rebate_percent"
+                      :guarantee-amount="platform.guarantee_amount_brl" :max-rebate-percent="platform.estimated_rebate_percent ?? platform.max_rebate_percent"
                       :promotion-url="platform.promotion_url" inline-actions home />
       </div>
       <div v-else-if="selectedBlock.state === 'error'" class="state" role="status">

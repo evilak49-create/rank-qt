@@ -362,7 +362,7 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
       </div>
     </div>
   </dialog>
-  <DataLoading :language="language" />
+  <DataLoading v-if="viewRoute.path !== '/support'" :language="language" />
   <FeedbackDialog :language="language" />
   <PwaOfflineNotice :locale="language" :message="pwaSettings?.copy[language]?.offline" />
 </template>
