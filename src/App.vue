@@ -36,6 +36,7 @@ const accountNotice = ref('')
 const language = ref('zh-CN')
 const { t } = provideLocale(language)
 const { settings: pwaSettings, standalone, installPrompt } = usePwa()
+const pwaBannerDismissed = ref(false)
 let sessionVersion = 0
 const navbar = {
   '/': 'home', '/platforms': 'platforms', '/shop': 'shop', '/red-packets': 'redPackets', '/member': 'member',
@@ -300,8 +301,9 @@ onBeforeUnmount(() => window.removeEventListener('cash-club-session-expired', se
 </script>
 
 <template>
-  <PwaInstallBanner v-if="viewRoute.path === '/' && !standalone" :settings="pwaSettings"
-                    :locale="language" :prompt="installPrompt" @consume-prompt="installPrompt = null" />
+  <PwaInstallBanner v-if="viewRoute.path === '/' && !standalone && !pwaBannerDismissed" :settings="pwaSettings"
+                    :locale="language" :prompt="installPrompt" @consume-prompt="installPrompt = null"
+                    @dismiss="pwaBannerDismissed = true" />
   <HomePage v-if="viewRoute.path === '/' && viewReady" :route="viewRoute" :language="language" :copy="copy" :member="member" :card-bindings="cardBindings"
             @language="language = $event" />
   <template v-else>

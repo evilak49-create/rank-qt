@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { installationUrl } from './pwa'
 
 const props = defineProps({ settings: Object, locale: String, prompt: Object })
-const emit = defineEmits(['consume-prompt'])
+const emit = defineEmits(['consume-prompt', 'dismiss'])
 const dialog = ref(null)
 const portuguese = computed(() => props.locale === 'pt-BR')
 const copy = computed(() => props.settings?.copy[props.locale])
@@ -60,7 +60,12 @@ watch(() => props.settings, showAfterRedirect, { flush: 'post' })
   <div v-if="settings?.enabled && copy" class="pwa-banner">
     <div class="wrap pwa-banner-inner">
       <p>{{ copy.message }}</p>
-      <button type="button" @click="install">{{ copy.button }}</button>
+      <div class="pwa-banner-actions">
+        <button type="button" @click="install">{{ copy.button }}</button>
+        <button type="button" class="pwa-banner-dismiss"
+                :aria-label="portuguese ? 'Fechar aviso de instalação' : '关闭安装提示'"
+                @click="emit('dismiss')">×</button>
+      </div>
     </div>
     <dialog ref="dialog" class="pwa-install-dialog" aria-labelledby="pwa-install-title" @click.self="dialog.close()">
       <section>
@@ -78,8 +83,19 @@ watch(() => props.settings, showAfterRedirect, { flush: 'post' })
 .pwa-banner + :global(.home-gold .site-header), .pwa-banner + :global(.page-topbar) { padding-top: 0; }
 .pwa-banner-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 7px; }
 .pwa-banner p { margin: 0; font-size: .875rem; overflow-wrap: anywhere; }
-.pwa-banner button:not(.quiet) { min-height: 40px; padding-inline: 12px; border: 0; border-radius: 8px; color: #211507; background: #f5c66e; font-weight: 700; }
-.pwa-banner-inner button { flex: 0 0 auto; max-width: 45%; overflow-wrap: anywhere; }
+.pwa-banner button:not(.quiet):not(.pwa-banner-dismiss) { min-height: 40px; padding-inline: 12px; border: 0; border-radius: 8px; color: #211507; background: #f5c66e; font-weight: 700; }
+.pwa-banner-actions { display: flex; flex: 0 1 auto; align-items: center; gap: 4px; max-width: 62%; min-width: 0; }
+.pwa-banner-actions > button:first-child { min-width: 0; overflow-wrap: anywhere; }
+.pwa-banner-dismiss {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  color: #fff4dc;
+  font-size: 23px;
+  line-height: 1;
+}
+.pwa-banner-dismiss:hover, .pwa-banner-dismiss:focus-visible { background: #45351f; }
 .pwa-install-dialog { width: min(calc(100% - 32px), 420px); padding: 0; border: 1px solid #5f4a2e; border-radius: 14px; background: #18181b; color: #fafafa; }
 .pwa-install-dialog::backdrop { background: #000b; }
 .pwa-install-dialog section { padding: 20px; }
