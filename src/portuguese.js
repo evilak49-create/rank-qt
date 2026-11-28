@@ -28,7 +28,7 @@ export const portuguese = {
   "暂时无法确认领取结果，请重试。": "Não foi possível confirmar o recebimento. Tente novamente.",
   "有一笔领取结果待确认。": "Há uma solicitação de auxílio com recebimento a confirmar.",
   "领取后即时进入现金钱包，可提现。": "O valor cai na carteira na hora e fica disponível para saque.",
-  "首次从绑定时记录的盈亏快照起算。没有绑定快照的账号，从首次取得有效快照起算。之后从上次成功领取起算。": "O primeiro período começa no registro do saldo de ganhos e perdas feito ao vincular a conta. Se esse registro não existir, começa no primeiro registro válido. Os períodos seguintes começam no último recebimento do auxílio.",
+  "首次从本网站注册时间起算，绑定前符合条件的记录也计入。历史数据需要经平台核实。之后从上次成功领取时起算。": "O primeiro período começa no cadastro neste site e inclui os registros elegíveis anteriores à vinculação. O histórico precisa ser confirmado pela plataforma. Os períodos seguintes começam no último recebimento do auxílio.",
   "本期净亏损须达到平台账号累计存款的指定比例，本期实际打码倍数须小于或等于上限。": "A perda líquida no período deve atingir a porcentagem indicada dos depósitos acumulados na conta da plataforma, e o múltiplo de apostas no período deve ser menor ou igual ao limite.",
   "救援金按本期充值总额乘以适用比例计算。各担保平台统一使用同一个档位上限和救援金比例。": "O auxílio é calculado multiplicando-se o total depositado no período pelo percentual aplicável. A faixa máxima e o percentual são iguais para todas as plataformas participantes.",
   "领取后即时进入现金钱包，可提现。到账后可在「个人中心 → 资金记录」查询。": "O valor cai na carteira na hora e fica disponível para saque. Consulte o crédito em Meu perfil → Movimentações financeiras.",
