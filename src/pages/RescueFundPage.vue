@@ -157,7 +157,7 @@ onUnmounted(() => {
             <div><dt>{{ t('本期充值') }}</dt><dd>{{ showValue(platform.deposit_cents, formatBrl) }}</dd></div>
             <div><dt>{{ t('本期净亏损') }}</dt><dd>{{ showValue(platform.net_loss_cents, formatBrl) }}</dd></div>
             <div><dt>{{ t('本期实际打码倍数') }}</dt><dd>{{ showValue(platform.wager_multiplier, value => formatTier(Number(value) * scale)) }}</dd></div>
-            <div><dt>{{ t('救援金比例') }}</dt><dd>{{ showValue(settings?.percent_micros, formatRate) }}</dd></div>
+            <div><dt>{{ t('救援金比例') }}</dt><dd>{{ showValue(platform.canClaim ? settings?.percent_micros : 0, formatRate) }}</dd></div>
             <div class="rescue-amount"><dt>{{ t('可领救援金') }}</dt><dd>{{ showValue(platform.amount_cents, formatBrl) }}</dd></div>
           </dl>
           <button v-if="platform.canClaim" class="primary" type="button"
@@ -167,7 +167,6 @@ onUnmounted(() => {
           </button>
           <button v-else class="primary" type="button" disabled>{{ t('未满足领取条件', 'Requisitos não atendidos') }}</button>
         </article>
-        <p v-if="platforms.length" class="muted">{{ t('领取后即时进入现金钱包，可提现。') }}</p>
       </template>
     </section>
   </div>
