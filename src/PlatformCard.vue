@@ -10,7 +10,9 @@ import { api, imageUrl } from './api'
 import { icons } from './icons'
 import { useLocale } from './locale'
 import { formatGuaranteeAmount } from './money'
-import { go } from './navigation'
+import { currentRoute, go } from './navigation'
+import { openPlatformRegistration } from './platformRegistration'
+import { showNotice } from './feedback'
 
 const props = defineProps({
   platformId: [Number, String],
@@ -21,6 +23,7 @@ const props = defineProps({
   guaranteeAmount: [Number, String],
   maxRebatePercent: [Number, String],
   promotionUrl: String,
+  signedIn: Boolean,
   cashbackBindingId: [Number, String],
   detailHref: String,
   row: Boolean,
@@ -33,6 +36,8 @@ const card = ref(null)
 const trigger = ref(null)
 const menuId = Symbol()
 const discoveredUrl = ref()
+const openingRegistration = ref(false)
+let disposed = false
 const opened = computed(() => activeMenu.value?.id === menuId)
 const path = computed(() => '/platforms/' + props.platformId)
 const artwork = ref('')
@@ -94,7 +99,10 @@ function toggle() {
   else activeMenu.value = { id: menuId, pinned: true }
 }
 
-onUnmounted(close)
+onUnmounted(() => {
+  disposed = true
+  close()
+})
 
 watch(opened, (active, _, onCleanup) => {
   if (!active) return
@@ -115,6 +123,27 @@ watch([path, shouldDiscoverUrl], ([urlPath, active], previous, onCleanup) => {
     if (!request.signal.aborted) discoveredUrl.value = data.promotion_url ?? null
   }).catch(() => {})
 }, { immediate: true })
+
+async function visitPlatform() {
+  if (openingRegistration.value) return
+  const route = currentRoute.value
+  if (!props.signedIn) {
+    go('/login?' + new URLSearchParams({ next: route.fullPath }))
+    return
+  }
+
+  const current = () => !disposed && currentRoute.value === route
+  openingRegistration.value = true
+  try {
+    await openPlatformRegistration(path.value, current, t('推广链接不可用。', 'O link de inscrição está indisponível.'))
+  } catch (failure) {
+    if (current()) showNotice(t('进入平台', 'Abrir site'), t(
+      failure.message || '推广链接不可用。', 'Não foi possível abrir a plataforma. Tente novamente.',
+    ), 'error')
+  } finally {
+    openingRegistration.value = false
+  }
+}
 
 function details(event) {
   if (props.detailHref || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
@@ -168,6 +197,11 @@ function details(event) {
           <svg v-if="home" class="platform-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.document"/></svg>
           {{ inlineActions ? t('品牌详情', 'Detalhes') : t('网站详情', 'Detalhes do site') }}
         </a>
+        <button v-else-if="inlineActions && url.startsWith('https://')" class="quiet platform-visit" type="button"
+                :disabled="openingRegistration" @click="visitPlatform">
+          <svg v-if="home" class="platform-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.external"/></svg>
+          {{ t('进入平台', 'Abrir site') }}
+        </button>
         <a v-else-if="url" class="quiet platform-visit" :href="url" target="_blank" rel="noopener noreferrer">
           <svg v-if="home" class="platform-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path :d="icons.external"/></svg>
           {{ inlineActions ? t('进入平台', 'Abrir site') : t('打开网站', 'Abrir site') }}

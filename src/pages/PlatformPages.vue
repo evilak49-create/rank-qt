@@ -12,6 +12,7 @@ import { api, imageUrl } from '../api'
 import { icons } from '../icons'
 import { formatGuaranteeAmount } from '../money'
 import PlatformCard from '../PlatformCard.vue'
+import { openPlatformRegistration } from '../platformRegistration'
 import ProtectionContract from './ProtectionContract.vue'
 import { go, restoreScroll, resume, safePath } from '../navigation'
 import { avatarForReview } from './memberAvatars.js'
@@ -160,23 +161,9 @@ function registerForPlatform() {
     return
   }
 
-  const path = platformPath.value + '/registration'
-  const tab = window.open('about:blank', '_blank')
-  if (tab) tab.opener = null
-  run(async current => {
-    let opened = false
-    try {
-      const { data } = await api(path, { method: 'POST' })
-      if (!current()) return
-      const url = new URL(data.url)
-      if (url.protocol !== 'https:') throw new Error(t('推广链接不可用。', 'O link de inscrição está indisponível.'))
-      if (tab && !tab.closed) tab.location.replace(url.href)
-      else window.location.assign(url.href)
-      opened = true
-    } finally {
-      if (!opened) tab?.close()
-    }
-  })
+  run(current => openPlatformRegistration(
+    platformPath.value, current, t('推广链接不可用。', 'O link de inscrição está indisponível.'),
+  ))
 }
 
 function formatDate(value) {
@@ -736,7 +723,7 @@ watchNotice(status, text => text?.startsWith('验证码') ? '验证码已发送'
                       :cashback-binding-id="cardBindings?.get(String(item.id))"
                       :rating="item.rating" :rank="item.featured_position"
                       :guarantee-amount="item.guarantee_amount_brl" :max-rebate-percent="item.estimated_rebate_percent ?? item.max_rebate_percent"
-                      :promotion-url="item.promotion_url" inline-actions />
+                      :promotion-url="item.promotion_url" :signed-in="Boolean(member)" inline-actions />
       </div>
       <div v-if="!listing && listingError" class="surface stack message">
         <button class="quiet" type="button" @click="listPlatforms(directory.length ? listPage + 1 : 1)">{{ t('重试') }}</button>
